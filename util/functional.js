@@ -31,7 +31,7 @@ var efilter = function(obj, type) {
     //only execute the callback if all the filters pass
     for (var i=0; i<filters.length && filters[i].apply(this, Array.prototype.slice.call(arguments)); i++);
     //if we made it all the way through, fire the callback
-    if (i == filter.length) callback.apply(this, Array.prototype.slice.call(arguments));
+    if (i == filters.length) callback.apply(this, Array.prototype.slice.call(arguments));
   };
 
   //attach the listener
