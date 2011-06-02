@@ -30,22 +30,26 @@ var handlers = {
 };
 
 var handle = function(client, type, data, callback, errback) {
-
-  // Validate the data
-  if (!validate(validators[type], data)) return errback('Message failed validation');
-
-  // If we don't have a handler for this type, yep, it's a validation
-  // error.
-  if (!(type in handlers)) return errback('Not Yet Implemented');
-
-  // If we're here, we can dispatch to the handler because
-  // everything's good
   try {
-    handlers[type](client, data, callback, errback);
+    // Validate the data
+    if (!validate(validators[type], data)) return errback('Message failed validation');
+
+    // If we don't have a handler for this type, yep, it's a validation
+    // error.
+    if (!(type in handlers)) return errback('Not Yet Implemented');
+
+    // If we're here, we can dispatch to the handler because
+    // everything's good
+    try {
+      handlers[type](client, data, callback, errback);
+    } catch (err) {
+      errback('Server Error');
+      console.log(err.stack);
+      console.log('');
+    }
   } catch (err) {
-    errback('Server Error');
-    console.log(err.stack);
-    console.log('');
+    errback('Server error');
+    console.log(err.stack, '');
   }
 };
 

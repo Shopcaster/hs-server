@@ -39,8 +39,9 @@ init = function(server, handler) {
 
     //listen for messages
     c.on('message', function(msg) {
+      var done = false;
+
       try {
-        var done = false;
         var message = deserialize(msg);
         var mid = message.data.id;
         delete message.data.id;
