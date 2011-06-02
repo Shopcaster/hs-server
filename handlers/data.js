@@ -26,7 +26,7 @@ var validators = {
 var create = function(client, data, callback, errback) {
   // Do some basic validation
   if (!data.type in validators) return errback('Invalid type');
-  if (!validate(validators[data.type])) return errback('Invalid field');
+  if (!validate(validators[data.type], data.data)) return errback('Invalid field');
 
   // For now we can literally just stuff the data in a new fieldset
   var fs = new db.FieldSet(data.type);
@@ -46,7 +46,7 @@ var update = function(client, data, callback, errback) {
 
   // Do some basic validation
   if (!key.type in validators) return errback('Invalid type');
-  if (!validate(validators[key.type])) return errback('Invalid field');
+  if (!validate(validators[key.type], data.diff)) return errback('Invalid field');
 
   // Stuff the data into a fieldset
   var fs = new db.FieldSet(key.type);
