@@ -51,8 +51,12 @@ var apply = function() {
     //set the updated date
     fs.modified = new Date().getTime();
 
-    //if the fs doesn't have an _id, we need to set its created date
-    if (!fs._id) fs.created = fs.modified;
+    //if the fs doesn't have a created, we need to set its created date
+    if (!fs.created) fs.created = fs.modified;
+
+    //if there's no deleted field, add one
+    if (fs.deleted === undefined)
+      fs.deleted = true;
 
     //if there's no id, generate one
     if (!fs._id)
@@ -84,6 +88,17 @@ var get = function(fs, callback) {
     else col.find({_id: fs._id}).limit(1).nextObject(function(err, obj) {
       if (err) callback(true);
       else merge(obj, fs) || callback(false);
+    });
+  });
+};
+
+var queryOne = function(type, q, callback) {
+  if (!type.constructor || !type.constructor.name) callback(true);
+  else db.collection(type.constructor.name, function(err, col) {
+    if (err) callback(true);
+    else col.find(q).limit(1).nextObject(function(err, obj) {
+      if (err) callback(true);
+      else callback(false, obj);
     });
   });
 };

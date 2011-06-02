@@ -1,4 +1,4 @@
-var FieldSet = require('../db').FieldSet;
+var FieldSet = require('./db').FieldSet;
 
 var Listing = function listing() {};
 Listing.prototype = FieldSet;
