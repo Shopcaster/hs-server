@@ -15,7 +15,8 @@
     "socket.io": "latest",
     "cli": "latest",
     "mailgun": "latest",
-    "mongodb": "latest"
+    "mongodb": "latest",
+    "colors": "latest"
   },
 
   "bin": {"hss": "./main.js"}
