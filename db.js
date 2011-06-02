@@ -55,7 +55,7 @@ var apply = function() {
     var eventType = fs._id ? 'update' : 'create';
 
     //set the updated date
-    fs.modified = new Date().getTime();
+    fs.modified = new Date().getTime() - 1307042003319;
 
     //perform the upsert
     var upsert = function() {
@@ -149,7 +149,7 @@ FieldSet.prototype.merge = function(from) {
 };
 FieldSet.prototype.bootstrap = function(id) {
   this._id = id;
-  this.created = this.modified || new Date().getTime();
+  this.created = this.modified || (new Date().getTime() - 1307042003319);
   this.deleted = false;
 
   return this;
