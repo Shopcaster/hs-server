@@ -11,7 +11,8 @@ cli.parse({
   port: ['p', 'Listen on this port', 'number', 8000],
   host: ['s', 'Listen on this hostname', 'string', '0.0.0.0'],
   dbhost: ['dbs', 'Database server hostname', 'string', 'localhost'],
-  dbport: ['dbp', 'Database server port', 'number', 27017]
+  dbport: ['dbp', 'Database server port', 'number', 27017],
+  dbname: ['dbn', 'Database name', 'string', 'hipsell']
 });
 
 cli.main(function(args, opts) {
@@ -20,7 +21,7 @@ cli.main(function(args, opts) {
 
   //set up database
   console.log('  Initializing Database');
-  db.init(opts.dbhost, opts.dbport, function() {
+  db.init(opts.dbhost, opts.dbport, opts.dbname, function() {
 
     //set up http
     console.log('  Initializing HTTP on ' + opts.host + ':' + opts.port);
