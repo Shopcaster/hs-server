@@ -1,6 +1,6 @@
 var mongo = require('mongodb'),
     func = require('./functional'),
-    events = require('events');
+    EventEmitter = require('events').EventEmitter;
 
 ///////////////////////////////
 // Utility
@@ -17,8 +17,11 @@ var makeNiceId = function(namespace) {
   //todo
 };
 
-var merge = function(from, into) {
+var merge = function(into, from) {
+  for (var i in from) if (from.hasOwnProperty(i))
+    into[i] = from[i];
 
+  return true;
 };
 
 ///////////////////////////////
@@ -68,9 +71,10 @@ var apply = function() {
         col.update({_id: fs._id}, fs, {upsert: true}, function(err) {
           //todo - error handling
 
-          //send the event
+          //send the event, with the cloned fieldset so event
+          //handlers can't clobber the original
           if (!err)
-            events.emit(eventType, fs);
+            events.emit(eventType, fs.clone());
         });
       });
     };
@@ -89,7 +93,8 @@ var get = function(fs, callback) {
     if (err) callback(true);
     else col.find({_id: fs._id}).limit(1).nextObject(function(err, obj) {
       if (err) callback(true);
-      else merge(obj, fs) || callback(false);
+      else if (!obj) callback(false, false);
+      else merge(fs, obj) && callback(false, true);
     });
   });
 };
@@ -122,6 +127,15 @@ FieldSet.prototype.genId = function(callback) {
   this._id = makeId();
   if (callback) callback();
 };
+FieldSet.prototype.clone = function() {
+  var fs = function() {};
+  fs.prototype = new FieldSet(this.getCollection());
+
+  for (var i in this) if (this.hasOwnProperty(i))
+    fs[i] = this[i];
+
+  return fs;
+};
 
 ///////////////////////////////
 // Exports
@@ -138,7 +152,5 @@ exports.FieldSet = FieldSet;
 ///////////////////////////////
 // Events Hack
 ///////////////////////////////
-var events = new events.EventEmitter();
-
-for (var i in events) if (events.hasOwnProperty(i))
-  exports[i] = events[i]
+var events = new EventEmitter();
+exports.events = events;

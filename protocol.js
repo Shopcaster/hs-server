@@ -76,7 +76,13 @@ var handle = function(client, type, data, callback, errback) {
 
   // If we're here, we can dispatch to the handler because
   // everything's good
-  handlers[type](client, data, callback, errback);
+  try {
+    handlers[type](client, data, callback, errback);
+  } catch (err) {
+    errback('Server Error');
+    console.log(err.stack);
+    console.log('');
+  }
 };
 
 exports.handle = handle;

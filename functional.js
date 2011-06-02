@@ -15,7 +15,7 @@ Function.prototype.curry = function() {
 // var killer = efilter(foo, 'someEvent')
 //   (function(bar) { return bar.isSnazzy })
 //   (function(bar) { return !bar.isUgly })
-//   .do(function(bar) {
+//   .run(function(bar) {
 //     //handle event
 //   });
 //
@@ -31,17 +31,18 @@ var efilter = function(obj, type) {
     //only execute the callback if all the filters pass
     for (var i=0; i<filters.length && filters[i].apply(this, Array.prototype.slice.call(arguments)); i++);
     //if we made it all the way through, fire the callback
-    if (i == filter.length) callback();
+    if (i == filter.length) callback.apply(this, Array.prototype.slice.call(arguments));
   };
 
   //attach the listener
   obj.on(type, runIt);
 
   var ret = function(predicate) {
-    filters.append(predicate);
+    if (predicate)
+      filters.push(predicate);
     return ret;
   };
-  ret.do = function(clbk) {
+  ret.run = function(clbk) {
     callback = clbk;
     return {kill: function() {
       obj.removeListener(type, runIt);
@@ -50,3 +51,6 @@ var efilter = function(obj, type) {
 
   return ret;
 };
+
+exports.efilter = efilter;
+
