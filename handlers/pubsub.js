@@ -58,8 +58,8 @@ var sub = function(client, data, callback, errback) {
   } else {
     // Util/DRY
     var filter = function(fs) {
-      return fs.getCollection() = key.relation.type
-          && fs[key.relation.field] = key.id;
+      return fs.getCollection() == key.relation.type
+          && fs[key.relation.field] == key.id;
     };
     var send = function(add, remove) {
       client.send('pub', {
@@ -73,7 +73,7 @@ var sub = function(client, data, callback, errback) {
 
     // Register the subscription
     // TODO - delete
-    subs[client.id][data.key] = func.efilter(db,events, ['create', 'update'])
+    subs[client.id][data.key] = func.efilter(db.events, ['create', 'update'])
       (filter).run(function(fs) { send(fs._id) });
 
     // Get the IDs
