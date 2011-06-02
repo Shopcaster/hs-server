@@ -1,6 +1,7 @@
 var validate = require('./../util/validation').validate,
     keys = require('./../util/keys'),
-    db = require('./../db');
+    db = require('./../db'),
+    auth = require('./auth');
 
 var validators = {
   'user': {name: 'string?',
@@ -31,6 +32,8 @@ var create = function(client, data, callback, errback) {
   // For now we can literally just stuff the data in a new fieldset
   var fs = new db.FieldSet(data.type);
   fs.merge(data.data);
+  //creator field is required on everything
+  fs.creator = auth.getAuth(client)._id;
 
   // Do the save!
   db.apply(fs, function() {
