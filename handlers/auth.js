@@ -1,5 +1,6 @@
 var db = require('./../db'),
-    models = require('../models');
+    models = require('../models'),
+    crypto = require('crypto');
 
 var pwAdjectives = [
   'Happy',
@@ -27,22 +28,25 @@ var pwNouns = [
 ];
 
 var createPassword = function(email) {
-  var adjective = Math.floor(Math.random() * pwAdjectives.length);
-  var noun = Math.floor(Math.random() * pwNouns.length);
+  var adjective = pwAdjectives[Math.floor(Math.random() * pwAdjectives.length)];
+  var noun = pwNouns[Math.floor(Math.random() * pwNouns.length)];
   var n = Math.floor(Math.random() * 100 + 1);
 
   var pwRaw = adjective + '_' + noun + n;
   console.log('New password: ' + pwRaw);
 
-  return crypto.createHash('sha256').update(pwRaw + email).toUpperCase();
+  return crypto.createHash('sha256').update(pwRaw + email).digest('hex').toUpperCase();
 };
 
 // clientId -> models.Auth._id
 var auths = [];
 
 var auth = function(client, data, callback) {
+
+  // Look for an auth object with this email
   db.queryOne(models.Auth, {email: data.email}, function(err, obj) {
-    //if something went wrong with the db just fail out
+
+    // If something went wrong with the db just fail out
     if (err) {
       callback('error-server');
       return;
@@ -55,7 +59,7 @@ var auth = function(client, data, callback) {
       // Create an auth/user record for this email
       var auth = new models.Auth();
       auth.email = data.email;
-      auth.password = createPassword(email);
+      auth.password = createPassword(data.email);
 
       var user = new models.User();
       // In order to give the new Auth object a reference to this

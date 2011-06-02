@@ -66,7 +66,9 @@ var apply = function() {
 
     //perform the upsert
     var upsert = function() {
-      db.collection(fs.constructor.name, function(err, col) {
+      db.collection(fs.getCollection(), function(err, col) {
+
+
         //todo - error handling
 
         col.update({_id: fs._id}, fs, {upsert: true}, function(err) {
@@ -83,7 +85,7 @@ var apply = function() {
 
 var get = function(fs, callback) {
   if (!fs._id) callback(true);
-  else db.collection(fs.constructor.name, function(err, col) {
+  else db.collection(fs.getCollection(), function(err, col) {
     if (err) callback(true);
     else col.find({_id: fs._id}).limit(1).nextObject(function(err, obj) {
       if (err) callback(true);
@@ -93,8 +95,8 @@ var get = function(fs, callback) {
 };
 
 var queryOne = function(type, q, callback) {
-  if (!type.constructor || !type.constructor.name) callback(true);
-  else db.collection(type.constructor.name, function(err, col) {
+  if (!type.prototype.getCollection) callback(true);
+  else db.collection(type.prototype.getCollection(), function(err, col) {
     if (err) callback(true);
     else col.find(q).limit(1).nextObject(function(err, obj) {
       if (err) callback(true);
@@ -107,7 +109,15 @@ var queryOne = function(type, q, callback) {
 // FieldSets
 ///////////////////////////////
 
-var FieldSet = function() {};
+var FieldSet = function(collection) {
+  //require collection
+  if (!collection)
+    throw new Error('Must set collection name when created a fieldset');
+
+  this.getCollection = function() {
+    return collection;
+  };
+};
 FieldSet.prototype.genId = function(callback) {
   this._id = makeId();
   if (callback) callback();
@@ -120,6 +130,7 @@ FieldSet.prototype.genId = function(callback) {
 exports.init = init;
 exports.apply = apply;
 exports.get = get;
+exports.queryOne = queryOne;
 exports.makeNiceId = makeNiceId;
 
 exports.FieldSet = FieldSet;

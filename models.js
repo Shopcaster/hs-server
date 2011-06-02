@@ -1,16 +1,26 @@
 var FieldSet = require('./db').FieldSet;
 
-var Listing = function listing() {};
-Listing.prototype = FieldSet;
+var Auth = function() {};
+Auth.prototype = new FieldSet('auth');
 
-var User = function user() {};
-Listing.prototype = FieldSet;
+var Listing = function() {};
+Listing.prototype = new FieldSet('listing');
 
-var Offer = function offer() {};
-Offer.prototype = FieldSet;
+var User = function() {};
+User.prototype = new FieldSet('user');
 
-var Message = function message() {};
-Message.prototype = FieldSet;
+var Offer = function() {};
+Offer.prototype = new FieldSet('offer');
 
-var Inquiry = function inquiry() {};
-Inquiry.prototype = FieldSet;
+var Message = function() {};
+Message.prototype = new FieldSet('message');
+
+var Inquiry = function() {};
+Inquiry.prototype = new FieldSet('inquiry');
+
+exports.Auth = Auth;
+exports.Listing = Listing;
+exports.User = User;
+exports.Offer = Offer;
+exports.Message = Message;
+exports.Inquiry = Inquiry;
