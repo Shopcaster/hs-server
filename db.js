@@ -1,5 +1,4 @@
 var mongo = require('mongodb'),
-    func = require('./functional'),
     EventEmitter = require('events').EventEmitter;
 
 ///////////////////////////////
@@ -15,13 +14,6 @@ var makeId = function() {
 
 var makeNiceId = function(namespace) {
   //todo
-};
-
-var merge = function(into, from) {
-  for (var i in from) if (from.hasOwnProperty(i))
-    into[i] = from[i];
-
-  return true;
 };
 
 ///////////////////////////////
@@ -43,6 +35,17 @@ var init = function(host, port, name, callback) {
 };
 
 var apply = function() {
+  // Checking for zero arguments here makes things easier down the
+  // road.
+  if (!arguments.length) return;
+
+  // Shift out the callback if it's there
+  var callback;
+  if (typeof arguments[arguments.length - 1] == 'function')
+    callback = arguments[--arguments.length];
+
+  // Countdown used for determining when to fire the callback
+  var opCount = arguments.length;
 
   //process each fieldset
   for (var i=0; i<arguments.length; i++) {
@@ -54,15 +57,13 @@ var apply = function() {
     //set the updated date
     fs.modified = new Date().getTime();
 
-    //if the fs doesn't have a created, we need to set its created date
-    if (!fs.created) fs.created = fs.modified;
-
-    //if there's no deleted field, add one
-    if (fs.deleted === undefined)
-      fs.deleted = false;
-
     //perform the upsert
     var upsert = function() {
+      // Decrement opcount here -- technically speaking the data
+      // hasn't been saved yet, but they have ID's which *should*
+      // be all anyone needs... (maybe?)
+      if (--opCount == 0 && callback) callback();
+
       db.collection(fs.getCollection(), function(err, col) {
         //ye olde error dump
         if (err) return console.log(err.stack, '');
@@ -79,9 +80,11 @@ var apply = function() {
       });
     };
 
-    //if there's no id, generate one
+    // If there's no ID, it's a new record and we need to set up
+    // the default fields and create an id.
     if (!fs._id)
-      fs.genId(upsert);
+      //generate an id for it
+      fs.bootstrap().genId(upsert);
     else
       upsert();
   }
@@ -94,7 +97,7 @@ var get = function(fs, callback) {
     else col.find({_id: fs._id}).limit(1).nextObject(function(err, obj) {
       if (err) callback(true);
       else if (!obj) callback(false, false);
-      else merge(fs, obj) && callback(false, true);
+      else fs.merge(obj) && callback(false, true);
     });
   });
 };
@@ -126,6 +129,8 @@ var FieldSet = function(collection) {
 FieldSet.prototype.genId = function(callback) {
   this._id = makeId();
   if (callback) callback();
+
+  return this;
 };
 FieldSet.prototype.clone = function() {
   var fs = function() {};
@@ -135,6 +140,19 @@ FieldSet.prototype.clone = function() {
     fs[i] = this[i];
 
   return fs;
+};
+FieldSet.prototype.merge = function(from) {
+  for (var i in from) if (from.hasOwnProperty(i))
+    this[i] = from[i];
+
+  return this;
+};
+FieldSet.prototype.bootstrap = function(id) {
+  this._id = id;
+  this.created = this.modified || new Date().getTime();
+  this.deleted = false;
+
+  return this;
 };
 
 ///////////////////////////////

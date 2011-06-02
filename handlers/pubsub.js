@@ -1,22 +1,7 @@
-var func = require('./../functional'),
+var keys = require('./../util/keys'),
+    func = require('./../util/functional'),
     db = require('./../db'),
     auth = require('./auth');
-
-//               type : key [: type.field]
-var keyRegex = /^(\w+):(\w+)(:(\w+)\.(\w+))?$/
-var parseKey = function(key) {
-  var res = keyRegex.exec(key);
-
-  if (!res || res.length < 3) return null;
-
-  // Build the result
-  var k = {type: res[1], id: res[2]};
-  // If the regex included a relation, include that
-  if (res[3])
-    k.relation = {type: res[4], field: res[5]};
-
-  return k;
-};
 
 // clientid -> {key, killer}
 var subs = [];
@@ -37,7 +22,7 @@ var sub = function(client, data, callback, errback) {
   }
 
   // Break up the key into its components
-  var key = parseKey(data.key);
+  var key = keys.parse(data.key);
   if (!key) return errback('Bad key format');
 
   // Listen on non-relation

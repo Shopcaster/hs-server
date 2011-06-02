@@ -59,8 +59,8 @@ init = function(server, handler) {
             client.send('response', {id: mid, error: err});
           done = true
         });
-      } catch (e) {
-        //todo - log bad mesage
+      } catch (err) {
+        console.log(err.stack, '');
       }
     });
     //listen for disconnect

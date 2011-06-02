@@ -67,23 +67,24 @@ var auth = function(client, data, callback, errback) {
       var user = new models.User();
       // In order to give the new Auth object a reference to this
       // user, it needs to have an id.  However, since it hasn't
-      // been saved yet it doesn't have one -- as such, we manaully
-      // create one.
-      user.genId(function() {
+      // been saved yet it doesn't have one -- as such, we manually
+      // bootstrap the fieldset and create an id.
+      user.bootstrap().genId(function() {
         auth.creator = user._id;
 
         // Save the records
-        db.apply(auth, user);
+        db.apply(auth, user, function() {
 
-        // Mark the user as auth'd
-        auths[client.id] = auth._id;
-        // Remove the auth on dc
-        client.on('disconnect', function() { delete auths[client.id] });
+          // Mark the user as auth'd
+          auths[client.id] = auth._id;
+          // Remove the auth on dc
+          client.on('disconnect', function() { delete auths[client.id] });
 
-        // Notify success!
-        callback({
-          password: auth.password,
-          userid: auth.creator
+          // Notify success!
+          callback({
+            password: auth.password,
+            userid: auth.creator
+          });
         });
       });
 
