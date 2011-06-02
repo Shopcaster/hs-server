@@ -30,7 +30,7 @@ var sub = function(client, data, callback, errback) {
     // the sub hash.
     client.on('disconnect', function() {
       for (var sub in subs[client.id]) if (subs[client.id].hasOwnProperty(sub)) {
-        subs[client.id][sub]();
+        subs[client.id][sub].kill();
       }
       delete subs[client.id];
     });

@@ -64,12 +64,12 @@ var apply = function() {
     //perform the upsert
     var upsert = function() {
       db.collection(fs.getCollection(), function(err, col) {
-
-
-        //todo - error handling
+        //ye olde error dump
+        if (err) return console.log(err.stack, '');
 
         col.update({_id: fs._id}, fs, {upsert: true}, function(err) {
-          //todo - error handling
+          //ye olde error dump
+          if (err) return console.log(err.stack, '');
 
           //send the event, with the cloned fieldset so event
           //handlers can't clobber the original
