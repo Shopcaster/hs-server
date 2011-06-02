@@ -133,12 +133,17 @@ FieldSet.prototype.genId = function(callback) {
   return this;
 };
 FieldSet.prototype.clone = function() {
-  var fs = function() {};
-  fs.prototype = new FieldSet(this.getCollection());
+  var FS = function() {};
+  FS.prototype = new FieldSet(this.getCollection());
 
+  //create the new fieldset
+  var fs = new FS();
+
+  //copy the fields over
   for (var i in this) if (this.hasOwnProperty(i))
     fs[i] = this[i];
 
+  //and return it
   return fs;
 };
 FieldSet.prototype.merge = function(from) {
