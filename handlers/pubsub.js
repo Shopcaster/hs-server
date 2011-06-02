@@ -74,7 +74,7 @@ var sub = function(client, data, callback, errback) {
     // Register the subscription
     // TODO - delete
     subs[client.id][data.key] = func.efilter(db.events, ['create', 'update'])
-      (filter).run(function(fs) { send(fs._id) });
+      (filter).run(function(fs) { send([fs._id]) });
 
     // Get the IDs
     // TODO
