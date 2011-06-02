@@ -27,8 +27,8 @@ var merge = function(from, into) {
 
 var db;
 
-var init = function(host, port, callback) {
-  db = new mongo.Db('hipsell', new mongo.Server(host, port, {}));
+var init = function(host, port, name, callback) {
+  db = new mongo.Db(name, new mongo.Server(host, port, {}));
   db.open(function(err, p_client) {
     if (err) {
       console.log('Unable to open database connection!');
