@@ -15,12 +15,12 @@ var validators = {
   'offer': {amount: 'number?',
             listing: 'ref?'},
 
-  'message': {message: 'string',
-              offer: 'ref'},
+  'message': {message: 'string?',
+              offer: 'ref?'},
 
-  'inquiry': {question: 'string',
-              answer: 'string',
-              listing: 'ref'}
+  'inquiry': {question: 'string?',
+              answer: 'string?',
+              listing: 'ref?'}
 };
 
 var create = function(client, data, callback, errback) {

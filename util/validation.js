@@ -1,6 +1,6 @@
 
 var regexes = {
-  'ref': /^0-9a-f$/
+  'ref': /^[0-9a-f]+$/
 };
 
 var validate = function(spec, data) {
