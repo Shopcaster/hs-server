@@ -40,9 +40,24 @@ init = function(server, handler) {
     //listen for messages
     c.on('message', function(msg) {
       try {
+        var done = false;
         var message = deserialize(msg);
-        handler(client, message.type, message.data, function(val) {
-          client.send('response', {id: message.data.id, value: val});
+        var mid = message.data.id;
+        delete message.data.id;
+
+        //dispatch the message
+        handler(client, message.type, message.data,
+        //success callback
+        function(val) {
+          if (!done)
+            client.send('response', {id: mid, value: val});
+          done = true;
+        },
+        //error callback
+        function(err) {
+          if (!done)
+            client.send('response', {id: mid, error: err});
+          done = true
         });
       } catch (e) {
         //todo - log bad mesage

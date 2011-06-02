@@ -40,15 +40,18 @@ var createPassword = function(email) {
 
 // clientId -> models.Auth._id
 var auths = [];
+var getAuth = function(client) {
+  return auths[client.id] || null;
+};
 
-var auth = function(client, data, callback) {
+var auth = function(client, data, callback, errback) {
 
   // Look for an auth object with this email
   db.queryOne(models.Auth, {email: data.email}, function(err, obj) {
 
     // If something went wrong with the db just fail out
     if (err) {
-      callback('error-server');
+      errback('Database Error');
       return;
     }
 
@@ -109,7 +112,7 @@ var auth = function(client, data, callback) {
   });
 };
 
-var deauth = function(client, data, callback) {
+var deauth = function(client, data, callback, errback) {
   // Just delete the auth field on deauth.
   delete auths[client.id];
 };
@@ -119,3 +122,4 @@ exports.auth = auth;
 exports.deauth = deauth;
 
 // Other Stuff
+exports.getAuth = getAuth;

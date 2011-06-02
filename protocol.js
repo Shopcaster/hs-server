@@ -16,11 +16,15 @@ var validators = {
 
 var handlers = {
   'ping': ping.ping,
+
   'auth': auth.auth,
-  'deauth': auth.deauth
+  'deauth': auth.deauth,
+
+  'sub': pubsub.sub,
+  'unsub': pubsub.unsub
 };
 
-var handle = function(client, type, data, callback) {
+var handle = function(client, type, data, callback, errback) {
   //validate
   var validationError = false;
 
@@ -53,7 +57,7 @@ var handle = function(client, type, data, callback) {
       // there; we only throw a protocol error if the field is required
       // and missing.
       } else if (data[i[data[i].length - 1]] != '?') { //ends with ?
-        callback('error-protocol');
+        validationError = true;
         break;
       }
     }
@@ -63,17 +67,16 @@ var handle = function(client, type, data, callback) {
     validationError = true;
   }
 
+  // On validation error, bail!
+  if (validationError) return errback('Message failed validation');
+
   // If we don't have a handler for this type, yep, it's a validation
   // error.
-  if (!validationError && !(type in handlers))
-    validationError = true;
+  if (!(type in handlers)) return errback('Not Yet Implemented');
 
-  // Handle validation errors
-  if (validationError) callback('error-protocol')
-  // Or dispatch to the handler if everything's good
-  else handlers[type](client, data, function(val) {
-    callback(val);
-  });
+  // If we're here, we can dispatch to the handler because
+  // everything's good
+  handlers[type](client, data, callback, errback);
 };
 
 exports.handle = handle;
