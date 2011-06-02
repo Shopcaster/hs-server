@@ -1,0 +1,22 @@
+{
+  "name": "hs-bonanza",
+  "version": "0.1.0",
+  "description": "Hipsell Server - Bonanza Branch",
+
+  "maintainers": [{
+    "name": "Aron Jones",
+    "email": "aron@hipsell.com"
+  }, {
+    "name": "Patrick Stein",
+    "email": "lylepstein@gmail.com"
+  }],
+
+  "dependencies": {
+    "socket.io": "latest",
+    "cli": "latest",
+    "mailgun": "latest",
+    "mongodb": "latest"
+  },
+
+  "bin": {"hss": "./main.js"}
+}
