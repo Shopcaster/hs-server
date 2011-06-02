@@ -35,7 +35,13 @@ var efilter = function(obj, type) {
   };
 
   //attach the listener
-  obj.on(type, runIt);
+  if (typeof type == 'string')
+    obj.on(type, runIt);
+  else if (typeof type == 'object' && type.length)
+    for (var i=0; i<type.length; i++)
+      obj.on(type[i], runIt);
+  else
+    throw new Error('Don\'t understand event: ' + type);
 
   var ret = function(predicate) {
     if (predicate)

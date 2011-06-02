@@ -52,7 +52,7 @@ var apply = function() {
     var fs = arguments[i];
 
     //event type
-    var eventType = fs._id ? 'update' : 'create';
+    var eventType = !fs._id ? 'create' : fs.deleted ? 'delete' : 'update';
 
     //set the updated date
     fs.modified = new Date().getTime() - 1307042003319;

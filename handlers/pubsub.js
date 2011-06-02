@@ -30,19 +30,19 @@ var sub = function(client, data, callback, errback) {
 
     // Subscribe on that key
     subs[client.id][data.key] = func.efilter(db.events, 'update')
-      (function(fs) {
-        return fs.getCollection() == key.type
-            && fs._id == key.id;
-      })
-      .run(function(fs) {
-        // No need to send the ID field along
-        delete fs._id;
+    (function(fs) {
+      return fs.getCollection() == key.type
+          && fs._id == key.id;
+    })
+    .run(function(fs) {
+      // No need to send the ID field along
+      delete fs._id;
 
-        client.send('pub', {
-          key: key.type + ':' + key.id,
-          diff: fs
-        });
+      client.send('pub', {
+        key: data.key,
+        diff: fs
       });
+    });
 
     // Try to fetch the object from the database and send it to the
     // client
@@ -56,7 +56,32 @@ var sub = function(client, data, callback, errback) {
 
   // Listen on the relation
   } else {
-    return errback('Not Yet Implemented');
+    // Util/DRY
+    var filter = function(fs) {
+      return fs.getCollection() = key.relation.type
+          && fs[key.relation.field] = key.id;
+    };
+    var send = function(add, remove) {
+      client.send('pub', {
+        key: data.key,
+        diff: {
+          add: add,
+          remove: remove
+        }
+      });
+    };
+
+    // Register the subscription
+    // TODO - delete
+    subs[client.id][data.key] = func.efilter(db,events, ['create', 'update'])
+      (filter).run(function(fs) { send(fs._id) });
+
+    // Get the IDs
+    // TODO
+    ids = [];
+
+    // Send the ID's down to the client
+    callback(ids);
   }
 };
 
