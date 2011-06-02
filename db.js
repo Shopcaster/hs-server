@@ -171,4 +171,5 @@ exports.FieldSet = FieldSet;
 // Events Hack
 ///////////////////////////////
 var events = new EventEmitter();
+events.setMaxListeners(0); // TO THE MOOOOOON
 exports.events = events;
