@@ -1,7 +1,7 @@
 var FieldSet = require('./db').FieldSet;
 
 var Auth = function() {};
-Auth.prototype = new FieldSet('auth');
+Auth.prototype = new FieldSet('authentication');
 
 var Listing = function() {};
 Listing.prototype = new FieldSet('listing');

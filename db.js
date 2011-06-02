@@ -56,13 +56,7 @@ var apply = function() {
 
     //if there's no deleted field, add one
     if (fs.deleted === undefined)
-      fs.deleted = true;
-
-    //if there's no id, generate one
-    if (!fs._id)
-      fs.genId(upsert);
-    else
-      upsert();
+      fs.deleted = false;
 
     //perform the upsert
     var upsert = function() {
@@ -80,6 +74,12 @@ var apply = function() {
         });
       });
     };
+
+    //if there's no id, generate one
+    if (!fs._id)
+      fs.genId(upsert);
+    else
+      upsert();
   }
 };
 
