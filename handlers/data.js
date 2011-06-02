@@ -25,6 +25,9 @@ var validators = {
 };
 
 var create = function(client, data, callback, errback) {
+  // Don't let unauthed clients create
+  if (!auth.getAuth(client)) return errback('Access denied');
+
   // Do some basic validation
   if (!data.type in validators) return errback('Invalid type');
   if (!validate(validators[data.type], data.data)) return errback('Invalid field');
@@ -32,7 +35,7 @@ var create = function(client, data, callback, errback) {
   // For now we can literally just stuff the data in a new fieldset
   var fs = new db.FieldSet(data.type);
   fs.merge(data.data);
-  //creator field is required on everything
+  // Creator field is required on everything
   fs.creator = auth.getAuth(client)._id;
 
   // Do the save!
@@ -43,6 +46,9 @@ var create = function(client, data, callback, errback) {
 };
 
 var update = function(client, data, callback, errback) {
+  // Don't let unauthed clients update
+  if (!auth.getAuth(client)) return errback('Access denied');
+
   // Try to parse the key
   var key = keys.parse(data.key);
   if (!key || key.relation) return errback('Invalid key');
@@ -63,6 +69,9 @@ var update = function(client, data, callback, errback) {
 };
 
 var del = function(client, data, callback, errback) {
+  // Don't let unauthed clients delete
+  if (!auth.getAuth(client)) return errback('Access denied');
+
   // Try to parse the key
   var key = keys.parse(data.key);
   if (!key || key.relation) return errback('Invalid key');
