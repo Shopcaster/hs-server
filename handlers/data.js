@@ -1,7 +1,8 @@
 var validate = require('./../util/validation').validate,
     keys = require('./../util/keys'),
     db = require('./../db'),
-    auth = require('./auth');
+    auth = require('./auth'),
+    email = require('./../email');
 
 var validators = {
   'user': {name: 'string?',
@@ -42,6 +43,18 @@ var create = function(client, data, callback, errback) {
   db.apply(fs, function() {
     // Return the ID to the client
     callback(fs._id);
+
+
+    // Type specific handling...
+    if (data.type == 'listing') {
+      email.send(auth.getAuth(client).email, 'We\'ve Listed Your Item',
+        '<p>Hey, we\'ve listed your item on Hipsell.  You can view it ' +
+        '<a href="http://">here</a>.</p>' +
+        '<p>We\'ll be cross-posting it to Craigslist shortly, and we\'ll ' +
+        'send you another email to let you know when we\'ve finished that ' +
+        'process.</p>' +
+        '<h4>&ndash; Hipsell</h4>');
+    }
   });
 };
 

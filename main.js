@@ -5,14 +5,16 @@ var cli = require('cli'),
     db = require('./db'),
     urls = require('./urls'),
     clients = require('./clients'),
-    protocol = require('./protocol');
+    protocol = require('./protocol'),
+    email = require('./email');
 
 cli.parse({
   port: ['p', 'Listen on this port', 'number', 8000],
   host: ['s', 'Listen on this hostname', 'string', '0.0.0.0'],
-  dbhost: ['dbs', 'Database server hostname', 'string', 'localhost'],
-  dbport: ['dbp', 'Database server port', 'number', 27017],
-  dbname: ['dbn', 'Database name', 'string', 'hipsell']
+  dbhost: [false, 'Database server hostname', 'string', 'localhost'],
+  dbport: [false, 'Database server port', 'number', 27017],
+  dbname: [false, 'Database name', 'string', 'hipsell'],
+  noemail: ['m', 'Disable email sending']
 });
 
 cli.main(function(args, opts) {
@@ -22,6 +24,9 @@ cli.main(function(args, opts) {
   //set up database
   console.log('  Initializing Database');
   db.init(opts.dbhost, opts.dbport, opts.dbname, function() {
+
+    console.log('  Initializing Email');
+    email.init(opts.noemail);
 
     //set up http
     console.log('  Initializing HTTP on ' + opts.host + ':' + opts.port);
@@ -38,3 +43,4 @@ cli.main(function(args, opts) {
     console.log('');
   });
 });
+

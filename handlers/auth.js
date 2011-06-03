@@ -1,5 +1,6 @@
 var db = require('./../db'),
     models = require('../models'),
+    _email = require('./../email'),
     crypto = require('crypto');
 
 var pwAdjectives = [
@@ -34,6 +35,15 @@ var createPassword = function(email) {
 
   var pwRaw = adjective + '_' + noun + n;
   console.log('New password: ' + pwRaw);
+
+  // Send an email to the user
+  _email.send(email, 'Welcome to Hipsell',
+    '<p>Hey, this is the first time you\'ve used this email address on ' +
+    'Hipsell.  In order to log in again with this email address, you\'ll need ' +
+    'to use this password:</p>' +
+    '<h3>' + pwRaw + '</h3>' +
+    '<p>You can change the password later via your account settings.</p>' +
+    '<h4>&ndash; Hipsell</h4>');
 
   return crypto.createHash('sha256').update(pwRaw + email).digest('hex').toUpperCase();
 };
@@ -76,7 +86,7 @@ var auth = function(client, data, callback, errback) {
         db.apply(auth, user, function() {
 
           // Mark the user as auth'd
-          auths[client.id] = auth._id;
+          auths[client.id] = auth;
           // Remove the auth on dc
           client.on('disconnect', function() { delete auths[client.id] });
 
@@ -95,7 +105,7 @@ var auth = function(client, data, callback, errback) {
       // supplied.
       if (obj.password == data.password) {
         // Save the auth for this user
-        auths[client.id] = obj._id;
+        auths[client.id] = obj;
         // Remove the auth on DC
         client.on('disconnect', function() { delete auths[client.id] });
 
