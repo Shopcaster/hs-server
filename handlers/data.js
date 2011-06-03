@@ -36,8 +36,9 @@ var create = function(client, data, callback, errback) {
   // For now we can literally just stuff the data in a new fieldset
   var fs = new db.FieldSet(data.type);
   fs.merge(data.data);
-  // Creator field is required on everything
-  fs.creator = auth.getAuth(client)._id;
+  // Creator field is required on everything, so we pull it from this
+  // user's auth info.
+  fs.creator = auth.getAuth(client).creator;
 
   // Do the save!
   db.apply(fs, function() {
