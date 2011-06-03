@@ -68,7 +68,14 @@ var apply = function() {
         //ye olde error dump
         if (err) return console.log(err.stack, '');
 
-        col.update({_id: fs._id}, fs, {upsert: true}, function(err) {
+        // This is where it gets a little funky.  Upserting with an
+        // id doesn't work for update.  So we clone the FS, remove
+        // the id, and use it for the query.
+        var nfs = fs.clone();
+        var nid = fs._id;
+        delete nfs._id;
+
+        col.update({_id: nid}, {'$set': nfs}, {upsert: true}, function(err) {
           //ye olde error dump
           if (err) return console.log(err.stack, '');
 
