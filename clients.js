@@ -22,7 +22,7 @@ var deserialize = function(msg) {
 
 // Client object
 var Client = function(client_id) {
-  this.id = client_id++;
+  this.id = cur_id++;
 };
 Client.prototype = new events.EventEmitter();
 Client.prototype.send = function(type, data) {
