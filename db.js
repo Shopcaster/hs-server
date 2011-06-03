@@ -113,6 +113,24 @@ var queryOne = function(type, q, callback) {
   });
 };
 
+var queryRelated = function(type, field, id, callback) {
+  var q = {};
+  q[field] = id;
+
+  if (!type || !field || !id) callback(true);
+  else db.collection(type, function(err, col) {
+    if (err) callback(true);
+    else col.find(q, {'_id': 1}).toArray(function(err, objs) {
+      if (err) callback(true);
+      else {
+        var ids = [];
+        for (var i=0; i<objs.length; i++) ids[i] = objs[i]._id;
+        callback(false, ids);
+      }
+    });
+  });
+};
+
 ///////////////////////////////
 // FieldSets
 ///////////////////////////////
@@ -168,6 +186,7 @@ exports.init = init;
 exports.apply = apply;
 exports.get = get;
 exports.queryOne = queryOne;
+exports.queryRelated = queryRelated;
 exports.makeNiceId = makeNiceId;
 
 exports.FieldSet = FieldSet;

@@ -77,11 +77,14 @@ var sub = function(client, data, callback, errback) {
       (filter).run(function(fs) { send([fs._id]) });
 
     // Get the IDs
-    // TODO
-    ids = [];
+    db.queryRelated(key.relation.type, key.relation.field, key.id, function(err, ids) {
 
-    // Send the ID's down to the client
-    callback(ids);
+      // Handle errors
+      if (err) return errback('Database Error');
+
+      // Send the ID's down to the client
+      callback(ids);
+    });
   }
 };
 
