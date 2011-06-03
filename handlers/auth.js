@@ -77,7 +77,7 @@ var auth = function(client, data, callback, errback) {
 
       var user = new models.User();
       // Use gravatar for urls
-      user.avatar = gravatar.getAvatarUrl(data.email);
+      user.avatar = gravatar.hash(data.email);
 
       // In order to give the new Auth object a reference to this
       // user, it needs to have an id.  However, since it hasn't
