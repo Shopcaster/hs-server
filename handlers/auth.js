@@ -1,6 +1,7 @@
 var db = require('./../db'),
     models = require('../models'),
     _email = require('./../email'),
+    gravatar = require('./../util/gravatar'),
     crypto = require('crypto');
 
 var pwAdjectives = [
@@ -75,6 +76,9 @@ var auth = function(client, data, callback, errback) {
       auth.password = createPassword(data.email);
 
       var user = new models.User();
+      // Use gravatar for urls
+      user.avatar = gravatar.getAvatarUrl(data.email);
+
       // In order to give the new Auth object a reference to this
       // user, it needs to have an id.  However, since it hasn't
       // been saved yet it doesn't have one -- as such, we manually
