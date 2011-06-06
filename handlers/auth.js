@@ -1,5 +1,5 @@
 var db = require('./../db'),
-    models = require('../models'),
+    models = require('./../models'),
     _email = require('./../email'),
     gravatar = require('./../util/gravatar'),
     crypto = require('crypto');

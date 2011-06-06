@@ -1,10 +1,14 @@
-var staticServing = require('./static-serving');
+var staticServing = require('./static-serving'),
+    iapi = require('./iapi/urls');
 
 var urls = {
   //dummy handler that keeps us from clobbering socket.io's urls
   '^/socket.io/': function() {},
   //serve File objects from the db
-  '^/static/': staticServing.serve
+  '^/static/': staticServing.serve,
+
+  //delegate to the internal api
+  '^/iapi/': iapi.serve
 };
 
 var dispatch = function(req, res) {
