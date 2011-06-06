@@ -1,11 +1,16 @@
+var staticServing = require('./static-serving');
+
 var urls = {
   //dummy handler that keeps us from clobbering socket.io's urls
-  '^/socket.io/': function() {}
+  '^/socket.io/': function() {},
+  //serve File objects from the db
+  '^/static/': staticServing.serve
 };
 
 var dispatch = function(req, res) {
+
   //try to dispatch
-  for (var r in urls) {
+  for (var r in urls) if (urls.hasOwnProperty(r)) {
     if (req.url.match(r)) {
       urls[r](req, res);
       return;

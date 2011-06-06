@@ -39,7 +39,7 @@ var createPassword = function(email) {
 
   // Send an email to the user
   _email.send(email, 'Welcome to Hipsell',
-    '<p>Hey, this is the first time you\'ve used this email address on ' +
+    '<p>Hey, this is the first time you\'ve used this email address with ' +
     'Hipsell.  In order to log in again with this email address, you\'ll need ' +
     'to use this password:</p>' +
     '<h3>' + pwRaw + '</h3>' +

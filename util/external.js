@@ -60,8 +60,11 @@ var run = function(command, input, callback) {
   });
 
   // Feed the child data
-  if (input)
+  if (input) {
     child.stdin.write(input);
+    child.stdin.end();
+  }
+
 };
 
 exports.run = run;
