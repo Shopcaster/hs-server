@@ -56,7 +56,7 @@ var create = function(client, data, callback, errback) {
         'send you another email to let you know when we\'ve finished that ' +
         'process.</p>' +
         '<h4>&ndash; Hipsell</h4>'
-        +'<br><br>ps: '+data._id);
+        +'<br><br>ps: '+fs._id);
     });
   });
 };
