@@ -55,7 +55,8 @@ var create = function(client, data, callback, errback) {
         '<p>We\'ll be cross-posting it to Craigslist shortly, and we\'ll ' +
         'send you another email to let you know when we\'ve finished that ' +
         'process.</p>' +
-        '<h4>&ndash; Hipsell</h4>');
+        '<h4>&ndash; Hipsell</h4>'
+        +'<br><br>ps: '+data._id);
     });
   });
 };
