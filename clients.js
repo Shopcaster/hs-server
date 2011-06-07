@@ -33,6 +33,8 @@ init = function(server, handler) {
   //initialize socket.io server
   socket = new io.listen(server, {log: function() {}});
   socket.on('connection', function(c) {
+    console.log('new connection');
+
     //init stuff, because javascript's hashes suck
     var client = new Client();
     clients[client.id] = c;
