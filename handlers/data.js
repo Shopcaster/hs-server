@@ -12,7 +12,8 @@ var validators = {
               description: 'string?',
               latitude: 'number?',
               longitude: 'number?',
-              price: 'number?'},
+              price: 'number?',
+              sold: 'boolean?'},
 
   'offer': {amount: 'number?',
             listing: 'ref?'},
