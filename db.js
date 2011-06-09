@@ -98,7 +98,7 @@ var apply = function() {
 };
 
 var get = function(fs, callback) {
-  if (!fs._id) callback(true);
+  if (!fs._id) console.log('Attempting to call get on a fieldset with no _id') || callback(true);
   else db.collection(fs.getCollection(), function(err, col) {
     if (err) console.log(err) || callback(true);
     else col.find({_id: fs._id}).limit(1).nextObject(function(err, obj) {
@@ -110,7 +110,7 @@ var get = function(fs, callback) {
 };
 
 var queryOne = function(type, q, callback) {
-  if (!type.prototype.getCollection) callback(true);
+  if (!type.prototype.getCollection) console.log('Type is not a fieldset class') || callback(true);
   else db.collection(type.prototype.getCollection(), function(err, col) {
     if (err) console.log(err) || callback(true);
     else col.find(q).limit(1).nextObject(function(err, obj) {
@@ -124,11 +124,11 @@ var queryRelated = function(type, field, id, callback) {
   var q = {};
   q[field] = id;
 
-  if (!type || !field || !id) callback(true);
+  if (!type || !field || !id) console.log('Missing argument') || callback(true);
   else db.collection(type, function(err, col) {
-    if (err) callback(true);
+    if (err) console.log(err) || callback(true);
     else col.find(q, {'_id': 1}).toArray(function(err, objs) {
-      if (err) callback(true);
+      if (err) console.log(err) || callback(true);
       else {
         var ids = [];
         for (var i=0; i<objs.length; i++) ids[i] = objs[i]._id;

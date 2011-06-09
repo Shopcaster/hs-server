@@ -10,7 +10,12 @@ var createImg = function(img_b64, callback) {
   var b = new Buffer(img_b64, 'base64');
   external.run('resize-img', b, function(err, res) {
     // Error handling
-    if (err) return callback(true);
+    if (err) {
+      console.log('Error converting image:');
+      console.log(res.toString());
+      console.log('');
+      return callback(true);
+    }
 
     // Create the file object
     var f = new models.File();
