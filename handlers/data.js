@@ -125,7 +125,7 @@ var del = function(client, data, callback, errback) {
   } else {
 
     // Create a deletion fs
-    var fs = new FieldSet(key.type);
+    var fs = new db.FieldSet(key.type);
     fs._id = key.id;
     fs.deleted = true;
 

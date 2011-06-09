@@ -100,9 +100,9 @@ var apply = function() {
 var get = function(fs, callback) {
   if (!fs._id) callback(true);
   else db.collection(fs.getCollection(), function(err, col) {
-    if (err) callback(true);
+    if (err) console.log(err) || callback(true);
     else col.find({_id: fs._id}).limit(1).nextObject(function(err, obj) {
-      if (err) callback(true);
+      if (err) console.log(err) || callback(true);
       else if (!obj) callback(false, false);
       else fs.merge(obj) && callback(false, true);
     });
@@ -112,9 +112,9 @@ var get = function(fs, callback) {
 var queryOne = function(type, q, callback) {
   if (!type.prototype.getCollection) callback(true);
   else db.collection(type.prototype.getCollection(), function(err, col) {
-    if (err) callback(true);
+    if (err) console.log(err) || callback(true);
     else col.find(q).limit(1).nextObject(function(err, obj) {
-      if (err) callback(true);
+      if (err) console.log(err) || callback(true);
       else callback(false, obj);
     });
   });
