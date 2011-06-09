@@ -48,15 +48,17 @@ var create = function(client, data, callback, errback) {
       // Return the id to the client
       callback(fs._id);
 
+      var clientServer = 'beta.hipsell.com';
+      var listingPath = '/listings/';
+
       // Notify the user that their listing was posted
       email.send(auth.getAuth(client).email, 'We\'ve Listed Your Item',
         '<p>Hey, we\'ve listed your item on Hipsell.  You can view it ' +
-        '<a href="http://">here</a>.</p>' +
-        '<p>We\'ll be cross-posting it to Craigslist shortly, and we\'ll ' +
+        '<a href="http://'+clientServer+'/#!'+listingPath+fs._id+'/">here</a>' +
+        '.</p><p>We\'ll be cross-posting it to Craigslist shortly, and we\'ll ' +
         'send you another email to let you know when we\'ve finished that ' +
         'process.</p>' +
-        '<h4>&ndash; Hipsell</h4>'
-        +'<br><br>ps: '+fs._id);
+        '<h4>&ndash; Hipsell</h4>');
     });
   });
 };
