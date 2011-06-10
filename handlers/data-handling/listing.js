@@ -88,10 +88,7 @@ var update = function(client, id, diff, callback, errback) {
   // Resize the image if it's present
   if (fs.photo) {
 
-    // Do the resize
-    resizeImg(fs.photo, function() {
-
-    });
+    // TODO
 
   // Otherwise just finish the update
   } else {
