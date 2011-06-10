@@ -9,7 +9,7 @@ var mailgun = require('mailgun');
 // redacted.
 var mgSettings = {
   apiKey: 'key-61mtr1g-$cdqvb8_v4',
-  sender: 'noreply@hipsell.me'
+  sender: 'Hipsell <noreply@hipsell.me>'
 };
 
 // Our Mailgun library requires an object to be instantiated, and all
