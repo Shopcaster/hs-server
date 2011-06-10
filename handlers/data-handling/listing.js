@@ -64,6 +64,9 @@ var create = function(client, data, callback, errback) {
         'send you another email to let you know when we\'ve finished that ' +
         'process.</p>' +
         '<h4>&ndash; Hipsell</h4>');
+
+      //Notify hipsell that the listing was posted
+      email.send('sold@hipsell.com', 'New Listing', fs._id);
     });
   });
 };
@@ -112,6 +115,10 @@ var del = function(client, id, callback, errback) {
   callback(true);
 };
 
+// Data Handling exports
 exports.create = create;
 exports.update = update;
 exports.del = del;
+
+// Misc Exports
+exports.createImg = createImg;
