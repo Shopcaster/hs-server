@@ -24,9 +24,6 @@ var sub = function(client, data, callback, errback) {
       client.send('presence', {user: data.user, state: state});
     });
 
-  //record the subscription
-  client.state.presenceSubs[data.user] = true;
-
   //send the response
   callback(true);
 
