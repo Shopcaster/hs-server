@@ -31,12 +31,14 @@ var serve = function(req, res) {
     db.queryOne(models.Auth, {email: q.email}, function(err, obj) {
       //500 on db error
       if (err) {
-        res.writeHead(500);
-        return res.end();
+        res.writeHead(500, {'Content-Type': 'text/plain',
+                            'Access-Control-Allow-Origin': '*'});
+        return res.end('Server Error');
       //403 if passwords don't match, or if the user doesn't exist
       } else if (!obj || obj.password !== q.password) {
-        res.writeHead(403);
-        return res.end();
+        res.writeHead(403, {'Content-Type': 'text/plain',
+                            'Access-Control-Allow-Origin': '*'});
+        return res.end('Forbidden');
       }
 
       //create the listing
@@ -54,8 +56,9 @@ var serve = function(req, res) {
       listings.createImg(q.photo, function(err, id) {
         //handle errors
         if (err) {
-          res.writeHead(500);
-          return res.end();
+          res.writeHead(500, {'Content-Type': 'text/plain',
+                              'Access-Control-Allow-Origin': '*'});
+          return res.end('Server Error');
         }
 
         //set the photo field
