@@ -115,6 +115,9 @@ var auth = function(client, data, callback, errback) {
         // Save the auth for the client
         client.state.auth = obj;
 
+        // Update presence information
+        presence.setUser(client.id, obj.creator);
+
         // Remove the auth on DC
         client.on('disconnect', function() { deauth(client, null, function() {}, function() {}) });
 

@@ -17,6 +17,8 @@ var setUser = function(clientId, userId) {
 
   // fire the event for the userid
   events.emit(userId, UserState.online);
+
+  console.log('User ' + userId + ' online');
 };
 
 var clearUser = function(clientId) {
@@ -26,6 +28,8 @@ var clearUser = function(clientId) {
 
   // fire the event for the userid
   events.emit(uid, UserState.offline);
+
+  console.log('User ' + uid + ' offline');
 };
 
 var getUserId = function(clientId) {
