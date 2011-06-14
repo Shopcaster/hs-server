@@ -84,7 +84,8 @@ var serve = function(req, res) {
             '<h4>&ndash; Hipsell</h4>');
 
           //Notify hipsell that the listing was posted
-          email.send('sold@hipsell.com', 'New Listing', fs._id);
+          email.send('sold@hipsell.com', 'New Listing', '<a href="http://' + clientServer + '/#!' + 
+                                                        listingPath + fs._id + '/">' + fs._id + '</a>');
         });
       });
     });
