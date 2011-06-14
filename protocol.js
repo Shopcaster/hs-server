@@ -2,17 +2,21 @@ var validate = require('./util/validation').validate,
     ping = require('./handlers/ping'),
     auth = require('./handlers/auth'),
     pubsub = require('./handlers/pubsub'),
-    data = require('./handlers/data');
+    data = require('./handlers/data'),
+    presence = require('./handlers/presence');
 
 var validators = {
   'ping':   {},
   'auth':   {email: 'string', password: 'string?'},
   'deauth': {},
+  'passwd': {old: 'string', password: 'string'},
   'sub':    {key: 'string'},
   'unsub':  {key: 'string'},
   'create': {type: 'string', data: 'object'},
   'update': {key: 'string', diff: 'object'},
-  'delete': {key: 'string'}
+  'delete': {key: 'string'},
+  'sub-presence': {user: 'string'},
+  'unsub-presence': {user: 'string'}
 };
 
 var handlers = {
@@ -20,13 +24,17 @@ var handlers = {
 
   'auth': auth.auth,
   'deauth': auth.deauth,
+  'passwd': auth.passwd,
 
   'sub': pubsub.sub,
   'unsub': pubsub.unsub,
 
   'create': data.create,
   'update': data.update,
-  'delete': data.del
+  'delete': data.del,
+
+  'sub-presence': presence.sub,
+  'unsub-presence': presence.unsub
 };
 
 var handle = function(client, type, data, callback, errback) {
@@ -41,9 +49,11 @@ var handle = function(client, type, data, callback, errback) {
     // If we're here, we can dispatch to the handler because
     // everything's good
     handlers[type](client, data, callback, errback);
+
   } catch (err) {
     errback('Server error');
-    console.log(err.stack, '');
+    console.log(err.stack);
+    console.log('');
   }
 };
 

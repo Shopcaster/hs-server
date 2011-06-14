@@ -1,7 +1,6 @@
 var validate = require('./../util/validation').validate,
     keys = require('./../util/keys'),
-    db = require('./../db'),
-    auth = require('./auth');
+    db = require('./../db');
 
 // Validation for all data types goes here
 var validators = {
@@ -35,7 +34,7 @@ var specialHandlers = {
 
 var create = function(client, data, callback, errback) {
   // Don't let unauthed clients create
-  if (!auth.getAuth(client)) return errback('Access denied');
+  if (!client.state.auth) return errback('Access denied');
 
   // Do some basic validation
   if (!data.type in validators) return errback('Invalid type');
@@ -56,7 +55,7 @@ var create = function(client, data, callback, errback) {
     fs.merge(data.data);
     // Creator field is required on everything, so we pull it from this
     // user's auth info.
-    fs.creator = auth.getAuth(client).creator;
+    fs.creator = client.state.auth.creator;
 
     // Do the save!
     db.apply(fs, function() {
@@ -69,7 +68,7 @@ var create = function(client, data, callback, errback) {
 
 var update = function(client, data, callback, errback) {
   // Don't let unauthed clients update
-  if (!auth.getAuth(client)) return errback('Access denied');
+  if (!client.state.auth) return errback('Access denied');
 
   // Try to parse the key
   var key = keys.parse(data.key);
@@ -108,7 +107,7 @@ var update = function(client, data, callback, errback) {
 
 var del = function(client, data, callback, errback) {
   // Don't let unauthed clients delete
-  if (!auth.getAuth(client)) return errback('Access denied');
+  if (!client.state.auth) return errback('Access denied');
 
   // Try to parse the key
   var key = keys.parse(data.key);

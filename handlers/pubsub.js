@@ -3,23 +3,23 @@ var keys = require('./../util/keys'),
     db = require('./../db'),
     auth = require('./auth');
 
-// clientid -> {key, killer}
-var subs = [];
-
 var sub = function(client, data, callback, errback) {
   // If the client has no sub hash, we have some setup to do
-  if (!(client.id in subs)) {
+  if (!(client.state.subs)) {
     // Create them a sub hash
-    subs[client.id] = {};
+    client.state.subs = {};
     // When the client disconnects, clear each sub and then delete
     // the sub hash.
     client.on('disconnect', function() {
-      for (var sub in subs[client.id]) if (subs[client.id].hasOwnProperty(sub)) {
-        subs[client.id][sub].kill();
+      for (var sub in client.state.subs) if (client.state.subs.hasOwnProperty(sub)) {
+        client.state.subs[sub].kill();
       }
-      delete subs[client.id];
+      delete client.state.subs;
     });
   }
+
+  // If the client is already sub'd on this key we should abort
+  if (client.state.subs[data.key]) return callback(true);
 
   // Break up the key into its components
   var key = keys.parse(data.key);
@@ -29,7 +29,7 @@ var sub = function(client, data, callback, errback) {
   if (!key.relation) {
 
     // Subscribe on that key
-    subs[client.id][data.key] = func.efilter(db.events, 'update')
+    client.state.subs[data.key] = func.efilter(db.events, 'update')
     (function(fs) {
       return fs.getCollection() == key.type
           && fs._id == key.id;
@@ -73,7 +73,7 @@ var sub = function(client, data, callback, errback) {
 
     // Register the subscription
     // TODO - delete
-    subs[client.id][data.key] = func.efilter(db.events, ['create', 'update'])
+    client.state.subs[data.key] = func.efilter(db.events, ['create', 'update'])
       (filter).run(function(fs) { send([fs._id]) });
 
     // Get the IDs
@@ -93,12 +93,12 @@ var unsub = function(client, data, callback, errback) {
   var id = client.id;
 
   // Try to find the sub
-  if (subs[id]) {
-    for (sub in subs[id]) if (subs[id].hasOwnProperty(sub)) {
+  if (client.state.subs) {
+    for (sub in client.state.subs) if (client.state.subs.hasOwnProperty(sub)) {
       // If we found it, call the killer and remove the sub
       if (sub == data.key) {
-        subs[id][sub]();
-        delete subs[id][sub];
+        client.state.subs[sub]();
+        delete client.state.subs[sub];
         wasSubbed = true;
         break;
       }

@@ -23,6 +23,7 @@ var deserialize = function(msg) {
 // Client object
 var Client = function(client_id) {
   this.id = cur_id++;
+  this.state = {};
 };
 Client.prototype = new events.EventEmitter();
 Client.prototype.send = function(type, data) {
@@ -62,7 +63,8 @@ init = function(server, handler) {
           done = true
         });
       } catch (err) {
-        console.log(err.stack, '');
+        console.log(err.stack);
+        console.log('');
       }
     });
     //listen for disconnect

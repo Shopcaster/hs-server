@@ -2,6 +2,7 @@ var db = require('./../db'),
     models = require('./../models'),
     _email = require('./../email'),
     gravatar = require('./../util/gravatar'),
+    presence = require('./../presence'),
     crypto = require('crypto');
 
 var pwAdjectives = [
@@ -29,6 +30,10 @@ var pwNouns = [
   'Catfish'
 ];
 
+var hashPassword = function(password, email) {
+  return crypto.createHash('sha256').update(password + email).digest('hex').toUpperCase();
+};
+
 var createPassword = function(email) {
   var adjective = pwAdjectives[Math.floor(Math.random() * pwAdjectives.length)];
   var noun = pwNouns[Math.floor(Math.random() * pwNouns.length)];
@@ -46,13 +51,7 @@ var createPassword = function(email) {
     '<p>You can change the password later via your account settings.</p>' +
     '<h4>&ndash; Hipsell</h4>');
 
-  return crypto.createHash('sha256').update(pwRaw + email).digest('hex').toUpperCase();
-};
-
-// clientId -> models.Auth._id
-var auths = [];
-var getAuth = function(client) {
-  return auths[client.id] || null;
+  return hashPassword(pwRaw, email);
 };
 
 var auth = function(client, data, callback, errback) {
@@ -89,8 +88,12 @@ var auth = function(client, data, callback, errback) {
         // Save the records
         db.apply(auth, user, function() {
 
-          // Mark the user as auth'd
-          auths[client.id] = auth;
+          // Update presence information
+          presence.setUser(client.id, user._id);
+
+          // Save the auth for the client
+          client.state.auth = auth;
+
           // Remove the auth on dc
           client.on('disconnect', function() { delete auths[client.id] });
 
@@ -108,10 +111,12 @@ var auth = function(client, data, callback, errback) {
       // Compared the password in the DB to the password the user
       // supplied.
       if (obj.password == data.password) {
-        // Save the auth for this user
-        auths[client.id] = obj;
+
+        // Save the auth for the client
+        client.state.auth = obj;
+
         // Remove the auth on DC
-        client.on('disconnect', function() { delete auths[client.id] });
+        client.on('disconnect', function() { deauth(client, null, function() {}, function() {}) });
 
         // Notify success!
         callback({
@@ -128,14 +133,39 @@ var auth = function(client, data, callback, errback) {
 };
 
 var deauth = function(client, data, callback, errback) {
-  // Just delete the auth field on deauth.
-  delete auths[client.id];
+  // Just clear the presence information
+  try {
+    presence.clearUser(client.id);
+    callback(true);
+  } catch (err) {
+    console.log(err.stack);
+    console.log('');
+    errback('Server error');
+  }
+};
+
+var passwd = function(client, data, callback, errback) {
+
+  // Make sure the client is already authenticated
+  if (!client.state.auth) return callback(false);
+
+  // DRY
+  var auth = client.state.auth;
+
+  // Make sure the passwords match
+  if (!auth.password != hashPassword(data.old, auth.email)) return callback(false);
+
+  // Hash the new password
+  var password = hashPassword(data.password, auth.email);
+
+  // Save it
+  auth.password = password;
+  db.apply(auth);
+
+  // Return the hashed form to the user
+  callback(password);
 };
 
 // Handlers
 exports.auth = auth;
 exports.deauth = deauth;
-
-// Other Stuff
-exports.getAuth = getAuth;
-

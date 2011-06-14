@@ -1,6 +1,5 @@
 var db = require('./../../db'),
     models = require('./../../models'),
-    auth = require('./../auth'),
     external = require('./../../util/external'),
     email = require('./../../email');
 
@@ -37,7 +36,7 @@ var create = function(client, data, callback, errback) {
   var fs = new models.Listing();
   fs.merge(data);
   // Set the creator
-  fs.creator = auth.getAuth(client).creator;
+  fs.creator = client.state.auth.creator;
 
   // Resize their image
   createImg(data.photo, function(err, id) {
@@ -57,7 +56,7 @@ var create = function(client, data, callback, errback) {
       var listingPath = '/listings/';
 
       // Notify the user that their listing was posted
-      email.send(auth.getAuth(client).email, 'We\'ve Listed Your Item',
+      email.send(client.state.auth.email, 'We\'ve Listed Your Item',
         '<p>Hey, we\'ve listed your item on Hipsell.  You can view it ' +
         '<a href="http://'+clientServer+'/#!'+listingPath+fs._id+'/">here</a>' +
         '.</p><p>We\'ll be cross-posting it to Craigslist shortly, and we\'ll ' +
