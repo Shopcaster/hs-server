@@ -42,6 +42,7 @@ exports.setUser = setUser;
 exports.clearUser = clearUser;
 exports.getUserId = getUserId;
 exports.getState = getState;
+exports.UserState = UserState;
 
 // Event handling
 

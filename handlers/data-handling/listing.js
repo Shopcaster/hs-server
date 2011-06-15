@@ -1,7 +1,8 @@
 var db = require('./../../db'),
     models = require('./../../models'),
     external = require('./../../util/external'),
-    email = require('./../../email');
+    email = require('./../../email'),
+    templating = require('./../../templating');
 
 var createImg = function(img_b64, callback) {
   var img = new models.File();
@@ -52,20 +53,14 @@ var create = function(client, data, callback, errback) {
       // Return the id to the client
       callback(fs._id);
 
-      var clientServer = 'beta.hipsell.com';
-      var listingPath = '/listings/';
+      // Generate the email message
+      var msg = templating['email/listing_created'].render({id: fs._id});
 
       // Notify the user that their listing was posted
-      email.send(client.state.auth.email, 'We\'ve Listed Your Item',
-        '<p>Hey, we\'ve listed your item on Hipsell.  You can view it ' +
-        '<a href="http://'+clientServer+'/#!'+listingPath+fs._id+'/">here</a>' +
-        '.</p><p>We\'ll be cross-posting it to Craigslist shortly, and we\'ll ' +
-        'send you another email to let you know when we\'ve finished that ' +
-        'process.</p>' +
-        '<h4>&ndash; Hipsell</h4>');
+      email.send(client.state.auth.email, 'We\'ve Listed Your Item', msg);
 
       //Notify hipsell that the listing was posted
-      email.send('sold@hipsell.com', 'New Listing', fs._id);
+      email.send('sold@hipsell.com', 'New Listing', msg);
     });
   });
 };

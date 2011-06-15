@@ -1,5 +1,5 @@
 var querystring = require('querystring'),
-    models = require('./../models');
+  models = require('./../models'),
     db = require('./../db');
 
 

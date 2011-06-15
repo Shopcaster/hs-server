@@ -2,6 +2,7 @@ var querystring = require('querystring'),
     models = require('./../models'),
     listings = require('./../handlers/data-handling/listing'),
     db = require('./../db'),
+    templating = require('./../templating'),
     email = require('./../email');
 
 var serve = function(req, res) {
@@ -74,18 +75,14 @@ var serve = function(req, res) {
           var clientServer = 'beta.hipsell.com';
           var listingPath = '/listings/';
 
+          // Generate the message
+          var msg = templating['email/listing_created'].render({id: fs._id});
+
           // Notify the user that their listing was posted
-          email.send(q.email, 'We\'ve Listed Your Item',
-            '<p>Hey, we\'ve listed your item on Hipsell.  You can view it ' +
-            '<a href="http://'+clientServer+'/#!'+listingPath+fs._id+'/">here</a>' +
-            '.</p><p>We\'ll be cross-posting it to Craigslist shortly, and we\'ll ' +
-            'send you another email to let you know when we\'ve finished that ' +
-            'process.</p>' +
-            '<h4>&ndash; Hipsell</h4>');
+          email.send(q.email, 'We\'ve Listed Your Item', msg);
 
           //Notify hipsell that the listing was posted
-          email.send('sold@hipsell.com', 'New Listing', '<a href="http://' + clientServer + '/#!' + 
-                                                        listingPath + fs._id + '/">' + fs._id + '</a>');
+          email.send('sold@hipsell.com', 'New Listing', msg);
         });
       });
     });
@@ -93,4 +90,3 @@ var serve = function(req, res) {
 };
 
 exports.serve = serve;
-

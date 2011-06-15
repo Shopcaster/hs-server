@@ -6,7 +6,8 @@ var cli = require('cli'),
     urls = require('./urls'),
     clients = require('./clients'),
     protocol = require('./protocol'),
-    email = require('./email');
+    email = require('./email'),
+    templating = require('./templating');
 
 cli.parse({
   port: ['p', 'Listen on this port', 'number', 8000],
@@ -25,6 +26,11 @@ cli.main(function(args, opts) {
   console.log('  Initializing Database');
   db.init(opts.dbhost, opts.dbport, opts.dbname, function() {
 
+    //set up templating
+    console.log('  Initializing Templating');
+    templating.init();
+
+    //set up email
     console.log('  Initializing Email');
     email.init(opts.noemail);
 

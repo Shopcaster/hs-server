@@ -3,6 +3,7 @@ var db = require('./../db'),
     _email = require('./../email'),
     gravatar = require('./../util/gravatar'),
     presence = require('./../presence'),
+    templating = require('./../templating'),
     crypto = require('crypto');
 
 var pwAdjectives = [
@@ -27,7 +28,10 @@ var pwNouns = [
   'Zamboni',
   'Coconut',
   'NewtonianPhysics',
-  'Catfish'
+  'Catfish',
+  'DrumSolo',
+  'Engineer',
+  'Rainbow'
 ];
 
 var hashPassword = function(password, email) {
@@ -44,13 +48,9 @@ var createPassword = function(email) {
 
   // Send an email to the user
   _email.send(email, 'Welcome to Hipsell',
-    '<p>Hey, this is the first time you\'ve used this email address with ' +
-    'Hipsell.  In order to log in again with this email address, you\'ll need ' +
-    'to use this password:</p>' +
-    '<h3>' + pwRaw + '</h3>' +
-    '<p>You can change the password later via your account settings.</p>' +
-    '<h4>&ndash; Hipsell</h4>');
+    templating['email/signup'].render({password: pwraw}));
 
+  // Only store the hashed form
   return hashPassword(pwRaw, email);
 };
 
