@@ -1,5 +1,8 @@
 var fs = require('fs');
 
+// Some weird import stuff
+var NodeScript = process.binding('evals').NodeScript;
+
 // Template cache -- we preload them here for optimization and to
 // avoid having to jump through callbacks.
 var templates = {};
@@ -29,6 +32,10 @@ var Template = function(f) {
       throw new Error('Variable assignment in template!  If you\'re ' +
                       'sure that\'s not what\'s happening, you should fix ' +
                       'this regex.\n\nFYI the template file is ' + f);
+
+  // Record the file this is from for future reference
+  this.file = f;
+
 };
 Template.prototype = {};
 Template.prototype.render = function(data) {
@@ -47,11 +54,25 @@ Template.prototype.render = function(data) {
   for (var i=0; i<this.parts.length; i++) {
     var part = this.parts[i];
 
-    if (raw)
+    if (raw) {
       rendered += part;
-    else
-      // Oh god the horror
-      rendered += (function() {with(data) { return eval(part) }})();
+    } else {
+      try {
+        // Oh god the horror
+        var val = NodeScript.runInNewContext(part, data);
+
+        // Only show this variable if it has a value
+        if (val !== null && val !== undefined) rendered += val;
+
+      } catch (err) {
+        console.log('Error in template ' + this.file + ':', err.message);
+        console.log('  In this snippet');
+        var split = part.split('\n');
+        for (var j=0; j<split.length; j++)
+          console.log('    ' + split[j]);
+        console.log('')
+      }
+    }
 
     // Flip raw for the alternation
     raw = !raw;
