@@ -2,7 +2,9 @@
 // letting us send email.
 
 //  * Mailgun; for email sending
-var mailgun = require('mailgun');
+var mailgun = require('mailgun'),
+    db = require('./db'),
+    models = require('./models');
 
 // These are the static mailgun settings.  Nothing too fancy going on
 // here, but if we ever publish this source code these should be
@@ -39,13 +41,13 @@ var send = function(to, subject, body) {
 
   // If email sending is disabled, log to console instead.
   if (disabled) {
-    
+
     console.log('Email:');
     console.log('  To:      ' + to);
     console.log('  Subject: ' + subject);
     console.log('  Body:    ' + body);
     console.log('');
-    
+
     return;
   }
 
@@ -72,6 +74,36 @@ var send = function(to, subject, body) {
   });
 };
 
+// This is a simple wrapper around `send` that sends to a User ID
+// rather than to an email address.  It handles fetching the email
+// address out of the database automatically.
+var sendToUser = function(userId, subject, body) {
+
+  // Try to find the Auth object based on the user id, which is its
+  // creator.
+  db.queryOne(models.Auth, {creator: userId}, function(err, auth) {
+
+    // Log DB errors.
+    if (err) {
+      console.log('Unable to send email to userid ' + userId + ' due to database error');
+      console.log('');
+      return;
+    }
+    // If the query didn't return any object, then the user doesn't
+    // exist.  We should log it and then fail.
+    if (!auth) {
+      console.log('Unable to send email to userid ' + userId + ' because no such user exists');
+      console.log('');
+      return;
+    }
+
+    // Now send the email
+    send(auth.email, subject, body);
+
+  });
+};
+
 // Expose only the init function and email sending.
 exports.init = init;
 exports.send = send;
+exports.sendToUser = sendToUser;
