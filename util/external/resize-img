@@ -25,7 +25,7 @@ if __name__ == '__main__':
     #do the crop
     if (float(w) / h) > output_ratio:
       n = int((h * 560.0) / 418.0)
-      n2 = int((width - n) / 2.0)
+      n2 = int((w - n) / 2.0)
       img = img.crop((n2, 0, n2 + n, h))
     else:
       n = int((w * 418.0) / 560.0)
