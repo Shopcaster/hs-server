@@ -19,7 +19,7 @@ var create = function(client, data, callback, errback) {
     listing._id = fs.listing;
 
     // Get the listing so that we know the author's id
-    db.get(fs, function(err, success) {
+    db.get(listing, function(err, success) {
       // Bail on errors
       if (err) return;
 
@@ -31,7 +31,7 @@ var create = function(client, data, callback, errback) {
 
 var update = function(client, id, diff, callback, errback) {
   // Create a diff fieldset
-  vaf fs = models.Offer();
+  var fs = models.Offer();
   fs.merge(diff);
   fs._id = id;
 

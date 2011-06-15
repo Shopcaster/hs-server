@@ -29,7 +29,8 @@ var validators = {
 // default create/update/delete behavior, which is to just insert or
 // update all fields verbatim.
 var specialHandlers = {
-  'listing': require('./data-handling/listing')
+  'listing': require('./data-handling/listing'),
+  'offer': require('./data-handling/offer')
 };
 
 var create = function(client, data, callback, errback) {
