@@ -158,7 +158,7 @@ var passwd = function(client, data, callback, errback) {
   var auth = client.state.auth;
 
   // Make sure the passwords match
-  if (!auth.password != hashPassword(data.old, auth.email)) return callback(false);
+  if (auth.password != hashPassword(data.old, auth.email)) return callback(false);
 
   // Hash the new password
   var password = hashPassword(data.password, auth.email);
