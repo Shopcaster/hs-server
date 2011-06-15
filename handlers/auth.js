@@ -89,7 +89,7 @@ var auth = function(client, data, callback, errback) {
         db.apply(auth, user, function() {
 
           // Update presence information
-          presence.onlien(client);
+          presence.online(client);
 
           // Save the auth for the client
           client.state.auth = auth;
