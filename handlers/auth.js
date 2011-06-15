@@ -48,7 +48,7 @@ var createPassword = function(email) {
 
   // Send an email to the user
   _email.send(email, 'Welcome to Hipsell',
-    templating['email/signup'].render({password: pwraw}));
+    templating['email/signup'].render({password: pwRaw}));
 
   // Only store the hashed form
   return hashPassword(pwRaw, email);

@@ -31,8 +31,6 @@ var send = function(uid, type, fs, other) {
     // Silently fail if there's no email for this notification type
     if (!emails[type]) return;
 
-    console.log(templating['email/asdf']);
-
     // Get the email contents
     var msg = emails[type].render({fs: fs, other: other});
 

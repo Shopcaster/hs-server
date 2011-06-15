@@ -1,7 +1,5 @@
-var fs = require('fs');
-
-// Some weird import stuff
-var NodeScript = process.binding('evals').NodeScript;
+var fs = require('fs'),
+    vm = require('vm');
 
 // Template cache -- we preload them here for optimization and to
 // avoid having to jump through callbacks.
@@ -26,12 +24,21 @@ var Template = function(f) {
   // Parse the template
   this.parts = contents.split(tre);
 
-  // Do some basic validation to prevent variable clobbering
-  for (var i=1; i<this.parts.length; i+=2)
-    if (this.parts[i].match(/[\s\w]=[^=]/))
-      throw new Error('Variable assignment in template!  If you\'re ' +
-                      'sure that\'s not what\'s happening, you should fix ' +
-                      'this regex.\n\nFYI the template file is ' + f);
+  // Precompile the snippets
+  for (var i=1; i<this.parts.length; i+=2) {
+    try {
+      this.parts[i] = vm.createScript(this.parts[i]);
+    } catch (err) {
+      console.log('Error compiling template ' + f + ':' + err.message);
+      console.log('  From snippet: ');
+      var split = this.parts[i].split('\n');
+      for (var j=0; j<split.length; j++)
+        console.log('    ' + split[j]);
+
+      // This is a catastrophic error
+      process.exit(0);
+    }
+  }
 
   // Record the file this is from for future reference
   this.file = f;
@@ -58,14 +65,13 @@ Template.prototype.render = function(data) {
       rendered += part;
     } else {
       try {
-        // Oh god the horror
-        var val = NodeScript.runInNewContext(part, data);
+        var val = part.runInNewContext(data);
 
         // Only show this variable if it has a value
         if (val !== null && val !== undefined) rendered += val;
 
       } catch (err) {
-        console.log('Error in template ' + this.file + ':', err.message);
+        console.log('Error in template ' + this.file + ': ', err.message);
         console.log('  In this snippet');
         var split = part.split('\n');
         for (var j=0; j<split.length; j++)

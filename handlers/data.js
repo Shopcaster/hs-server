@@ -30,7 +30,9 @@ var validators = {
 // update all fields verbatim.
 var specialHandlers = {
   'listing': require('./data-handling/listing'),
-  'offer': require('./data-handling/offer')
+  'offer': require('./data-handling/offer'),
+  'inquiry': require('./data-handling/inquiry'),
+  'message': require('./data-handling/message')
 };
 
 var create = function(client, data, callback, errback) {
