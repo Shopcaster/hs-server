@@ -95,7 +95,7 @@ var auth = function(client, data, callback, errback) {
           client.state.auth = auth;
 
           // Remove the auth on dc
-          client.on('disconnect', function() { delete auths[client.id] });
+          client.on('disconnect', function() { deauth(client, null, function() {}, function() {}) });
 
           // Notify success!
           callback({
@@ -174,3 +174,4 @@ var passwd = function(client, data, callback, errback) {
 // Handlers
 exports.auth = auth;
 exports.deauth = deauth;
+exports.passwd = passwd;
