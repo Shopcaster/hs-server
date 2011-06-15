@@ -7,10 +7,10 @@ var templates = {};
 // The grand template regex.  Basically, this allows for templates of
 // the form:
 //
-//     This is a bunch of text and {{ foobar }} is a
+//     This is a bunch of text and {{ [javascript expression] }} is a
 //     variable insertion!
 //
-var tre = /{{\s*([\w\-_]+)\s*}}/
+var tre = /{{\s*(.+)\s*}}/
 
 var Template = function(f) {
   // Load the template
@@ -22,6 +22,13 @@ var Template = function(f) {
 
   // Parse the template
   this.parts = contents.split(tre);
+
+  // Do some basic validation to prevent variable clobbering
+  for (var i=1; i<this.parts.length; i+=2)
+    if (this.parts[i].match(/[\s\w]=[^=]/))
+      throw new Error('Variable assignment in template!  If you\'re ' +
+                      'sure that\'s not what\'s happening, you should fix ' +
+                      'this regex.\n\nFYI the template file is ' + f);
 };
 Template.prototype = {};
 Template.prototype.render = function(data) {
@@ -42,8 +49,9 @@ Template.prototype.render = function(data) {
 
     if (raw)
       rendered += part;
-    else if (data[part] !== null && data[part] !== undefined)
-      rendered += data[part];
+    else
+      // Oh god the horror
+      rendered += (function() {with(data) { return eval(part) }})();
 
     // Flip raw for the alternation
     raw = !raw;
