@@ -42,7 +42,7 @@ var create = function(client, data, callback, errback) {
 
 var update = function(client, id, diff, callback, errback) {
   // Create a diff fieldset
-  var fs = models.Message();
+  var fs = new models.Message();
   fs.merge(diff);
   fs._id = id;
 

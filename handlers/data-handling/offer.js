@@ -31,7 +31,7 @@ var create = function(client, data, callback, errback) {
 
 var update = function(client, id, diff, callback, errback) {
   // Create a diff fieldset
-  var fs = models.Offer();
+  var fs = new models.Offer();
   fs.merge(diff);
   fs._id = id;
 

@@ -82,10 +82,10 @@ var update = function(client, data, callback, errback) {
   if (!validate(validators[key.type], data.diff)) return errback('Invalid field');
 
   // Check if we have a special handler for this data type
-  if (data.type in specialHandlers) {
+  if (key.type in specialHandlers) {
 
     // Delegate to the handler
-    specialHandlers[data.type].update(client,
+    specialHandlers[key.type].update(client,
                                       key.id,
                                       data.diff,
                                       callback,
@@ -117,10 +117,10 @@ var del = function(client, data, callback, errback) {
   if (!key || key.relation) return errback('Invalid key');
 
   // Check if we have a special handler for this data type
-  if (data.type in specialHandlers) {
+  if (key.type in specialHandlers) {
 
     // Delegate to the handler
-    specialHandlers[data.type].del(client, key.id, callback, errback);
+    specialHandlers[key.type].del(client, key.id, callback, errback);
 
   // If we don't, do the default, which is to simply set the deleted
   // flag on the object and save it to the database.

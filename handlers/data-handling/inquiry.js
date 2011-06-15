@@ -31,7 +31,7 @@ var create = function(client, data, callback, errback) {
 
 var update = function(client, id, diff, callback, errback) {
   // Create a diff fieldset
-  var fs = models.Inquiry();
+  var fs = new models.Inquiry();
   fs.merge(diff);
   fs._id = id;
 
@@ -40,6 +40,29 @@ var update = function(client, id, diff, callback, errback) {
 
   // And return success
   callback(true);
+
+  // If the answer changed, send a notification to the inquiry's
+  // creator.
+  if (diff.answer) {
+
+    // Fetch the inquiry
+    var inquiry = new models.Inquiry();
+    inquiry._id = id;
+    db.get(inquiry, function(err) {
+
+      // Fail silently on error
+      if (err) return;
+
+      //Fetch the listing
+      var listing = new models.Listing();
+      listing._id = inquiry.listing;
+      db.get(listing, function(err) {
+
+        // Send the notification
+        nots.send(inquiry.creator, nots.Types.NewAnswer, inquiry, listing);
+      });
+    });
+  }
 };
 
 var del = function(client, id, callback, errback) {

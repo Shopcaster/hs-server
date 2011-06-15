@@ -68,7 +68,7 @@ var create = function(client, data, callback, errback) {
 var update = function(client, id, diff, callback, errback) {
 
   // Stuff the data into a fieldset
-  var fs = models.Listing();
+  var fs = new models.Listing();
   fs.merge(diff);
   fs._id = id;
 
@@ -115,4 +115,6 @@ exports.update = update;
 exports.del = del;
 
 // Misc Exports
+
+// Temp for IAPI posting
 exports.createImg = createImg;
