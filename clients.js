@@ -6,6 +6,9 @@ var clients = {}, cur_id = 0;
 
 // Serializes a message
 var serialize = function(messageType, messageData) {
+  if (typeof messageType != 'string' || typeof messageData != 'object')
+    throw new Error('Bad message');
+
   return messageType + ':' + (JSON.stringify(messageData) || '');
 };
 
