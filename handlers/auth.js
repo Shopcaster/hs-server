@@ -89,7 +89,7 @@ var auth = function(client, data, callback, errback) {
         db.apply(auth, user, function() {
 
           // Update presence information
-          presence.setUser(client.id, user._id);
+          presence.onlien(client);
 
           // Save the auth for the client
           client.state.auth = auth;
@@ -116,7 +116,7 @@ var auth = function(client, data, callback, errback) {
         client.state.auth = obj;
 
         // Update presence information
-        presence.setUser(client.id, obj.creator);
+        presence.online(client);
 
         // Remove the auth on DC
         client.on('disconnect', function() { deauth(client, null, function() {}, function() {}) });
@@ -138,8 +138,10 @@ var auth = function(client, data, callback, errback) {
 var deauth = function(client, data, callback, errback) {
   // Just clear the presence information
   try {
-    presence.clearUser(client.id);
+    presence.offline(client);
+    delete client.state.auth;
     callback(true);
+
   } catch (err) {
     console.log(err.stack);
     console.log('');

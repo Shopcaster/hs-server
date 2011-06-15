@@ -115,7 +115,7 @@ var queryOne = function(type, q, callback) {
     if (err) console.log(err) || callback(true);
     else col.find(q).limit(1).nextObject(function(err, obj) {
       if (err) console.log(err) || callback(true);
-      else callback(false, obj);
+      else callback(false, new type().merge(obj));
     });
   });
 };

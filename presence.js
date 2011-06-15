@@ -6,41 +6,47 @@ var UserState = {
   away: 2
 };
 
-// user id -> client id
-var clients = {};
-// client id -> user id
-var users = {};
+// user id -> client
+var online = {};
 
-var setUser = function(clientId, userId) {
-  clients[userId] = clientId;
-  users[clientId] = userId;
+// Marks a client as online
+var online = function(client) {
+  //if the client isn't auth'd we can't do presence
+  if (!client.state.auth) return;
+
+  //dry
+  var uid = client.state.auth.creator;
+
+  //track this client as online
+  online[uid] = client;
 
   // fire the event for the userid
-  events.emit(userId, UserState.online);
+  events.emit(uid, UserState.online);
 };
 
-var clearUser = function(clientId) {
-  uid = users[clientId];
-  delete users[clientId];
-  delete clients[uid];
+// Marks a client as offline
+var offline = function(client) {
+  //if the client isn't auth'd we can't do presence
+  if (!client.state.auth) return;
+
+  //dry
+  var uid = client.state.auth.creator;
+
+  //mark them as offline by removing them from the online list
+  delete online[uid];
 
   // fire the event for the userid
   events.emit(uid, UserState.offline);
 };
 
-var getUserId = function(clientId) {
-  return users[clientId];
-};
-
-var getState = function(userId) {
-  if (clients[userId]) return UserState.online;
+var getState = function(uid) {
+  if (online[uid]) return UserState.online;
   else return UserState.offline;
 };
 
 // General Exports
-exports.setUser = setUser;
-exports.clearUser = clearUser;
-exports.getUserId = getUserId;
+exports.online = online;
+exports.offline = offline;
 exports.getState = getState;
 exports.UserState = UserState;
 
