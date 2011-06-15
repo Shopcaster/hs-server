@@ -31,8 +31,10 @@ var send = function(uid, type, fs, other) {
     // Silently fail if there's no email for this notification type
     if (!emails[type]) return;
 
+    console.log(templating['email/asdf']);
+
     // Get the email contents
-    var msg = emails[type]({fs: fs, other: other});
+    var msg = emails[type].render({fs: fs, other: other});
 
     // And send the email
     email.sendToUser(uid, messages[type] || 'New Notification', msg);
@@ -44,7 +46,7 @@ var send = function(uid, type, fs, other) {
 
     // Grab the client and send them the notification
     var client = presence.getClient(uid);
-    client.send('not', {message: messages[type], key: fs.getCollection + ':' + fs._id});
+    client.send('not', {message: messages[type], key: fs.getCollection() + ':' + fs._id});
   }
 };
 
