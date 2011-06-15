@@ -44,10 +44,15 @@ var getState = function(uid) {
   else return UserState.offline;
 };
 
+var getClient = function(uid) {
+  return online[uid];
+};
+
 // General Exports
 exports.online = online;
 exports.offline = offline;
 exports.getState = getState;
+exports.getClient = getClient;
 exports.UserState = UserState;
 
 // Event handling
