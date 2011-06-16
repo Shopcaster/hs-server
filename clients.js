@@ -27,6 +27,7 @@ var deserialize = function(msg) {
 var Client = function(client_id) {
   this.id = cur_id++;
   this.state = {};
+  this.setMaxListeners(0);
 };
 Client.prototype = new events.EventEmitter();
 Client.prototype.send = function(type, data) {
