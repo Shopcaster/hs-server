@@ -12,8 +12,50 @@ var makeId = function() {
   return out;
 };
 
-var makeNiceId = function(namespace) {
-  //todo
+var niceIds = {};
+var makeNiceId = function(collection, callback) {
+
+  // If we already have a nice ID stored for this collection, return
+  // it as a string, and increment it.
+  if (niceIds.hasOwnProperty(collection)) return callback((niceIds[collection]++) + '');
+
+  // Otherwise, we just need to count the number of items in the
+  // collection and initialize the nice id counter to that value.
+
+  // Grab the collection from the db
+  db.collection(collection, function(err, col) {
+
+    // On an error, fail horribly.
+    if (err) {
+      console.log('Unable to open collection ' + collection + ':');
+      console.log(err.stack);
+      console.log('');
+      process.exit();
+    }
+
+    // Count the number of objects in the collection to generate
+    // the friendly ID.
+    col.count(function(err, n) {
+
+      // On an error, fail horribly.
+      if (err) {
+        console.log('Unable to count objects in collection ' + collection + ':');
+        console.log(err.stack);
+        console.log('');
+        process.exit();
+      }
+
+      // Set the nice id counter
+      niceIds[collection] = n + 1; //do 1-based counting
+
+      // Execute makeNiceId again, which will result in it using the
+      // cached version to return the id to the caller.  This keeps
+      // that logic in one place.
+      makeNiceId(collection, callback);
+
+    });
+
+  });
 };
 
 ///////////////////////////////
@@ -25,6 +67,9 @@ var db;
 var init = function(host, port, name, callback) {
   db = new mongo.Db(name, new mongo.Server(host, port, {}));
   db.open(function(err, p_client) {
+    // If we get an error opening the database, we need to fail
+    // hard because there's nothing else to do if we can't read/store
+    // data.
     if (err) {
       console.log('Unable to open database connection!');
       process.exit();

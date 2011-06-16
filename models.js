@@ -1,4 +1,5 @@
 var FieldSet = require('./db').FieldSet,
+    makeNiceId = require('./db').makeNiceId,
     crypto = require('crypto');
 
 var Auth = function() {};
@@ -6,6 +7,15 @@ Auth.prototype = new FieldSet('authentication');
 
 var Listing = function() {};
 Listing.prototype = new FieldSet('listing');
+Listing.prototype.genId = function(callback) {
+  var self = this;
+  makeNiceId(this.getCollection(), function(id) {
+    self._id = id;
+    if (callback) callback();
+  });
+
+  return this;
+};
 
 var User = function() {};
 User.prototype = new FieldSet('user');
