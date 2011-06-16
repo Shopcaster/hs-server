@@ -3,6 +3,10 @@ var keys = require('./../util/keys'),
     db = require('./../db'),
     auth = require('./auth');
 
+// FAIR WARNING:
+//   This is one hell of a complicated module.  Bring your towel.
+//
+
 var sub = function(client, data, callback, errback) {
   // If the client has no sub hash, we have some setup to do
   if (!(client.state.subs)) {
@@ -57,10 +61,6 @@ var sub = function(client, data, callback, errback) {
   // Listen on the relation
   } else {
     // Util/DRY
-    var filter = function(fs) {
-      return fs.getCollection() == key.relation.type
-          && fs[key.relation.field] == key.id;
-    };
     var send = function(add, remove) {
       client.send('pub', {
         key: data.key,
@@ -71,10 +71,37 @@ var sub = function(client, data, callback, errback) {
       });
     };
 
-    // Register the subscription
-    // TODO - delete
-    client.state.subs[data.key] = func.efilter(db.events, ['create', 'update'])
-      (filter).run(function(fs) { send([fs._id]) });
+    // Register the subscription for creation
+    client.state.subs[data.key] = func.efilter(db.events, 'create')
+    (function(fs) {
+      return fs.getCollection() == key.relation.type
+          && fs[key.relation.field] == key.id;
+
+    }).run(function(fs) {
+
+      // Forward created items right down to the client
+      send([fs._id]);
+    })
+    // Register the subscription for deletion
+    .join(func.efilter(db.events, 'delete')
+    // There's only a  filter here, because we have to do it async.
+    // Instead, the run callback basically handles the complex
+    // filtering.
+    (function(fs) { return fs.getCollection() == key.relation.type })
+    .run(function(fs) {
+
+      // Fetch more data for the fieldset
+      db.get(fs, function(err) {
+        // On error, do nothing
+        if (err) return;
+
+        // Make sure we're talking to the right relation
+        if (fs[key.relation.field] != key.id) return;
+
+        // Forward deleted items right down to the client
+        send([], [fs._id]);
+      });
+    }));
 
     // Get the IDs
     db.queryRelated(key.relation.type, key.relation.field, key.id, function(err, ids) {
@@ -97,7 +124,7 @@ var unsub = function(client, data, callback, errback) {
     for (sub in client.state.subs) if (client.state.subs.hasOwnProperty(sub)) {
       // If we found it, call the killer and remove the sub
       if (sub == data.key) {
-        client.state.subs[sub]();
+        client.state.subs[sub].kill();
         delete client.state.subs[sub];
         wasSubbed = true;
         break;

@@ -50,9 +50,22 @@ var efilter = function(obj, type) {
   };
   ret.run = function(clbk) {
     callback = clbk;
-    return {kill: function() {
-      obj.removeListener(type, runIt);
-    }};
+    // Bootstrap the to kill list
+    var toKill = [[type, runIt]];
+    return {
+      // Expose this publically for join functionality
+      toKill: toKill,
+      // Kills the listeners
+      kill: function() {
+        for (var i=0; i<toKill.length; i++)
+          obj.removeListener.apply(this, toKill[i]);
+      },
+      // Join other listeners
+      join: function(other) {
+        toKill.concat(other.toKill);
+        return this;
+      }
+    };
   };
 
   return ret;

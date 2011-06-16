@@ -123,6 +123,7 @@ var queryOne = function(type, q, callback) {
 var queryRelated = function(type, field, id, callback) {
   var q = {};
   q[field] = id;
+  q.deleted = false;
 
   if (!type || !field || !id) console.log('Missing argument') || callback(true);
   else db.collection(type, function(err, col) {
