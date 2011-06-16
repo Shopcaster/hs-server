@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import Image
+import sys
+from cStringIO import StringIO
+
+# (w, h)
+size = (40, 40)
+output_ratio =  1
+
+if __name__ == '__main__':
+
+    #load the image
+    input = StringIO(sys.stdin.read())
+    img = Image.open(input)
+
+    #force rgb format
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+
+    w, h = img.size
+    w = int(w)
+    h = int(h)
+
+    #do the crop
+    if (float(w) / h) > output_ratio:
+      n2 = int((w - h) / 2.0)
+      img = img.crop((n2, 0, n2 + h, h))
+    else:
+      n = w
+      n2 = int((h - w) / 2.0)
+      img = img.crop((0, n2, w, n2 + w))
+
+    #resize
+    img = img.resize(size, Image.ANTIALIAS)
+
+    #output
+    img.save(sys.stdout, 'PNG')
