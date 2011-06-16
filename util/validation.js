@@ -29,7 +29,8 @@ var validate = function(spec, data) {
       ||  (t == 'object' && typeof data[i] != 'object')
       ||  (t == 'ref' && typeof data[i] != 'string')
       ||  (typeof data[i] === 'null')
-      ||  (typeof data[i] === 'undefined')) {
+      ||  (typeof data[i] === 'undefined')
+      ||  (t != 'any')) {
         passed = false;
         break;
       }

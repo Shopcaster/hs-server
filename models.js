@@ -35,6 +35,9 @@ File.prototype.generateHash = function() {
   this.hash = crypto.createHash('md5').update(this.data).digest('hex');
 };
 
+var ClientError = function() {};
+ClientError.prototype = new FieldSet('clienterror');
+
 exports.Auth = Auth;
 exports.Listing = Listing;
 exports.User = User;
@@ -42,3 +45,4 @@ exports.Offer = Offer;
 exports.Message = Message;
 exports.Inquiry = Inquiry;
 exports.File = File;
+exports.ClientError = ClientError;

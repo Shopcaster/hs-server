@@ -3,10 +3,12 @@ var validate = require('./util/validation').validate,
     auth = require('./handlers/auth'),
     pubsub = require('./handlers/pubsub'),
     data = require('./handlers/data'),
-    presence = require('./handlers/presence');
+    presence = require('./handlers/presence'),
+    clientError = require('./handlers/client-error');
 
 var validators = {
   'ping':   {},
+  'error':  {data: 'any'},
   'auth':   {email: 'string', password: 'string?'},
   'deauth': {},
   'passwd': {old: 'string', password: 'string'},
@@ -34,7 +36,9 @@ var handlers = {
   'delete': data.del,
 
   'sub-presence': presence.sub,
-  'unsub-presence': presence.unsub
+  'unsub-presence': presence.unsub,
+
+  'error': clientError.error
 };
 
 var handle = function(client, type, data, callback, errback) {
