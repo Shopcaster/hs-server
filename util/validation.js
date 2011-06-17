@@ -41,8 +41,8 @@ var validate = function(spec, data) {
         break;
       }
 
-      // Perform regex matching
-      if (t in regexes && !regexes[t].exec(data[i])) {
+      // Perform regex matching, but allow anything that's null
+      if (data[i] && t in regexes && !regexes[t].exec(data[i])) {
         passed = false;
         break;
       }

@@ -56,6 +56,52 @@ var createPassword = function(email) {
 
 var auth = function(client, data, callback, errback) {
 
+  //
+  // This code here is per-client auth rate limiting.  We begin
+  // stalling responses to messages if the client tries to auth
+  // too many times.
+  //
+  // The algorithm is simple: every time a client tries to auth,
+  // we increase the time they wait on the next auth call by 0.5s.
+  // We also remove 0.5s from that delay every 10s.
+  //
+  // The actual math the maximum rate of auth attempts an attacker
+  // could reach is a little complicated and involves calculus.  I'll
+  // do this on my own time, but for now this little scheme should
+  // provide reasonable protection.
+  //
+
+  // If the client has no auth delay, so some initialization
+  if (client.state.authDelay === undefined) {
+    // Set the initial auth delay to 0
+    client.state.authDelay = 0;
+
+    // Every 10s, lower the auth delay
+    client.state.authDelayInterval = setInterval(function() {
+      // Lower by 0.5s
+      client.state.authDelay -= 500;
+
+      // Avoid going into the negatives
+      if (client.state.authDelay > 0)
+        client.state.authDelay = 0;
+
+    }, 10 * 1000); //10s
+
+    // When the client DC's clear the interval
+    client.on('disconnect', function() {
+      clearInterval(client.state.authDelayInterval);
+    });
+  }
+
+  // If we have to delay for auth, bounce this call
+  if (client.state.authDelay) {
+    setTimeout(function() { auth(client, data, callback, errback); },
+      client.state.authDelay);
+  }
+
+  // Each time the client tries to auth, increase the delay by 0.5s
+  client.state.authDelay = 0.5;
+
   // Look for an auth object with this email
   db.queryOne(models.Auth, {email: data.email}, function(err, obj) {
 
