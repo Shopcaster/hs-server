@@ -18,9 +18,17 @@ var validate = function(spec, data) {
     // whether it's optional or not.
     if (data.hasOwnProperty(i)) {
 
-      // Strip the optional flag, since we don't care about here
-      if (t[t.length - 1] == '?')
+      // Check for the optional flag
+      if (t[t.length - 1] == '?') {
+        // Strip it out so that further validation can happen
         t = t.substr(0, t.length - 1);
+      // If there's no optional flag set, we don't allow null
+      } else {
+        // So fail if the data item is null
+        if (data[i] === null)
+          pass = false;
+          break;
+      }
 
       // Ensure types match
       if ((t == 'string' && typeof data[i] != 'string')
@@ -28,7 +36,6 @@ var validate = function(spec, data) {
       ||  (t == 'boolean' && typeof data[i] != 'boolean')
       ||  (t == 'object' && typeof data[i] != 'object')
       ||  (t == 'ref' && typeof data[i] != 'string')
-      ||  (typeof data[i] === 'null')
       ||  (typeof data[i] === 'undefined')) {
         passed = false;
         break;
@@ -48,6 +55,10 @@ var validate = function(spec, data) {
       break;
     }
   }
+
+  // Break early if passed is false
+  if (!passed)
+    return false;
 
   // If the client has any fields that aren't in the spec, fail 'em.
   for (var i in data) if (data.hasOwnProperty(i)) {
