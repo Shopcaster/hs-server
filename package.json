@@ -12,7 +12,7 @@
   }],
 
   "dependencies": {
-    "socket.io": "latest",
+    "socket.io": "0.6",
     "cli": "latest",
     "mailgun": "latest",
     "mongodb": "latest",

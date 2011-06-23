@@ -24,6 +24,14 @@ var run = function(command, input, callback) {
     errors.push(data);
   });
 
+  // Smooth error handling -- avoids broken pipe crashes
+  child.stdout.on('error', function() {
+    callback(true, new Buffer());
+  });
+  child.stderr.on('error', function() {
+    callback(true, new Buffer());
+  });
+
   // When the child exits, we send data back to the callback by merging
   // all the buffers into one.
   child.on('exit', function(code) {

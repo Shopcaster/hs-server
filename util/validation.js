@@ -30,6 +30,10 @@ var validate = function(spec, data) {
           break;
       }
 
+      // If the data is null, let it through
+      if (data[i] === null)
+        continue;
+
       // Ensure types match
       if ((t == 'string' && typeof data[i] != 'string')
       ||  (t == 'number' && typeof data[i] != 'number')
@@ -41,8 +45,8 @@ var validate = function(spec, data) {
         break;
       }
 
-      // Perform regex matching, but allow anything that's null
-      if (data[i] && t in regexes && !regexes[t].exec(data[i])) {
+      // Perform regex matching
+      if (t in regexes && !regexes[t].exec(data[i])) {
         passed = false;
         break;
       }
