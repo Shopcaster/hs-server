@@ -23,7 +23,9 @@ var validators = {
 
   'inquiry': {question: 'string?',
               answer: 'string?',
-              listing: 'ref?'}
+              listing: 'ref?'},
+
+  'convo': {listing: 'ref?'}
 };
 
 // Any data type that doesn't have an entry in this object gets the
