@@ -34,6 +34,11 @@ var pwNouns = [
   'Rainbow'
 ];
 
+var emailDelays = {};
+var emailDelayIntervals = {};
+
+// Utility functions
+
 var hashPassword = function(password, email) {
   return crypto.createHash('sha256').update(password + email).digest('hex').toUpperCase();
 };
@@ -44,7 +49,6 @@ var createPassword = function(email) {
   var n = Math.floor(Math.random() * 100 + 1);
 
   var pwRaw = adjective + '_' + noun + n;
-  console.log('New password: ' + pwRaw);
 
   // Send an email to the user
   _email.send(email, 'Welcome to Hipsell',
@@ -54,35 +58,42 @@ var createPassword = function(email) {
   return hashPassword(pwRaw, email);
 };
 
-var auth = function(client, data, callback, errback) {
+var auth = function(client, data, callback, errback, force) {
 
   //
   // This code here is per-client auth rate limiting.  We begin
   // stalling responses to messages if the client tries to auth
   // too many times.
   //
+  // We also do per-email auth rate limiting.  We being stalling
+  // responses to auth messages for a particular email if clients
+  // try to auth against it too many times.
+  //
   // The algorithm is simple: every time a client tries to auth,
   // we increase the time they wait on the next auth call by 0.5s.
-  // We also remove 0.5s from that delay every 10s.
+  // We also remove 0.5s from that delay every 10s.  We do the same
+  // thing on an email level as well.
   //
-  // The actual math the maximum rate of auth attempts an attacker
-  // could reach is a little complicated and involves calculus.  I'll
-  // do this on my own time, but for now this little scheme should
-  // provide reasonable protection.
+  // The maximum rate of auth attempts an attacker could reach is a
+  // little complicated and involves calculus.  I'll do this on my own
+  // time, but for now this little scheme should provide quite
+  // reasonable protection.
   //
 
-  // If the client has no auth delay, so some initialization
+  // Initialize client-based delays
   if (client.state.authDelay === undefined) {
+
     // Set the initial auth delay to 0
     client.state.authDelay = 0;
 
     // Every 10s, lower the auth delay
     client.state.authDelayInterval = setInterval(function() {
+
       // Lower by 0.5s
       client.state.authDelay -= 500;
 
       // Avoid going into the negatives
-      if (client.state.authDelay > 0)
+      if (client.state.authDelay < 0)
         client.state.authDelay = 0;
 
     }, 10 * 1000); //10s
@@ -93,14 +104,63 @@ var auth = function(client, data, callback, errback) {
     });
   }
 
-  // If we have to delay for auth, bounce this call
-  if (client.state.authDelay) {
-    setTimeout(function() { auth(client, data, callback, errback); },
-      client.state.authDelay);
+  // Initialize email-based delays
+  if (emailDelays[data.email] === undefined) {
+
+    // Set the initial auth delay to 0
+    emailDelays[data.email] = 0;
+
+    // Every 10s, lower the auth delay
+    emailDelayIntervals[data.email] = setInterval(function() {
+
+      // Lower by 0.5s
+      emailDelays[data.email] -= 500;
+
+      // If the delay is back to 0, remove this interval and delete
+      // the delay so that this initialization logic will be
+      // re-enabled on the next login attempt on this email.
+      if (emailDelays[data.email] <= 0) {
+
+        // Clear this interval
+        clearInterval(emailDelayIntervals[data.email]);
+
+        // Delete the relevant state
+        delete emailDelays[data.email];
+        delete emailDelayIntervals[data.email];
+      }
+
+    }, 10 * 1000); //10s
   }
 
-  // Each time the client tries to auth, increase the delay by 0.5s
-  client.state.authDelay = 0.5;
+  // Each time `auth` is called, increase the auth delay for both
+  // the client making the call, and the email being auth'd against.
+  //
+  // Note that we check the `force` argument to prevent these from
+  // incremented more that once per call (if we didn't, it would
+  // happen twice -- once in the first call, and a second time in the
+  // bounced callback).
+  if (!force) {
+    client.state.authDelay += 500;
+    emailDelays[data.email] += 500;
+
+    // Cap per-email delays at 15s to mitigate DoSing.
+    if (emailDelays[data.email] > 15 * 1000) //15s
+      emailDelays[data.email] = 15 * 1000; //15s
+  }
+
+  // If we have to delay for auth, bounce this call.  Note that we use
+  // the `force` argument as a way to bypass this check.
+  if (!force && (emailDelays[data.email] || client.state.authDelay)) {
+
+    // Use the larger of the two delays
+    var delay = Math.max(emailDelays[data.email], client.state.authDelay);
+
+    // Bounce the call
+    setTimeout(function() { auth(client, data, callback, errback, true); }, delay);
+
+    // And make this a no-op.
+    return;
+  }
 
   //
   // Here follows the actual authentication business logic.
