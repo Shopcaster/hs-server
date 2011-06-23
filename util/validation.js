@@ -26,7 +26,7 @@ var validate = function(spec, data) {
       } else {
         // So fail if the data item is null
         if (data[i] === null)
-          pass = false;
+          passed = false;
           break;
       }
 

@@ -102,6 +102,10 @@ var auth = function(client, data, callback, errback) {
   // Each time the client tries to auth, increase the delay by 0.5s
   client.state.authDelay = 0.5;
 
+  //
+  // Here follows the actual authentication business logic.
+  //
+
   // Look for an auth object with this email
   db.queryOne(models.Auth, {email: data.email}, function(err, obj) {
 
