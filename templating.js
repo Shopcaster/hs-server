@@ -1,5 +1,6 @@
 var fs = require('fs'),
-    vm = require('vm');
+    vm = require('vm'),
+    settings = require('./settings');
 
 // Template cache -- we preload them here for optimization and to
 // avoid having to jump through callbacks.
@@ -11,7 +12,7 @@ var templates = {};
 //     This is a bunch of text and {{ [javascript expression] }} is a
 //     variable insertion!
 //
-var tre = /{{\s*(.+)\s*}}/
+var tre = /{{\s*(.+?)\s*}}/
 
 var Template = function(f) {
   // Load the template
@@ -27,7 +28,9 @@ var Template = function(f) {
   // Precompile the snippets
   for (var i=1; i<this.parts.length; i+=2) {
     try {
+      var code = this.parts[i];
       this.parts[i] = vm.createScript(this.parts[i]);
+      this.parts[i].code = code;
     } catch (err) {
       console.log('Error compiling template ' + f + ':' + err.message);
       console.log('  From snippet: ');
@@ -51,6 +54,12 @@ Template.prototype.render = function(data) {
   if (this.parts.length == 1)
     return this.parts[0];
 
+  // Clone the data and add some globals to it
+  var newData = {};
+  for (var i in data) if (data.hasOwnProperty(i))
+    newData[i] = data[i];
+  newData.settings = settings;
+
   // We append rendered parts to this
   var rendered = '';
 
@@ -65,7 +74,7 @@ Template.prototype.render = function(data) {
       rendered += part;
     } else {
       try {
-        var val = part.runInNewContext(data);
+        var val = part.runInNewContext(newData);
 
         // Only show this variable if it has a value
         if (val !== null && val !== undefined) rendered += val;
@@ -73,7 +82,7 @@ Template.prototype.render = function(data) {
       } catch (err) {
         console.log('Error in template ' + this.file + ': ', err.message);
         console.log('  In this snippet');
-        var split = part.split('\n');
+        var split = part.code.split('\n');
         for (var j=0; j<split.length; j++)
           console.log('    ' + split[j]);
         console.log('')
