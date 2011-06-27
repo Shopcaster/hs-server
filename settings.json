@@ -1,0 +1,14 @@
+{
+  "development": {
+    "uri": "http://dev.hipsell.com:3000"
+  },
+  "production": {
+    "uri": "http://hipsell.com"
+  },
+  "staging": {
+    "uri": "http://beta.hipsell.com"
+  },
+  "test": {
+    "uri": false
+  }
+}

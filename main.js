@@ -9,7 +9,10 @@ var cli = require('cli'),
     // `required()` up here, the end result is that ALL of them will
     // be loaded before they're init'd.  Keeping the loading lazy
     // solves this problem and gives us fine-grained control over
-    // initialization order.
+    // initialization order.  Note that this isn't an academic
+    // concern, and things actually break without this loading
+    // technique.
+    settings,
     db,
     urls,
     clients,
@@ -18,6 +21,7 @@ var cli = require('cli'),
     templating;
 
 cli.parse({
+  mode: [false, 'Server mode (development, production, staging, test)', 'string', 'development'],
   port: ['p', 'Listen on this port', 'number', 8000],
   host: ['s', 'Listen on this hostname', 'string', '0.0.0.0'],
   dbhost: [false, 'Database server hostname', 'string', 'localhost'],
@@ -27,8 +31,14 @@ cli.parse({
 });
 
 cli.main(function(args, opts) {
-  console.log('Hipsell Server - Bonanza Branch');
+  console.log('Hipsell Server');
+  console.log('Running in mode ' + opts.mode);
   console.log('');
+
+  //prep settings in the correct mode
+  console.log('  Loading settings');
+  settings = require('./settings');
+  settings.setMode(opts.mode);
 
   //set up database
   console.log('  Initializing Database');
@@ -64,3 +74,11 @@ cli.main(function(args, opts) {
   });
 });
 
+// Handle uncaught exceptions without crashing the server.
+process.on('uncaughtException', function(err) {
+  console.log('Uncaught Exception!');
+  console.log(err.stack);
+  console.log('NOTE: There\'s a good chance we\'ve just leaked some ' +
+              'memory.  Restarting would be a good idea.');
+  console.log('');
+});
