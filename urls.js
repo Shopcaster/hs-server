@@ -1,5 +1,6 @@
 var staticServing = require('./static-serving'),
-    iapi = require('./iapi/urls');
+    iapi = require('./iapi/urls'),
+    facebook = require('./third-party/facebook');
 
 var urls = {
   //dummy handler that keeps us from clobbering socket.io's urls
@@ -8,7 +9,12 @@ var urls = {
   '^/static/': staticServing.serve,
 
   //delegate to the internal api
-  '^/iapi/': iapi.serve
+  '^/iapi/': iapi.serve,
+
+  //oauth callbacks
+  '^/fb/': facebook.serve,
+  '^/twitter/': twitter.serve,
+  '^/linkedin/': linkedin.server
 };
 
 var dispatch = function(req, res) {

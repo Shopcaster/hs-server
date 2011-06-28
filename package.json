@@ -1,7 +1,7 @@
 {
-  "name": "hs-bonanza",
-  "version": "0.1.0",
-  "description": "Hipsell Server - Bonanza Branch",
+  "name": "hs-server",
+  "version": "2.0.0",
+  "description": "Hipsell Server",
 
   "maintainers": [{
     "name": "Aron Jones",
@@ -16,7 +16,8 @@
     "cli": "latest",
     "mailgun": "latest",
     "mongodb": "latest",
-    "colors": "latest"
+    "colors": "latest",
+    "oauth": "latest"
   },
 
   "bin": {"hss": "./main.js"}
