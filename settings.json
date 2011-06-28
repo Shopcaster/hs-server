@@ -1,6 +1,6 @@
 {
   "development": {
-    "uri": "http://dev.hipsell.com:3000"
+    "uri": "http://dev.hipsell.com:8000"
   },
   "production": {
     "uri": "http://hipsell.com"

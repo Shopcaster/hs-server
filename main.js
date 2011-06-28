@@ -71,14 +71,16 @@ cli.main(function(args, opts) {
     console.log('');
     console.log('Server Ready');
     console.log('');
-  });
-});
 
-// Handle uncaught exceptions without crashing the server.
-process.on('uncaughtException', function(err) {
-  console.log('Uncaught Exception!');
-  console.log(err.stack);
-  console.log('NOTE: There\'s a good chance we\'ve just leaked some ' +
-              'memory.  Restarting would be a good idea.');
-  console.log('');
+    // Handle uncaught exceptions without crashing the server.  Don't
+    // move this any earlier, as we want failure during init to crash
+    // it.
+    process.on('uncaughtException', function(err) {
+      console.log('Uncaught Exception!');
+      console.log(err.stack);
+      console.log('NOTE: There\'s a good chance we\'ve just leaked some ' +
+                  'memory.  Restarting would be a good idea.');
+      console.log('');
+    });
+  });
 });

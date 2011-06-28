@@ -1,6 +1,8 @@
 var staticServing = require('./static-serving'),
     iapi = require('./iapi/urls'),
-    facebook = require('./third-party/facebook');
+    facebook = require('./third-party/facebook'),
+    //twitter = require('./third-party/twitter'),
+    linkedin = require('./third-party/linkedin');
 
 var urls = {
   //dummy handler that keeps us from clobbering socket.io's urls
@@ -13,7 +15,7 @@ var urls = {
 
   //oauth callbacks
   '^/fb/': facebook.serve,
-  '^/twitter/': twitter.serve,
+  //'^/twitter/': twitter.serve,
   '^/linkedin/': linkedin.server
 };
 

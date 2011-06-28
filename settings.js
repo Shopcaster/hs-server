@@ -30,18 +30,5 @@ var setMode = function(mode) {
 // Bootstrap settings
 reload();
 
-// Watch for changes on the settings file and reload when
-// the happen.
-fs.watchFile('settings.json', function(curr, prev) {
-
-  // Make sure the file was actually modified
-  if (curr.mtime != prev.mtime) {
-    console.log('Settings were modified, reloading...');
-    console.log('');
-    reload();
-  }
-
-});
-
 // Allow external modules to change the mode
 exports.setMode = setMode;

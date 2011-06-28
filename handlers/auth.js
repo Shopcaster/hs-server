@@ -58,6 +58,23 @@ var createPassword = function(email) {
   return hashPassword(pwRaw, email);
 };
 
+var authUser = function(email, password, callback) {
+  db.queryOne(models.Auth, {email: email}, function(err, obj) {
+
+    // Handle failure gracefully
+    if (err) return callback('Database Error');
+
+    // If the object doesn't exist, neither does the user
+    if (!obj) return callback(undefined, false, null);
+
+    // If the password's don't match, it's a bad auth
+    if (obj.password != password) return callback(undefined, true, obj);
+
+    // Otherwise, we have success
+    return callback(undefined, false, obj);
+  });
+};
+
 var auth = function(client, data, callback, errback, force) {
 
   //
@@ -166,28 +183,41 @@ var auth = function(client, data, callback, errback, force) {
   // Here follows the actual authentication business logic.
   //
 
-  // Look for an auth object with this email
-  db.queryOne(models.Auth, {email: data.email}, function(err, obj) {
+  authUser(data.email, data.password, function(err, bad, auth) {
 
-    // If something went wrong with the db just fail out
-    if (err) {
-      errback('Database Error');
-      return;
-    }
+    // This function sets the auth state for the cilent when called
+    var finish = function() {
+      // Update presence information
+      presence.online(client);
 
-    // If we couldn't get a record for that email address, we need
-    // to create the user.
-    if (obj == null) {
+      // Save the auth for the client
+      client.state.auth = auth;
 
-      // Create an auth/user record for this email
-      var auth = new models.Auth();
+      // Remove the auth on dc
+      client.on('disconnect', function() { deauth(client, null, function() {}, function() {}) });
+
+      // Notify success!
+      callback({
+        password: auth.password,
+        userid: auth.creator
+      });
+    };
+
+    // Bail entirely if something went wrong
+    if (err) return errback(err);
+
+    // Handle incorrect password
+    if (bad) return callback(false);
+
+    // If the user object doesn't exist, create it
+    if (!auth) {
+      auth = new models.Auth();
       auth.email = data.email;
       auth.password = createPassword(data.email);
 
+      // Also create the relevant user object
       var user = new models.User();
-      // Use gravatar for urls
-      user.avatar = gravatar.hash(data.email);
-
+      user.avatar = gravatar.getAvatarUrl(data.email);
       // In order to give the new Auth object a reference to this
       // user, it needs to have an id.  However, since it hasn't
       // been saved yet it doesn't have one -- as such, we manually
@@ -195,53 +225,14 @@ var auth = function(client, data, callback, errback, force) {
       user.bootstrap().genId(function() {
         auth.creator = user._id;
 
-        // Save the records
-        db.apply(auth, user, function() {
-
-          // Update presence information
-          presence.online(client);
-
-          // Save the auth for the client
-          client.state.auth = auth;
-
-          // Remove the auth on dc
-          client.on('disconnect', function() { deauth(client, null, function() {}, function() {}) });
-
-          // Notify success!
-          callback({
-            password: auth.password,
-            userid: auth.creator
-          });
-        });
+        // Save the records, and return success when it's done.
+        db.apply(auth, user, finish);
       });
 
-    // If there was a record, we need to auth the client against it.
+    // Otherwise, just wrap up.
     } else {
-
-      // Compared the password in the DB to the password the user
-      // supplied.
-      if (obj.password == data.password) {
-
-        // Save the auth for the client
-        client.state.auth = obj;
-
-        // Update presence information
-        presence.online(client);
-
-        // Remove the auth on DC
-        client.on('disconnect', function() { deauth(client, null, function() {}, function() {}) });
-
-        // Notify success!
-        callback({
-          password: data.password,
-          userid: obj.creator
-        });
-      // If the passwords didn't match, that's an auth failure.
-      } else {
-        callback(false);
-      }
+      return finish();
     }
-
   });
 };
 
@@ -285,3 +276,6 @@ var passwd = function(client, data, callback, errback) {
 exports.auth = auth;
 exports.deauth = deauth;
 exports.passwd = passwd;
+
+// Misc
+exports.authUser = authUser;
