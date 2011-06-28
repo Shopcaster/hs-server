@@ -1,7 +1,8 @@
 var keys = require('./../util/keys'),
     func = require('./../util/functional'),
     db = require('./../db'),
-    auth = require('./auth');
+    auth = require('./auth'),
+    mongo = require('mongodb');
 
 // FAIR WARNING:
 //   This is one hell of a complicated module.  Bring your towel.
@@ -53,9 +54,16 @@ var sub = function(client, data, callback, errback) {
     var obj = new db.FieldSet(key.type);
     obj._id = key.id;
     db.get(obj, function(err, exists) {
-      if (err === true) errback('Database error');
-      else if (!exists) callback(false);
-      else callback(obj);
+      if (err === true) return errback('Database error');
+      else if (!exists) return callback(false);
+
+      // Replace the Long date fields with their number-form
+      // counterparts
+      for (var i in obj) if (obj.hasOwnProperty(i))
+        if ((i == 'created' || i == 'modified') && obj[i].toNumber)
+          obj[i] = obj[i].toNumber();
+
+      callback(obj);
     });
 
   // Listen on the relation
