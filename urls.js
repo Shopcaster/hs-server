@@ -16,7 +16,7 @@ var urls = {
   //oauth callbacks
   '^/fb/': facebook.serve,
   '^/twitter/': twitter.serve,
-  '^/linkedin/': linkedin.server
+  '^/linkedin/': linkedin.serve
 };
 
 var dispatch = function(req, res) {

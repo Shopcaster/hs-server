@@ -147,19 +147,17 @@ OAuth.prototype.request = function(options, callback) {
 
   // Generate the signature
   var uri = (this.secure ? 'https' : 'http') + '://' + this.api.toLowerCase() + options.path;
-  params.oauth_signature = genSig(options.method, uri, params, this, token && token.secret);
+  params.oauth_signature = querystring.escape(genSig(options.method, uri, params, this, token && token.secret));
 
   // Build the OAuth auth header from the signature
   var authHeader = 'OAuth ';
   var bits = [];
   for (var i in params) if (params.hasOwnProperty(i))
-    bits.push(i + ': "' + params[i] + '"');
+    bits.push(i + '="' + params[i] + '"');
   authHeader += bits.join(', ');
 
   // Set the auth header
   options.headers.Authorization = authHeader;
-
-  console.log(options);
 
   // Pass on through to node's built in behavior
   return (this.secure ? https : http).request(options, callback);

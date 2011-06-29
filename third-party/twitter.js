@@ -8,12 +8,14 @@ var client = new oauth.OAuth('b9V0NzaBlCxbWdLz1OQT5A',
                              'XCinvLUCO07EcdQR2b9Vzb4yx0OSXgBUyPdOsMj8dc8',
                              'api.twitter.com', true);
 
+// TODO - expired session handling (also in linkedin, facebook)
+
 // Poor man's sessions
 var sessions = {};
 
 var connect = function(req, res) {
 
-  // Query args contain user info and such
+  // Query params contain user info and such
   var args = querystring.parse(url.parse(req.url).query);
 
   // Make sure the user supplied a valid email/password combo
@@ -86,6 +88,10 @@ var authCallback = function(req, res) {
     console.log('Yo dawg, I heard you like tokens');
     console.log(token);
     console.log('');
+
+    // TODO - store the token in the auth record
+    // TODO - fetch the user's info and update the user record
+    // TODO - redirect the user to the return url
   });
 
 };
