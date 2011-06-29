@@ -1,53 +1,88 @@
-var oauth = require('oauth-client'),
+var oauth = require('./../util/oauth'),
     querystring = require('querystring'),
     settings = require('./../settings');
 
-var client = oauth.createClient(443, 'api.twitter.com', true);
-var consumer = oauth.createConsumer('TODO - key', 'TODO - secret');
-var signer = oauth.createHmac(consumer);
+var client = new OAuth('b9V0NzaBlCxbWdLz1OQT5A',
+                       'XCinvLUCO07EcdQR2b9Vzb4yx0OSXgBUyPdOsMj8dc8',
+                       'api.twitter.com', true);
 
-var go = function() {
-  var data = '';
-  var token = oauth.createToken();
+// Poor man's sessions
+var sessions = {};
 
-  var tokenRequest = client.request('POST',
-                                    '/oauth/request_token?oauth_callback=' +
-                                      querystring.escape(settings.uri + '/twitter/callback'),
-                                    null,
-                                    null,
-                                    signer);
-  tokenRequest.on('data', function(c) { data += c });
-  tokenRequest.on('close', function(err) {
-    console.log('Error fetching Twitter request token');
-    console.log(err);
-    console.log('');
-  });
-  tokenRequest.on('end', function() {
+var connect = function(req, res) {
 
-    // Handle errors
-    if (res.statusCode != 200) {
-      console.log('Error from API when fetching Twitter request token');
-      console.log(data);
-      console.log('');
+  // Query args contain user info and such
+  var args = querystring.parse(url.parse(req.url).query);
+
+  // Make sure the user supplied a valid email/password combo
+  auth.authUser(args.email, args.password, function(err, bad, obj) {
+
+    // Handle errors with, well, errors
+    if (err) {
+      res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
+      red.end('Bad username/password');
       return;
     }
 
-    // Grab the token
-    token.decode(data);
+    // Set up the "session"
+    sessions[obj._id] = [obj, args.return];
+    // Save memory by clearing the data after 20s, which should be
+    // enough for anyone.
+    setTimeout(function() {
+      delete sessions[obj._id];
+    }, 20 * 1000); //20s
 
-    // Send the user to the URL to get the verifier
-    var url = 'https://api.twitter.com/oauth/authorize?oauth_token=' + token.oauth_token;
 
-    // TODO - generate temp id and attach it to the callback url so
-    //        we can tie these disparate callbacks together
+    // Fetch the temp OAuth token
+    var returnUrl = settings.uri + '/twitter/callback?state=' + obj._id;
+    client.requestToken('/oauth/request_token', returnUrl, function(err, token) {
+
+      // Handle errors
+      if (err) {
+        console.log('Error at Twitter request token');
+        console.log(err.stack);
+        console.log('');
+
+        res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
+        res.end(err.message);
+        return;
+      }
+
+      // Send the user to the authorization page
+      var url = 'http://api.twitter.com/oauth/authorize?oauth_token=' + token.token;
+      res.writeHead(302, {'Location': url});
+      res.end();
+    });
 
   });
+
 };
 
 // OAuth verification callback
 var authCallback = function(req, res) {
+  var args = querystring.parse(url.parse(req.url).query);
+  var sid = args.state;
 
-  req.on('data')
+  // TODO - handle errors
+
+  // Build the token
+  var token = new oauth.Token(args.oauth_token);
+  token.verifier = args.ouath_verifier;
+
+  client.accessToken('/oauth/access_token', token, function(err, token) {
+
+    // Handle errors
+    if (err) {
+      console.log('Unable to authenticate with Twitter');
+
+      res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
+      res.end(err.message);
+      return;
+    }
+
+    // If we have the token, we've pretty much succeeded
+
+  });
 
 };
 

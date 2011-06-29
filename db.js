@@ -1,16 +1,12 @@
 var mongo = require('mongodb'),
+    uuid = require('./util/uuid'),
     EventEmitter = require('events').EventEmitter;
 
 ///////////////////////////////
 // Utility
 ///////////////////////////////
 
-var makeId = function() {
-  var out = "";
-  for (var i=0; i<8; i++)
-    out += (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-  return out;
-};
+var makeId = uuid.uuid4;
 
 var niceIds = {};
 var makeNiceId = function(collection, callback) {

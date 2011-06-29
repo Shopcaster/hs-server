@@ -16,8 +16,7 @@
     "cli": "latest",
     "mailgun": "latest",
     "mongodb": "latest",
-    "colors": "latest",
-    "oauth-client": "latest"
+    "colors": "latest"
   },
 
   "bin": {"hss": "./main.js"}

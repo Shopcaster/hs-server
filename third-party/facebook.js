@@ -144,14 +144,14 @@ var connect = function(req, res) {
 
     // Handle errors with, well, errors.
     if (err) {
-      res.writeHead(500, {'Content-Type': 'text/html; charset=utf8'});
+      res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
       res.end(err);
       return;
     }
 
     // If the auth was incorrect or missing, throw out a 403
     if (bad || !obj) {
-      res.writeHead(403, {'Content-Type': 'text/html; charset=utf8'});
+      res.writeHead(403, {'Content-Type': 'text/html; charset=utf-8'});
       res.end('Bad username/password');
       return;
     }
