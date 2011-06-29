@@ -31,6 +31,7 @@
 // Some Notes:
 //
 // This library does header-based OAuth using HMAC-SHA1
+//
 
 var uuid = require('./uuid'),
     querystring = require('querystring'),
@@ -42,7 +43,7 @@ var uuid = require('./uuid'),
 var baseString = function(method, url, params) {
   var urlSplit = url.split('?');
 
-  var res = method.toUppserCase() + '&';
+  var res = method.toUpperCase() + '&';
   res += querystring.escape(urlSplit[0]) + '&';
 
   // Parse the url params
@@ -52,18 +53,22 @@ var baseString = function(method, url, params) {
   var ps = [];
   for (var i in params) if (params.hasOwnProperty(i))
     ps.push(i);
-  var (var i in urlParams) if (urlParams.hasOwnProperty(i))
+  for (var i in urlParams) if (urlParams.hasOwnProperty(i))
     ps.push(i);
 
   // Sort the params alphabetically
   ps.sort();
 
   // Add the params to the string
+  var parts = [];
   for (var i=0; i<ps.length; i++) {
-    res += querystring.escape(ps[i]);
-    res += '%3D';
-    res += querystring.escape(params[i] || urlParams[i]);
+    var p = '';
+    p += querystring.escape(ps[i]);
+    p += '%3D';
+    p += querystring.escape(params[ps[i]] || urlParams[ps[i]]);
+    parts.push(p);
   }
+  res += parts.join('%26');
 
   return res;
 };
@@ -71,17 +76,20 @@ var baseString = function(method, url, params) {
 var genSig = function(method, url, params, client, token_secret) {
 
   // Generate the key
-  var key = encode(client.secret + '&' + (token_secret || ''));
+  var key = querystring.escape(client.secret) +
+            '&' +
+            querystring.escape(token_secret || '');
 
   // Do the hmac
   var hmac = crypto.createHmac('sha1', key);
-  hmac.update(baseString(method, url, params);
+  hmac.update(baseString(method, url, params));
+  var res = hmac.digest('base64');
 
-  returh hmac.digest('base64');
+  return res;
 };
 
-var nonce = uuid.uuid4();
-var timeout = function() { return (new Date().getTime() / 1000) };
+var nonce = uuid.uuid4;
+var timestamp = function() { return Math.floor(new Date().getTime() / 1000) };
 
 var OAuth = function(key, secret, api, secure) {
   this.key = key;
@@ -89,14 +97,14 @@ var OAuth = function(key, secret, api, secure) {
   this.secure = secure || false;
 
   // Force API to conform with the base uri specification (3.4.1.2)
-  var parsed = url.parse(api);
-  this.api = parsed.hostname.toLowerCase();
+  var parsed = api.split(':');
+  this.api = parsed[0].toLowerCase();
   // Attach the port if needed
-  if (parsed.port) {
-    if (secure && parsed.port != 443)
-      parsed.hostname += ':' + parsed.port;
-    else if (!secure && parsed.port != 80)
-      parsed.hostname += ':' + parsed.port;
+  if (parsed.length > 1) {
+    if (secure && parsed[1] != 443)
+      parsed.hostname += ':' + parsed[1];
+    else if (!secure && parsed[1] != 80)
+      parsed.hostname += ':' + parsed[1];
   }
 };
 OAuth.prototype = {};
@@ -116,6 +124,9 @@ OAuth.prototype.request = function(options, callback) {
   // Default the port
   if (!options.port) options.port = this.secure ? 443 : 80;
 
+  // Set the host explicitly
+  options.host = this.api;
+
   // Create the auth oauth params
   var params = {
     oauth_version: '1.0',
@@ -123,8 +134,9 @@ OAuth.prototype.request = function(options, callback) {
     oauth_signature_method: 'HMAC-SHA1',
     oauth_timestamp: timestamp(),
     oauth_nonce: nonce(),
-    oauth_callback: oauthCallback
   }
+
+  if (oauthCallback) params.oauth_callback = querystring.escape(oauthCallback);
 
   // Add the verifier to the params if it exists in the token
   if (token && token.verifier)
@@ -134,18 +146,20 @@ OAuth.prototype.request = function(options, callback) {
     params.oauth_token = token.token;
 
   // Generate the signature
-  var uri = (this.secure ? 'https' : 'http') + '://' + this.api.toLowerCase() + path;
+  var uri = (this.secure ? 'https' : 'http') + '://' + this.api.toLowerCase() + options.path;
   params.oauth_signature = genSig(options.method, uri, params, this, token && token.secret);
 
   // Build the OAuth auth header from the signature
   var authHeader = 'OAuth ';
   var bits = [];
   for (var i in params) if (params.hasOwnProperty(i))
-    bits += i + ': "' + params[i] + '"';
+    bits.push(i + ': "' + params[i] + '"');
   authHeader += bits.join(', ');
 
   // Set the auth header
   options.headers.Authorization = authHeader;
+
+  console.log(options);
 
   // Pass on through to node's built in behavior
   return (this.secure ? https : http).request(options, callback);
@@ -154,28 +168,34 @@ OAuth.prototype.request = function(options, callback) {
 // Fetches a request token
 OAuth.prototype.requestToken = function(path, callbackUrl, callback) {
 
+  var self = this;
+
   // Default to OOB mode if no callback was supplied
   callbackUrl = callbackUrl || 'oob';
 
   // Create the request options
   var options = {
     method: 'POST',
-    path: path
+    path: path,
+    callback: callbackUrl
   };
 
-  var req = this.request(options, function(res) {
+  var req = self.request(options, function(res) {
     var data = '';
 
     res.on('data', function(c) { data += c });
     res.on('end', function() { finish() });
     res.on('close', function(err) {
-      console.log('Error receiving OAuth request token from ' + this.api);
+      console.log('Error receiving OAuth request token from ' + self.api);
       console.log(err.stack);
       console.log('');
       callback(err);
     });
 
     var finish = function() {
+      // Bail on errors
+      if (res.statusCod != 200) return callback(new Error(data));
+
       // Parse data
       data = querystring.parse(data);
 
@@ -187,7 +207,7 @@ OAuth.prototype.requestToken = function(path, callbackUrl, callback) {
     };
   })
   req.on('error', function(err) {
-    console.log('Error accessing OAuth request token from ' + this.api);
+    console.log('Error accessing OAuth request token from ' + self.api);
     console.log(err.stack);
     console.log('');
     callback(err);
@@ -222,7 +242,7 @@ OAuth.prototype.accessToken = function(path, token, callback) {
     console.log('');
     callback(err);
   });
-});
+};
 
 var Token = function(token, secret) {
   this.token = token; this.secret = secret;

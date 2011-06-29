@@ -1,10 +1,12 @@
-var oauth = require('./../util/oauth'),
+var url = require('url'),
     querystring = require('querystring'),
+    auth = require('./../handlers/auth'),
+    oauth = require('./../util/oauth'),
     settings = require('./../settings');
 
-var client = new OAuth('b9V0NzaBlCxbWdLz1OQT5A',
-                       'XCinvLUCO07EcdQR2b9Vzb4yx0OSXgBUyPdOsMj8dc8',
-                       'api.twitter.com', true);
+var client = new oauth.OAuth('b9V0NzaBlCxbWdLz1OQT5A',
+                             'XCinvLUCO07EcdQR2b9Vzb4yx0OSXgBUyPdOsMj8dc8',
+                             'api.twitter.com', true);
 
 // Poor man's sessions
 var sessions = {};
@@ -20,7 +22,7 @@ var connect = function(req, res) {
     // Handle errors with, well, errors
     if (err) {
       res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
-      red.end('Bad username/password');
+      res.end('Bad username/password');
       return;
     }
 
@@ -81,13 +83,15 @@ var authCallback = function(req, res) {
     }
 
     // If we have the token, we've pretty much succeeded
-
+    console.log('Yo dawg, I heard you like tokens');
+    console.log(token);
+    console.log('');
   });
 
 };
 
 // URL Dispatcher
-var serve = function() {
+var serve = function(req, res) {
   var url = req.url.substr(9); //strip leading /twitter/
 
   if (url.match(/^connect/)) return connect(req, res);
@@ -96,3 +100,5 @@ var serve = function() {
   res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
   res.end('Not Found');
 };
+
+exports.serve = serve;
