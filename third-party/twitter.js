@@ -115,7 +115,6 @@ var authCallback = function(req, res) {
 
     res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
     res.end('Invalid session.');
-
     return;
   }
 
