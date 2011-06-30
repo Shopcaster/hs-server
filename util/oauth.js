@@ -33,6 +33,11 @@
 // This library does header-based OAuth using HMAC-SHA1
 //
 
+var Mode = {
+  header: 0x01,
+  body: 0x02
+};
+
 var uuid = require('./uuid'),
     querystring = require('querystring'),
     crypto = require('crypto'),
@@ -80,10 +85,13 @@ var genSig = function(method, url, params, client, token_secret) {
             '&' +
             querystring.escape(token_secret || '');
 
-  // Do the hmac
-  var hmac = crypto.createHmac('sha1', key);
-  hmac.update(baseString(method, url, params));
-  var res = hmac.digest('base64');
+  // HMAC-SHA1
+  if (client.crypto == 'HMAC-SHA1') {
+    // Do the hmac
+    var hmac = crypto.createHmac('sha1', key);
+    hmac.update(baseString(method, url, params));
+    var res = hmac.digest('base64');
+  }
 
   return res;
 };
@@ -91,21 +99,28 @@ var genSig = function(method, url, params, client, token_secret) {
 var nonce = uuid.uuid4;
 var timestamp = function() { return Math.floor(new Date().getTime() / 1000) };
 
-var OAuth = function(key, secret, api, secure) {
+var OAuth = function(key, secret, api, crypto) {
   this.key = key;
   this.secret = secret;
-  this.secure = secure || false;
 
+  var parsed = url.parse(api);
+  // Pull secure from the protocol's scheme
+  this.secure = parsed.protocol == 'https';
   // Force API to conform with the base uri specification (3.4.1.2)
-  var parsed = api.split(':');
-  this.api = parsed[0].toLowerCase();
+  this.api = parsed.hostname.toLowerCase();
   // Attach the port if needed
-  if (parsed.length > 1) {
-    if (secure && parsed[1] != 443)
-      parsed.hostname += ':' + parsed[1];
-    else if (!secure && parsed[1] != 80)
-      parsed.hostname += ':' + parsed[1];
+  if (parsed.port) {
+    if (secure && parsed.port != 443)
+      parsed.hostname += ':' + parsed.port;
+    else if (!secure && parsed.port != 80)
+      parsed.hostname += ':' + parsed.port;
   }
+
+  this.crypto = crypto || 'HMAC-SHA1';
+
+  // Validate crypto
+  if (this.crypto != 'HMAC-SHA1') throw new Error('Crypto type ' + this.crypto +
+                                                  ' is not supported');
 };
 OAuth.prototype = {};
 
@@ -131,7 +146,7 @@ OAuth.prototype.request = function(options, callback) {
   var params = {
     oauth_version: '1.0',
     oauth_consumer_key: this.key,
-    oauth_signature_method: 'HMAC-SHA1',
+    oauth_signature_method: this.crypto,
     oauth_timestamp: timestamp(),
     oauth_nonce: nonce(),
   }
@@ -192,7 +207,7 @@ OAuth.prototype.requestToken = function(path, callbackUrl, callback) {
 
     var finish = function() {
       // Bail on errors
-      if (res.statusCod != 200) return callback(new Error(data));
+      if (res.statusCode != 200) return callback(new Error(data));
 
       // Parse data
       data = querystring.parse(data);
@@ -223,15 +238,27 @@ OAuth.prototype.accessToken = function(path, token, callback) {
     path: path,
     token: token
   };
-  var req = client.request(options, function(res) {
+  var req = this.request(options, function(res) {
 
     // TODO - handle errors
 
-    var args = querystring.parse(url.parse(req.url).query);
-    var token = new oauth.Token(args.oauth_token, args.oauth_token_secret);
+    var data = '';
 
-    callback(undefined, token);
+    res.on('data', function(c) { data += c });
+    res.on('end', function() { finish() });
+    res.on('close', function(err) {
+      console.log('Error receiving OAuth request token from ' + self.api);
+      console.log(err.stack);
+      console.log('');
+      callback(err);
+    });
 
+    var finish = function() {
+      data = querystring.parse(data);
+      var token = new Token(data.oauth_token, data.oauth_token_secret);
+
+      callback(undefined, token);
+    };
   });
   req.end();
   req.on('error', function(err) {
@@ -242,6 +269,10 @@ OAuth.prototype.accessToken = function(path, token, callback) {
   });
 };
 
+OAuth.prototype.authToken = function(req) {
+
+};
+
 var Token = function(token, secret) {
   this.token = token; this.secret = secret;
 };
@@ -250,4 +281,5 @@ Token.prototype = {};
 // Exports
 exports.OAuth = OAuth;
 exports.Token = Token;
+exports.Mode = Mode
 

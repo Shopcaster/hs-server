@@ -6,7 +6,7 @@ var url = require('url'),
 
 var client = new oauth.OAuth('iXlFhLOOpd5WXZE_mTccdbF5mpe486hL9MHNvsxDMA7ZgbwFprLbpI-SFWOjIGqV',
                              'hTLF45CTWXX207ZHRUl2Y8tr5Y488cwiRlXKX3YC2-3pCSl0tHVYa_MmIzK45SeJ',
-                             'api.linkedin.com', true);
+                             'https://api.linkedin.com', 'HMAC-SHA1');
 
 // Poor man's sessions
 var sessions = {};
@@ -27,12 +27,12 @@ var connect = function(req, res) {
     }
 
     // Set up the "session"
-    sessions[obj._id] = [obj, args.return];
-    // Save memory by clearing the data after 20s, which should be
+    sessions[obj._id] = [obj, args['return']];
+    // Save memory by clearing the data after 120s, which should be
     // enough for anyone.
     setTimeout(function() {
       delete sessions[obj._id];
-    }), 20 * 1000; //20s
+    }), 120 * 1000; // 2 min
 
     // Fetch the temp OAuth token
     var callbackUrl = settings.uri + '/linkedin/callback?state=' + obj._id;

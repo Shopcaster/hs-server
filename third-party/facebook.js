@@ -4,16 +4,14 @@ var url = require('url'),
     settings = require('./../settings'),
     db = require('./../db'),
     models = require('./../models'),
-    auth = require('./../handlers/auth');
+    auth = require('./../handlers/auth'),
+    common = require('./common');
 
 var APP_ID = '110693249023137';
 var APP_SECRET = '4a14e3f40c8a505912871d9a2ad28041';
 var API_KEY = '5ee0a3ad7c486d64b7aa9d6c2518de0f';
 
-// Poor man's sessions
-var sessions = {};
-
-var graph = function(accessToken, path, method, data, callback) {
+var graph = function(auth, path, method, data, callback) {
   var headers = undefined;
   if (data)
     headers = {'Content-Length': Buffer.byteLength(data)};
@@ -21,7 +19,7 @@ var graph = function(accessToken, path, method, data, callback) {
   var options = {
     host: 'graph.facebook.com',
     port: 443,
-    path: path + (accessToken ? '?access_token=' + accessToken : ''),
+    path: path + (auth && auth.fb ? '?access_token=' + auth.fb : ''),
     method: method,
     headers: headers
   };
@@ -30,7 +28,7 @@ var graph = function(accessToken, path, method, data, callback) {
     var body = '';
 
     res.on('close', function(err) {
-      console.log('Error receiving data from FB graph api');
+      console.log('Error receiving data from FB graph API');
       console.log(err.stack);
       console.log('');
       callback(err);
@@ -45,7 +43,7 @@ var graph = function(accessToken, path, method, data, callback) {
     req.write(data);
   req.end();
   req.on('error', function(err) {
-    console.log('Error accessing FB graph api');
+    console.log('Error accessing FB graph API');
     console.log(err.stack);
     console.log('');
     callback(err);
@@ -54,21 +52,32 @@ var graph = function(accessToken, path, method, data, callback) {
 
 var authCallback = function(req, res) {
   var args = querystring.parse(url.parse(req.url).query);
-  var sid = args.state;
 
   // Handle errors
-  if (args.error) {
+  if (args.error) return common.error(res, session.ret, args.error);
+
+  // Verify that the session is valid and hasn't expired
+  if (!common.sessions[args.state]) {
+    console.log('Client return from Facebook auth callback with invalid session');
+    console.log('');
+
     res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
-    res.end(args.error);
+    res.end('Invalid session.');
+
+    return;
   }
+
+  // Fetch the session
+  var session = common.sessions[args.state];
+  delete common.sessions[args.state];
 
   // Now that we have an authorization code, we can get an access
   // token to the API
   var path = '/oauth/access_token' +
-            '?client_id=' + APP_ID +
-            '&client_secret=' + APP_SECRET +
-            '&redirect_uri=' + querystring.escape(settings.uri + '/fb/callback') +
-            '&code=' + args.code;
+             '?client_id=' + APP_ID +
+             '&client_secret=' + APP_SECRET +
+             '&redirect_uri=' + querystring.escape(settings.uri + '/fb/callback') +
+             '&code=' + args.code;
 
   graph(null, path, 'GET', null, function(err, data) {
 
@@ -78,9 +87,7 @@ var authCallback = function(req, res) {
       if (data) console.log(data);
       console.log('');
 
-      res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
-      res.end(data || err.toString());
-      return;
+      return common.error(res, session.ret, 'Unexpected error');
     }
 
     // Parse the data
@@ -88,13 +95,12 @@ var authCallback = function(req, res) {
 
     // Now that we have an access token, save it on the user's
     // auth object.
-    var auth = sessions[sid][0];
-    auth.fb = data.access_token;
-    db.apply(auth);
+    session.auth.fb = data.access_token;
+    db.apply(session.auth);
 
     // Make the initial request to the FB api to get the data
     // we can use to associate the user, and then save that data.
-    graph(auth.fb, '/me', 'GET', null, function(err, data) {
+    graph(session.auth, '/me', 'GET', null, function(err, data) {
 
       // Handle errors
       if (err) {
@@ -102,9 +108,7 @@ var authCallback = function(req, res) {
         if (data) console.log(data);
         console.log('');
 
-        res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
-        res.end(data || err.toString());
-        return;
+        return common.error(res, session.ret, 'Unable to fetch user data');
       }
 
       // Parse the data
@@ -115,20 +119,17 @@ var authCallback = function(req, res) {
         console.log(data);
         console.log('');
 
-        res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
-        res.end(data || err.toString());
-        return;
+        return common.error(res, session.ret, 'Bad data from Facebook');
       }
 
       // Store the link in the user's profile
       var user = new models.User();
-      user._id = auth.creator;
+      user._id = session.auth.creator;
       user.fb = data.link;
       db.apply(user);
 
       // Redirect back to the client
-      res.writeHead(302, {'Location': sessions[sid][1]});
-      res.end();
+      return common.success(res, session.ret);
     });
   });
 };
@@ -143,32 +144,21 @@ var connect = function(req, res) {
   auth.authUser(args.email, args.password, function(err, bad, obj) {
 
     // Handle errors with, well, errors.
-    if (err) {
-      res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
-      res.end(err);
-      return;
-    }
+    if (err) return common.error(res, args['return'], 'Unexpected server error');
 
     // If the auth was incorrect or missing, throw out a 403
-    if (bad || !obj) {
-      res.writeHead(403, {'Content-Type': 'text/html; charset=utf-8'});
-      res.end('Bad username/password');
-      return;
-    }
+    if (bad || !obj) return common.error(res, args['return'], 'Incorrect login');
 
     // Set up the "session"
-    sessions[obj._id] = [obj, args.return];
-    // Save memory by clearing data after 20s, which should be enough
-    // for anyone.
-    setTimeout(function() {
-      delete sessions[obj._id];
-    }, 20 * 1000); // 20s
+    var s = new common.Session();
+    s.auth = obj;
+    s.ret = args['return'];
 
     // Redirect the user to begin the flow
     var url = 'https://www.facebook.com/dialog/oauth' +
               '?client_id=' + APP_ID +
               '&redirect_uri=' + settings.uri + '/fb/callback' +
-              '&state=' + obj._id +
+              '&state=' + s.id +
               '&scope=' + 'offline_access';
 
     res.writeHead(302, {'Location': url});
