@@ -187,11 +187,11 @@ var auth = function(client, data, callback, errback, force) {
 
     // This function sets the auth state for the cilent when called
     var finish = function() {
-      // Update presence information
-      presence.online(client);
-
       // Save the auth for the client
       client.state.auth = auth;
+      
+      // Update presence information
+      presence.online(client);
 
       // Remove the auth on dc
       client.on('disconnect', function() { deauth(client, null, function() {}, function() {}) });
