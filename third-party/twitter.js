@@ -99,9 +99,7 @@ var connect = function(req, res) {
       res.writeHead(302, {'Location': url});
       res.end();
     });
-
   });
-
 };
 
 // OAuth verification callback

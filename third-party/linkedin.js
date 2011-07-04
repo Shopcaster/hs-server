@@ -11,6 +11,8 @@ var client = new oauth.OAuth('iXlFhLOOpd5WXZE_mTccdbF5mpe486hL9MHNvsxDMA7ZgbwFpr
                              'hTLF45CTWXX207ZHRUl2Y8tr5Y488cwiRlXKX3YC2-3pCSl0tHVYa_MmIzK45SeJ',
                              'https://api.linkedin.com', 'HMAC-SHA1');
 
+//TODO - write api function
+
 var connect = function(req, res) {
 
   // Query params contain user info and such
@@ -20,11 +22,9 @@ var connect = function(req, res) {
   auth.authUser(args.email, args.password, function(err, bad, obj) {
 
     // Handle errors by failing -- with class
-    if (err) {
-      res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'})
-      res.end('Bad username/password');
-      return;
-    }
+    if (err) return common.error(res, args['return'], 'Unexpected server error');
+    // If the auth was incorrect of missing, bail
+    if (bad || !obj) return common.error(res, args['return'], 'Incorrect login');
 
     // Set up the "session"
     var s = new common.Session();
@@ -41,9 +41,7 @@ var connect = function(req, res) {
         console.log(err.stack);
         console.log('');
 
-        res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
-        res.end(err.message);
-        return;
+        return common.error(res, args['return'], 'Error fetching LinkedIn request token');
       }
 
       // Send the user to the authorization page
@@ -92,15 +90,24 @@ var authCallback = function(req, res) {
 
     // Make the initial request to the LinkedIn API to get the data
     // we need to associate teh user, and then dave that data.
-    api(session.auth, '', 'GET', null, function(err, data) {
+    api(session.auth, '', 'GET', null, function(err, data) { //TODO
 
-      //
+      // Handle errors
+      if (err) {
+        console.log('Unable to get LinkedIn user data');
+        if (data) console.log(data);
+        console.log('');
 
+        return common.error(res, session.ret, 'Unable to fetcher user data');
+      }
+
+      // Store the link in the user's profile
+      //TODO
+
+      // Redirect back to the client
+      return common.success(res, session.ret);
     });
-
-    // TODO - fetch the user's info and update the user record
   });
-
 };
 
 // URL Dispatcher
