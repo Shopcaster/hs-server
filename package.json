@@ -16,7 +16,8 @@
     "cli": "latest",
     "mailgun": "latest",
     "mongodb": "latest",
-    "colors": "latest"
+    "colors": "latest",
+    "xml2json": "latest"
   },
 
   "bin": {"hss": "./main.js"}

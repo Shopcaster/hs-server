@@ -75,6 +75,10 @@ var baseString = function(method, url, params) {
   }
   res += parts.join('%26');
 
+  console.log('base string');
+  console.log(res);
+  console.log('');
+
   return res;
 };
 
@@ -105,7 +109,7 @@ var OAuth = function(key, secret, api, crypto) {
 
   var parsed = url.parse(api);
   // Pull secure from the protocol's scheme
-  this.secure = parsed.protocol == 'https';
+  this.secure = parsed.protocol == 'https:';
   // Force API to conform with the base uri specification (3.4.1.2)
   this.api = parsed.hostname.toLowerCase();
   // Attach the port if needed
@@ -133,8 +137,11 @@ OAuth.prototype.request = function(options, callback) {
   var oauthCallback = options.callback;
   delete options.callback;
 
-  // Ensure headers is in options
-  if (!options.headers) options.headers = {};
+  // Ensure headers is in options, and default Content-Length to 0 for
+  // dumb providers like LinkedIn
+  if (!options.headers) options.headers = {'Content-Length': 0};
+  else if (!options.headers.hasOwnProperty('Content-Length'))
+    options.headers['Content-Length'] = 0;
 
   // Default the port
   if (!options.port) options.port = this.secure ? 443 : 80;
@@ -155,7 +162,7 @@ OAuth.prototype.request = function(options, callback) {
 
   // Add the verifier to the params if it exists in the token
   if (token && token.verifier)
-    params.oauth_verifier = verifier;
+    params.oauth_verifier = token.verifier;
   // Add the token to the params if it's present
   if (token && token.token)
     params.oauth_token = token.token;
@@ -173,6 +180,8 @@ OAuth.prototype.request = function(options, callback) {
 
   // Set the auth header
   options.headers.Authorization = authHeader;
+
+  console.log(options.headers.Authorization);
 
   // Pass on through to node's built in behavior
   return (this.secure ? https : http).request(options, callback);
@@ -207,7 +216,13 @@ OAuth.prototype.requestToken = function(path, callbackUrl, callback) {
 
     var finish = function() {
       // Bail on errors
-      if (res.statusCode != 200) return callback(new Error(data));
+      if (res.statusCode != 200) {
+        console.log('Error fetching OAuth request token');
+        console.log(data);
+        console.log('');
+
+        return callback(new Error(data));
+      }
 
       // Parse data
       data = querystring.parse(data);
@@ -240,8 +255,6 @@ OAuth.prototype.accessToken = function(path, token, callback) {
   };
   var req = this.request(options, function(res) {
 
-    // TODO - handle errors
-
     var data = '';
 
     res.on('data', function(c) { data += c });
@@ -255,8 +268,18 @@ OAuth.prototype.accessToken = function(path, token, callback) {
 
     var finish = function() {
       data = querystring.parse(data);
-      var token = new Token(data.oauth_token, data.oauth_token_secret);
 
+      // Handle errors
+      if (res.statusCode != 200) {
+        console.log('Error fetching OAuth access token');
+        console.log(data);
+        console.log('');
+
+        return callback(new Error(data));
+      }
+
+      // Pass the token on down the line
+      var token = new Token(data.oauth_token, data.oauth_token_secret);
       callback(undefined, token);
     };
   });
