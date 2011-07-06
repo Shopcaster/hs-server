@@ -6,7 +6,7 @@ from cStringIO import StringIO
 
 # (w, h)
 size = (450, 450)
-output_ratio = 560.0 / 418.0
+output_ratio = size[0] / size[1]
 
 if __name__ == '__main__':
 
@@ -24,11 +24,11 @@ if __name__ == '__main__':
 
     #do the crop
     if (float(w) / h) > output_ratio:
-      n = int((h * 560.0) / 418.0)
+      n = int((h * size[0]) / size[1])
       n2 = int((w - n) / 2.0)
       img = img.crop((n2, 0, n2 + n, h))
     else:
-      n = int((w * 418.0) / 560.0)
+      n = int((w * size[1]) / size[0])
       n2 = int((h - n) / 2.0)
       img = img.crop((0, n2, w, n2 + n))
 
