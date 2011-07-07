@@ -3,7 +3,7 @@ var staticServing = require('./static-serving'),
     facebook = require('./third-party/facebook'),
     twitter = require('./third-party/twitter'),
     linkedin = require('./third-party/linkedin'),
-    fs = require('./fs');
+    fs = require('fs');
 
 // Serves an individual file
 var file = function(file, type) {

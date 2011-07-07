@@ -6,7 +6,7 @@
     "uri": "http://hipsell.com"
   },
   "staging": {
-    "uri": "http://beta.hipsell.com"
+    "uri": "http://beta.hipsell.com:8000"
   },
   "test": {
     "uri": false
