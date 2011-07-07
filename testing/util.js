@@ -1,6 +1,6 @@
-var functional = require('../util/functional'),
-    validation = require('../util/validation'),
-    uuid = require('../util/uuid');
+var _functional = require('../util/functional'),
+    _validation = require('../util/validation'),
+    _uuid = require('../util/uuid');
 
 var validation = function(r) {
 
@@ -10,22 +10,16 @@ var functional = function(r) {
 };
 
 var efilter = function(r) {
-  r.test('is defined', !!functional.efilter);
-
+  r.test('is defined', !!_functional.efilter);
 };
 
 var uuid = function(r) {
-  r.test('is defined',
+  r.test('uuid4 is defined', !!_uuid.uuid4);
+  r.test('uuid4 generates correct format', !!_uuid.uuid4().match(/[a-f0-9]{32}/));
 };
 
-var foo = function(r) {
-  var d = r.defer('does something async');
-  r.done(true);
-};
-
+exports.desc = 'Utility Tests';
 exports.run = function(r) {
   r.test('functional', functional);
-  r.test('validation', validation);
-  r.test('efilter', efilter);
   r.test('uuid', uuid);
 };
