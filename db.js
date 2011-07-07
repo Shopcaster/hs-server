@@ -67,10 +67,24 @@ var init = function(host, port, name, callback) {
     // hard because there's nothing else to do if we can't read/store
     // data.
     if (err) {
-      console.log('Unable to open database connection!');
+      console.log('    Unable to open database connection!');
       process.exit();
     } else {
-      callback();
+      // If the DB name is "test", we automatically clear the DB when
+      // we connect.
+      if (name == 'test') {
+        console.log('    Dropping database...');
+        db.dropDatabase(function(err) {
+
+          // Loudly continue one rror
+          if (err)
+            console.log('    Unable to drop database');
+
+          callback();
+        });
+      } else {
+        callback();
+      }
     }
   });
 };

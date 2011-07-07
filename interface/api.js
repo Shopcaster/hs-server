@@ -11,12 +11,26 @@ this.spandex = null;
 //
 // Expects the following to exist:
 //
-// JSON.stringify :: Object -> String
-// JSON.parse :: String -> Object
-// sha256 :: String -> String
-// io.Socket :: [Constructor] String -> Object -> unit
-// console.log :: (Variable args) -> unit
+//   JSON.stringify :: Object -> String
+//   JSON.parse :: String -> Object
+//   sha256 :: String -> String
+//   io.Socket :: [Constructor] String -> Object -> unit
+//   console.log :: (Variable args) -> unit
+//   localStorage :: Object
 //
+// As well as:
+//
+//   spandexConf
+//   {
+//     server:
+//     {
+//       host: String,
+//       port: String
+//     }
+//   }
+//
+
+
 
 (function() {
 
@@ -88,6 +102,7 @@ spandex = new Spandex();
 // Logging Setup
 //
 spandex.logging = {};
+spandex.logging.connection = false;
 spandex.logging.incoming = {
   response: false,
   pub: false,
@@ -129,25 +144,25 @@ var messaging = {};
     return type + ':' + JSON.stringify(data);
   };
   messaging.deserialize = function(str) {
-    var i = msg.indexOf(':');
+    var i = str.indexOf(':');
     if (i < 1)
-      throw 'Invalid message: ' + msg;
-    var type = msg.substr(0, i);
-    var data = JSON.parse(msg.substr(i + 1) || null);
+      throw 'Invalid message: ' + str;
+    var type = str.substr(0, i);
+    var data = JSON.parse(str.substr(i + 1) || null);
 
     return {type: type, data: data};
   };
 
   // Handles incoming messages
   messaging.handleMessage = function(msg) {
-    msg = deserialize(msg);
+    msg = messaging.deserialize(msg);
 
     // Log the message if we're configured to do so
     if (spandex.logging[msg.type]) log(msg.type, msg.data);
 
     // Fire the appropriate callback
     messaging.callbacks[msg.data.id](msg.data);
-    delete messaging.callback[msg.data.id];
+    delete messaging.callbacks[msg.data.id];
   };
   // Sends a message
   messaging.send = function(msg, data, callback) {
@@ -178,9 +193,19 @@ var messaging = {};
 //
 var con = null;
 (function() {
-  con = new io.Socket('localhost', {
+  con = new io.Socket(spandexConf.server.host, {
     secure: true,
-    port: 8000
+    port: spandexConf.server.port
+  });
+
+  // Set up logging
+  con.on('connect', function() {
+    if (spandex.logging.connection)
+      console.log('Connect');
+  });
+  con.on('disconnect', function() {
+    if (spandex.logging.connection)
+      console.log('Disconnect');
   });
 
   // Self explanatory
@@ -190,6 +215,8 @@ var con = null;
   // Also self explanatory
   spandex.disconnect = function() {
     con.disconnect();
+    if (spandex.logging.connection)
+      console.log('Disconnect');
   };
 
   // Register the message handler
@@ -236,6 +263,9 @@ var bootstrapAuth = function() {
 };
 
 spandex.auth = function(email, password, callback) {
+  // Default password to nothing
+  password = password || '';
+
   // If the password doesn't appear to be of hashed form, do that
   // for them.
   if (!password.match(/^[A-F0-9]{64}$/))
@@ -265,6 +295,8 @@ spandex.auth = function(email, password, callback) {
       // Save the user object so that we can access it later
       spandex.auth.user = user;
 
+      // Success callback
+      callback(undefined, user);
     });
   });
 };
@@ -379,7 +411,7 @@ spandex.auth.user = null;
       callback = args[0];
 
       // Validate arguments
-      if (typeof thing != 'string' || typeof thing != 'object')
+      if (typeof thing != 'string' && typeof thing != 'object')
         throw new Error('Thing to fetch on must be a string or a Model; ' +
                         'instead it was ' + typeof thing);
       if (!callback || typeof callback != 'function')

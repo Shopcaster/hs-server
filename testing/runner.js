@@ -1,3 +1,5 @@
+//todo - handle exceptions
+
 var colors = require('colors'),
     fs = require('fs');
 
@@ -14,14 +16,14 @@ Fail.prototype.print = function(indent) {
     var stack = this.details.stack.split('\n');
     for (var i=0; i<stack.length; i++)
       stack[i] = indent + '  ' + stack[i];
-    console.log(stack.join('\n').white);
+    console.log(stack.join('\n').white + '\n');
 
   } else if (this.details) {
 
     var details = this.details.toString().split('\n');
     for (var i=0; i<details.length; i++)
       details[i] = indent + '  ' + details[i];
-    console.log(details.join('\n').white);
+    console.log(details.join('\n').white + '\n');
 
   }
 };
@@ -44,6 +46,9 @@ Unknown.prototype.print = function(indent) {
 var Deferred = function(timeout, callback) {
   this.done = callback;
 
+  //default timeout
+  if (typeof timeout != 'number') timeout = 2000; //2sec default timeout
+
   var self = this;
   if (timeout) {
     setTimeout(function() {
@@ -65,7 +70,14 @@ var Runner = function(name, callback) {
   };
 };
 Runner.prototype.run = function(r) {
-  r(this);
+  var e;
+
+  try {
+    r(this);
+  } catch (err) {
+    // rethrow error later
+    e = err;
+  }
 
   //on the next tick, check for done
   var self = this;
@@ -74,10 +86,17 @@ Runner.prototype.run = function(r) {
     if (self._defers === 0) self._done();
     //otherwise update the defer callback to handle that
     else self._dclbk = function() {
-      if (--self._defers === 0) self._done();
+      if (--self._defers === 0) {
+        //don't call success immediately, in case the same tick adds
+        //more defers
+        process.nextTick(function() {
+          if (self._defers === 0) self._done();
+        });
+      }
     };
   });
 
+  if (e) throw e;
 };
 Runner.prototype.test = function(name, x) {
   var self = this;
@@ -89,10 +108,9 @@ Runner.prototype.test = function(name, x) {
     this.tests.push(r);
     r.run(x);
   } else if (typeof x == 'boolean') {
-    if (x) this.tests.push(new Pass(name));
-    else this.tests.push(new Fail(name));
+    this.tests.push(x ? new Pass(name) : new Fail(name));
   } else {
-    this.tests.push(new Unknown(name, x));
+    this.tests.push(!!x ? new Pass(name) : new Fail(name));
   }
 };
 Runner.prototype.defer = function(name, timeout) {
@@ -115,16 +133,24 @@ Runner.prototype.print = function(indent) {
 
 // TODO - load this by scanning the directory
 var testModules = [
-  './util.js'
+  './util',
+  './interface/test'
 ];
 
 var run = function(callback) {
+  var errors = [];
   var running = 0;
   var results = [];
 
+  //record uncaught exceptions
+  process.on('uncaughtException', function(err) {
+    errors.push(new Fail('Exception ' + errors.length + 1, err));
+  });
+
   var finish = function() {
+    //return the root runner
     var r = new Runner('');
-    r.tests = results;
+    r.tests = errors.concat(results);
     callback(r);
   };
 
@@ -137,18 +163,21 @@ var run = function(callback) {
     try {
       var m = require(testModules[i]);
     } catch (err) {
-      results.push(new Fail(m.desc, err));
+      results.push(new Fail(m.desc + '\n', err));
       continue;
     }
 
     //make sure it's testable
     if (!m.run) {
-      results.push(new Fail(m.desc, 'Not a testable module'));
+      results.push(new Fail('\n  ' + m.desc || testModules[i], 'Not a testable module'));
+      continue;
+    } else if (!m.desc) {
+      results.push(new Fail('\n  ' + testModules[i], 'Missing desc'));
       continue;
     }
 
     //do the test
-    var runner = new Runner(m.desc, decRunning);
+    var runner = new Runner('\n' + m.desc, decRunning);
     running++;
     results.push(runner);
     runner.run(m.run);
