@@ -76,7 +76,7 @@ var authCallback = function(req, res) {
   var path = '/oauth/access_token' +
              '?client_id=' + APP_ID +
              '&client_secret=' + APP_SECRET +
-             '&redirect_uri=' + querystring.escape(settings.uri + '/fb/callback') +
+             '&redirect_uri=' + querystring.escape(settings.serverUri + '/fb/callback') +
              '&code=' + args.code;
 
   graph(null, path, 'GET', null, function(err, data) {
@@ -157,7 +157,7 @@ var connect = function(req, res) {
     // Redirect the user to begin the flow
     var url = 'https://www.facebook.com/dialog/oauth' +
               '?client_id=' + APP_ID +
-              '&redirect_uri=' + settings.uri + '/fb/callback' +
+              '&redirect_uri=' + settings.serverUri + '/fb/callback' +
               '&state=' + s.id +
               '&scope=' + 'offline_access';
 

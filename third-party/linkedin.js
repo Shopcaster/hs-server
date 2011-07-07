@@ -84,7 +84,7 @@ var connect = function(req, res) {
     s.ret = args['return'];
 
     // Fetch the temp OAuth token
-    var callbackUrl = settings.uri + '/linkedin/callback?state=' + s.id;
+    var callbackUrl = settings.serverUri + '/linkedin/callback?state=' + s.id;
     client.requestToken('/uas/oauth/requestToken', callbackUrl, function(err, token) {
 
       // Handle errors

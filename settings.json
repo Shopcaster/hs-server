@@ -1,14 +1,18 @@
 {
   "development": {
-    "uri": "http://dev.hipsell.com:8000"
+    "serverUri": "http://dev.hipsell.com:8000",
+    "clientUri": "http://dev.hipsell.com:3000"
   },
   "production": {
-    "uri": "http://hipsell.com"
+    "serverUri": "http://hipsell.com:8000",
+    "clientUri": "http://dev.hipsell.com:3000"
   },
   "staging": {
-    "uri": "http://beta.hipsell.com"
+    "serverUri": "http://beta.hipsell.com:8000",
+    "clientUri": "http://beta.hipsell.com"
   },
   "test": {
-    "uri": false
+    "serverUri": "http://localhost:7654",
+    "clientUri": false
   }
 }
