@@ -82,7 +82,7 @@ var connect = function(req, res) {
     s.ret = args['return'];
 
     // Fetch the temp OAuth token
-    var returnUrl = settings.uri + '/twitter/callback?state=' + s.id;
+    var returnUrl = settings.serverUri + '/twitter/callback?state=' + s.id;
     client.requestToken('/oauth/request_token', returnUrl, function(err, token) {
 
       // Handle errors
