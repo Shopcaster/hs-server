@@ -10,7 +10,6 @@ var validators = {
   'ping':   {},
   'error':  {data: 'any'},
   'auth':   {email: 'string', password: 'string?'},
-  'deauth': {},
   'passwd': {old: 'string', password: 'string'},
   'sub':    {key: 'string'},
   'unsub':  {key: 'string'},
@@ -25,7 +24,6 @@ var handlers = {
   'ping': ping.ping,
 
   'auth': auth.auth,
-  'deauth': auth.deauth,
   'passwd': auth.passwd,
 
   'sub': pubsub.sub,
