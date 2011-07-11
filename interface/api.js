@@ -1,5 +1,4 @@
-// Seig heil!
-this.spandex = null;
+this.zz = null;
 
 // TODO
 //
@@ -22,18 +21,24 @@ this.spandex = null;
 //
 // As well as:
 //
-//   spandexConf
+//   zzConf
 //   {
 //     server:
 //     {
 //       host: String,
 //       port: String
+//     },
+//     logging: // Optional, as are all properties
+//     {
+//       connection: bool,
+//       outgoing: [outgoing message types: bool]
+//       incoming: [incoming message types: bool]
 //     }
 //   }
 //
 
 
-
+// Global closure
 (function() {
 
 //
@@ -79,7 +84,7 @@ EventEmitter.prototype.removeAllListeners = function(event) {
   return this;
 };
 EventEmitter.prototype.emit = function() {
-  var args = Array.prototype.slice(arguments);
+  var args = Array.prototype.slice.call(arguments);
   var event = args.shift();
 
   // Call regular listeners
@@ -105,31 +110,31 @@ EventEmitter.prototype.setMaxListeners = function() {};
 EventEmitter.prototype.listeners = function(event) { throw new Error('Not Yet Implemented') };
 
 //
-// Initialize the spandex object
+// Initialize the zz object
 //
-var Spandex = function() {};
-Spandex.prototype = new EventEmitter();
-spandex = new Spandex();
+var ZZ = function() {};
+ZZ.prototype = new EventEmitter();
+zz = new ZZ();
 
 //
 // Logging Setup
 //
-spandex.logging = {};
-spandex.logging.connection = false;
-spandex.logging.incoming = {
-  response: false,
+zz.logging = {};
+zz.logging.connection = false;
+zz.logging.incoming = {
+  response: true,
   pub: false,
   presence: false,
   not: false
 };
-spandex.logging.outgoing = {
+zz.logging.outgoing = {
   ping: false,
   error: false,
   auth: false,
   deauth: false,
   passwd: false,
-  sub: false,
-  unsub: false,
+  sub: true,
+  unsub: true,
   create: false,
   update: false,
   'delete': false,
@@ -171,7 +176,7 @@ var messaging = new EventEmitter();
     msg = messaging.deserialize(msg);
 
     // Log the message if we're configured to do so
-    if (spandex.logging[msg.type]) log(msg.type, msg.data);
+    if (zz.logging[msg.type]) log(msg.type, msg.data);
 
     // If the message is a response, fire the appropriate callback
     if (msg.type == 'response' && messaging.callbacks[msg.data.id]) {
@@ -185,6 +190,10 @@ var messaging = new EventEmitter();
   };
   // Sends a message
   messaging.send = function(msg, data, callback) {
+
+    // Log if we're asked to
+    if (zz.logging.outgoing[msg]) console.log(msg, data);
+
     // Default data
     data = data || {};
 
@@ -212,42 +221,42 @@ var messaging = new EventEmitter();
 //
 var con = null;
 (function() {
-  con = new io.Socket(spandexConf.server.host, {
+  con = new io.Socket(zzConf.server.host, {
     secure: true,
-    port: spandexConf.server.port
+    port: zzConf.server.port
   });
 
   // Set up logging
   con.on('connect', function() {
-    if (spandex.logging.connection)
+    if (zz.logging.connection)
       console.log('Connect');
   });
   con.on('disconnect', function() {
-    if (spandex.logging.connection)
+    if (zz.logging.connection)
       console.log('Disconnect');
   });
 
   // Self explanatory
-  spandex.connect = function() {
+  zz.connect = function() {
     con.connect();
   };
   // Also self explanatory
-  spandex.disconnect = function() {
+  zz.disconnect = function() {
     con.disconnect();
-    if (spandex.logging.connection)
+    if (zz.logging.connection)
       console.log('Disconnect');
   };
 
   // Register the message handler
   con.on('message', messaging.handleMessage);
   // Bootstrap it
-  spandex.connect();
+  zz.connect();
 })();
 
 //
 // Ping
 //
-spandex.ping = function(callback) {
+zz.ping = function(callback) {
   messaging.send('ping', null, function() {
     callback();
   });
@@ -256,103 +265,124 @@ spandex.ping = function(callback) {
 //
 // Error
 //
-spandex.recordError = function(err) {
+zz.recordError = function(err) {
   messaging.send('error', err);
 };
 
 //
 // Auth
 //
-var bootstrapAuth = function() {
-  // Initialize data from local storage
-  var email = localStorage['spandex.auth.email'] || null,
-      password = localStorage['spandex.auth.password'] || null;
+(function() {
 
-  // Bootstrap -- if we have a stored email/password, try to auth with
-  // them.
-  if (email && password) spandex.auth(email, password, function(err, user) {
+  var bootstrapAuth = function() {
+    // Initialize data from local storage
+    var email = localStorage['zz.auth.email'] || null,
+        password = localStorage['zz.auth.password'] || null;
 
-    // If something went wrong, nuke the auth info
-    if (err) {
-      delete localStorage['spandex.auth.email'];
-      delete localStorage['spandex.auth.password'];
-      return;
-    }
-  });
-};
+    // Bootstrap -- if we have a stored email/password, try to auth with
+    // them.
+    if (email && password) zz.auth(email, password, function(err, user) {
 
-spandex.auth = function(email, password, callback) {
-  // Default password to nothing
-  password = password || '';
+      // If something went wrong, nuke the auth info
+      if (err) {
+        delete localStorage['zz.auth.email'];
+        delete localStorage['zz.auth.password'];
+        return;
+      }
+    });
+  };
 
-  // If the password doesn't appear to be of hashed form, do that
-  // for them.
-  if (!password.match(/^[A-F0-9]{64}$/))
-    password = sha256(password + email).toUpperCase();
+  var AuthUser;
+  var _AuthUserCur = null;
+  (function() {
+    AuthUser = function(user) {
+      var self = this;
 
-  // Send the auth message
-  messaging.send('auth', {email: email, password: password}, function(err, ret) {
+      _AuthUserCur = user;
+      _AuthUserCur.heat();
 
-    // If we didn't have an error, check the return value.  If it's
-    // false, the auth was bad and we should set that as the error.
-    if (!err && !ret)
-      err = new Error('Incorrect username or password');
+      // Wire up the data
+      for (var i in user) if (user.hasOwnProperty(i)) {
+        self[i] = user[i];
+        user.on(i, function(val) {
+          self[i] = val;
+          self.emit(i, val);
+        });
+      };
+    };
+    AuthUser.prototype = new EventEmitter();
+    AuthUser.prototype.destroy = function() {
+      _AuthUserCur.freeze();
+      _AuthUserCur = null;
+    };
+  })();
 
-    // Pass errors on to the callback
-    if (err) return callback && callback(err);
+  zz.auth = function(email, password, callback) {
 
-    // Save the password and the email to local storage for future use
-    localStorage['spandex.auth.email'] = email;
-    localStorage['spandex.auth.password'] = ret.password;
+    // Can't auth if we're already authed
+    if (zz.auth.curUser()) throw new Error('Already authed');
 
-    // Fetch the appropriate user object
-    spandex.data.user(ret.userid, function(err, user) {
+    // Default password to nothing
+    password = password || '';
 
-      // Pass errors right on through
+    // If the password doesn't appear to be of hashed form, do that
+    // for them.
+    if (!password.match(/^[A-F0-9]{64}$/))
+      password = sha256(password + email).toUpperCase();
+
+    // Send the auth message
+    messaging.send('auth', {email: email, password: password}, function(err, ret) {
+
+      // If we didn't have an error, check the return value.  If it's
+      // false, the auth was bad and we should set that as the error.
+      if (!err && !ret)
+        err = new Error('Incorrect username or password');
+
+      // Pass errors on to the callback
       if (err) return callback && callback(err);
 
-      // Save the user object so that we can access it later
-      spandex.auth.user = user;
+      // Save the password and the email to local storage for future use
+      localStorage['zz.auth.email'] = email;
+      localStorage['zz.auth.password'] = ret.password;
 
-      // Success callback
-      callback(undefined, user);
+      // Fetch the appropriate user object
+      zz.data.user(ret.userid, function(user) {
+
+        // Save the new current user
+        curUser = new AuthUser(user);
+
+        // Success callback
+        callback(undefined);
+      });
     });
-  });
-};
-spandex.auth.deauth = function(callback) {
+  };
+  zz.auth.changePassword = function(old, password, callback) {
 
-  // Send the deauth message
-  messaging.send('deauth', null, function(err, value) {
+    // Send the passwd message
+    messaging.send('passwd', {old: old, password: password}, function(err, value) {
 
-    // On an error, wipe out the connection and reconnect
-    // TODO
+      // Handle user errors
+      if (!err && !value) err = new Error(zz.auth.user ? 'Old password was incorrect'
+                                                            : "Can't change password when not logged in");
 
-    callback();
-  });
+      // Pass errors through
+      if (err) return callback && callback(err);
 
-};
-spandex.auth.changePassword = function(old, password, callback) {
+      // Save the new password to local storage
+      localStorage['zz.auth.password'] = value;
 
-  // Send the passwd message
-  messaging.send('passwd', {old: old, password: password}, function(err, value) {
+      // Return success to the callback
+      callback(undefined);
+    });
+  };
 
-    // Handle user errors
-    if (!err && !value) err = new Error(spandex.auth.user ? 'Old password was incorrect'
-                                                          : "Can't change password when not logged in");
+  // The user we're authenticated as, which is null to start
+  var curUser = null;
+  zz.auth.curUser = function() {
+    return curUser;
+  };
 
-    // Pass errors through
-    if (err) return callback && callback(err);
-
-    // Save the new password to local storage
-    localStorage['spandex.auth.password'] = value;
-
-    // Return success to the callback
-    callback(undefined);
-  });
-};
-
-// The user we're authenticated as, which is null to start
-spandex.auth.user = null;
+})();
 
 
 //
@@ -371,15 +401,19 @@ spandex.auth.user = null;
   // Active subscriptions
 
   // Initialize he data layer
-  spandex.data = {};
-  spandex.models = {};
+  zz.data = {};
+  zz.models = {};
 
   // Active subscriptions
   var subs = {};
 
   // Base subscription class
   var Sub = function(key) {
-    // TODO - this is broken
+
+    // Slight kludge; if key isn't present we just bail, since
+    // it's probably just another subclass settings it as prototype.
+    if (!key) return;
+
     var self = this;
 
     this.ready = false;
@@ -390,7 +424,7 @@ spandex.auth.user = null;
     this.refs = 0;
     // Make the subscription, and notify the _sub listeners
     this._sub(function(data) {
-      this.ready = true;
+      self.ready = true;
 
       self.emit('ready', data);
       self.removeAllListeners('ready');
@@ -400,16 +434,17 @@ spandex.auth.user = null;
   Sub.prototype._sub = function(callback) {
     var self = this;
 
-    messaging.send('sub', {key: key}, function(err, data) {
+    messaging.send('sub', {key: this.key}, function(err, data) {
+
       // Handle errors by deleting the subscription
       if (err) {
-        delete subs[key];
+        delete subs[self.key];
         console.log('Error while subscribing:', err);
         return;
       }
       // Log bad subs to console
       if (data === false) {
-        delete subs[key];
+        delete subs[self.key];
         console.log('Attempted to subscribe to nonexistent key:', key);
         return;
       }
@@ -504,7 +539,7 @@ spandex.auth.user = null;
   });
 
   // The model class
-  spandex.models.Model = function(type) {
+  zz.models.Model = function(type) {
     this._type = type;  // Model type (e.g. 'listing')
     this._slis = [];    // Listeners we've registered on the sub
     this._sub = null;   // The current subscription.  Only set if hot.
@@ -516,9 +551,9 @@ spandex.auth.user = null;
       if (event != 'newListeners') self._levents[event] = true;
     });
   };
-  spandex.models.Model.prototype = new EventEmitter();
-  spandex.models.Model.prototype.related = {};
-  spandex.models.Model.prototype.heat = function() {
+  zz.models.Model.prototype = new EventEmitter();
+  zz.models.Model.prototype.related = {};
+  zz.models.Model.prototype.heat = function() {
     if (this.hot) throw new Error('Model is already hot');
 
     // This is a helper function that bootstraps all the data.
@@ -561,7 +596,7 @@ spandex.auth.user = null;
     this.hot = true;
     return this;
   };
-  spandex.models.Model.prototype.freeze = function() {
+  zz.models.Model.prototype.freeze = function() {
     if (!this.hot) throw new Error('Model is already cold');
 
     // Unsubscribe all registered events on the sub
@@ -586,8 +621,8 @@ spandex.auth.user = null;
   };
 
   // The IDList class
-  spandex.models.IDList = function(type) { this._type = type; };
-  spandex.models.IDList.prototype = new EventEmitter();
+  zz.models.IDList = function(type) { this._type = type; };
+  zz.models.IDList.prototype = new EventEmitter();
 
   // Helper function -- ensures we have a sub for the specified key
   // and fires the callback when the sub is ready
@@ -607,11 +642,11 @@ spandex.auth.user = null;
 
     // Create and register the model for this type
     var M = function() {};
-    M.prototype = new spandex.models.Model(type);
-    spandex.models[type[0].toUpperCase() + type.substr(1)] = M;
+    M.prototype = new zz.models.Model(type);
+    zz.models[type[0].toUpperCase() + type.substr(1)] = M;
 
     // Add the relation
-    spandex.models.Model.prototype.related[ptype] = function() {
+    zz.models.Model.prototype.related[ptype] = function() {
 
       // Arguments
       var field;
@@ -631,7 +666,7 @@ spandex.auth.user = null;
     };
 
     // Create the fetcher
-    spandex.data[type] = function() {
+    zz.data[type] = function() {
 
       // Arguments
       var thing;
@@ -672,17 +707,26 @@ spandex.auth.user = null;
         else
           return _get(thing[fields.shift()], function(data) {
             var type = data._id.split('/')[0];
-            spandex.data[type].apply(this, [data].concat(fields.concat([callback])));
+            zz.data[type].apply(this, [data].concat(fields.concat([callback])));
           });
       }
 
       // At this point, thing is a string set to the key of the thing
-      // we're looking for.
+      // we're looking for.  We can do a basic get on that key and
+      // then return it to the client.
+      _get(thing, function(data) {
+
+        // Clone the data into the appropriate model
+        var m = new M(thing);
+        for (var i in data) if (data.hasOwnProperty(i))
+          m[i] = data[i];
+
+        // Return the model to the user
+        callback(m);
+      });
     };
   };
-
-
-
 })();
 
+// End global closure
 })();

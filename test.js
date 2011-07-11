@@ -26,7 +26,7 @@ var test = function() {
 }
 
 cli.parse({
-  // Nothing to see here, please move along
+  showserver: ['s', 'Show server output', 'string']
 });
 
 cli.main(function(args, opts) {
@@ -36,18 +36,21 @@ cli.main(function(args, opts) {
   //run the test server
   var uri = url.parse(settings.serverUri);
   server = spawn('node', ['main.js', '--mode=test', '--dbname=test', '--noemail', '--port=' + uri.port, '--host=0.0.0.0']);
-  var output = '';
+  server.stdout.on('error', function(data) {
+    if (opts.showserver)
+      process.stdout.write(data.toString().grey.inverse);
+  });
   server.stdout.on('data', function(data) {
-    output += data.toString();
+    if (opts.showserver)
+      process.stdout.write(data.toString().grey);
 
     //run the tests when the server is ready
     if (data.toString().match(/Server Ready/)) test();
   });
 
   server.on('exit', function() {
-    console.log('Test Server Exit'.red);
-    console.log('Output dump:');
-    console.log(output);
+    console.log('');
+    console.log('Test Server Exit'.red.inverse);
     console.log('');
     process.exit();
   });

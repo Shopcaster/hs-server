@@ -7,7 +7,7 @@ var mongo = require('mongodb'),
 ///////////////////////////////
 
 var makeId = function(collection, callback) {
-  return collection + ':' + uuid.uuid4();
+  return collection + '/' + uuid.uuid4();
 }
 
 var niceIds = {};
@@ -59,7 +59,7 @@ var makeNiceId = function(collection, callback) {
 // Fixes data coming from the database
 var fixOutgoing = function(data) {
   var fixOne = function(data) {
-    for (var i in data) if (data.hasOwnProperty(i) {
+    for (var i in data) if (data.hasOwnProperty(i)) {
       // If there's a `toNumber` function available, it's a Long
       // and needs to be converted down.
       if (data[i].toNumber) data[i] = data[i].toNumber();
@@ -174,13 +174,38 @@ var apply = function() {
 };
 
 var get = function(fs, callback) {
-  if (!fs._id) console.log('Attempting to call get on a fieldset with no _id') || callback(true);
-  else db.collection(fs.getCollection(), function(err, col) {
-    if (err) console.log(err.stack) || callback(true);
-    else col.find({_id: fs._id}).limit(1).nextObject(function(err, obj) {
-      if (err) console.log(err.stack) || callback(true);
-      else if (!obj) callback(false, false);
-      else fs.merge(fixOutgoing(obj)) && callback(false, true);
+
+  // If there's no ID we can't get the object
+  if (!fs._id) {
+    console.log('Attempting to call get on a fieldset with no _id');
+    return callback(true);
+  }
+
+  // Grab the appropriate collection
+  db.collection(fs.getCollection(), function(err, col) {
+
+    // Log errors and pass them on down
+    if (err) {
+      console.log(err.stack);
+      return callback(true);
+    }
+
+    // Get the object from the collection
+    col.find({_id: fs._id}).limit(1).nextObject(function(err, obj) {
+
+      // Log errors and pass them on down
+      if (err) {
+        console.log(err.stack)
+        return callback(true);
+      }
+
+      // If the object is null, return with an error
+      if (!obj)
+        return callback(false, false);
+
+      // Fix the fields
+      fs.merge(fixOutgoing(obj));
+      callback(false, true);
     });
   });
 };

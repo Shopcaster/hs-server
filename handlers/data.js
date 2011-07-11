@@ -1,5 +1,5 @@
 var validate = require('./../util/validation').validate,
-    ids = require('./../util/keys'),
+    ids = require('./../util/ids'),
     db = require('./../db');
 
 // Validation for all data types goes here
