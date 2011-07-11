@@ -5,7 +5,6 @@ this.zz = null;
 // * Auth bootstrapping on connect
 // * Presence
 // * Data read layer (testing, relations)
-// * Data write layer
 // * Reconnect handling
 // * Presence (boiling in connection stuff)
 // * Redo deauth
@@ -139,7 +138,7 @@ zz = new ZZ();
 zz.logging = {};
 zz.logging.connection = false;
 zz.logging.incoming = {
-  response: true,
+  response: false,
   pub: false,
   presence: false,
   not: false
@@ -152,8 +151,8 @@ zz.logging.outgoing = {
   passwd: false,
   sub: false,
   unsub: true,
-  create: true,
-  update: false,
+  create: false,
+  update: true,
   'delete': false,
   'sub-presence': false,
   'unsub-presence': false
@@ -202,7 +201,7 @@ var messaging = new EventEmitter();
 
     // Otherwise, pass it on to the correct handler by firing an event
     } else {
-      messaging.emit(msg,type, msg.data);
+      messaging.emit(msg.type, msg.data);
     }
   };
   // Sends a message
@@ -451,7 +450,7 @@ zz.recordError = function(err) {
       // Log bad subs to console
       if (data === false) {
         delete subs[self.key];
-        console.log('Attempted to subscribe to nonexistent key:', key);
+        console.log('Attempted to subscribe to nonexistent key:', self.key);
         return;
       }
       // Store the data
@@ -739,7 +738,6 @@ zz.recordError = function(err) {
 zz.create = {};
 for (var i=0; i<config.datatypes.length; i+=2) {
   with ({type: config.datatypes[i]}) {
-    console.log(type);
     zz.create[type] = function(data, callback) {
       messaging.send('create', {type: type, data: data}, function(err, ret) {
         if (err)
@@ -747,7 +745,7 @@ for (var i=0; i<config.datatypes.length; i+=2) {
         else if (!ret)
           throw new Error('Validation error when creating ' + type);
 
-        callback(ret);
+        callback && callback(ret);
       });
     };
   }
@@ -759,14 +757,18 @@ for (var i=0; i<config.datatypes.length; i+=2) {
 zz.update = {};
 for (var i=0; i<config.datatypes.length; i+=2) {
   with ({type: config.datatypes[i]}) {
-    zz.update[type] = function(data, callback) {
-      messaging.send('update', {type: type, data: data}, function(err, ret) {
-        if (err)
-          throw new Error('Failed to create ' + type + ': ' + err.message);
-        else if (!ret)
-          throw new Error('Validation error when creating ' + type);
+    zz.update[type] = function(key, diff, callback) {
+      // Update can either be passed an ID, or a model
+      var key = typeof key == 'string' ? key
+                                       : key._id;
 
-        callback(ret);
+      messaging.send('update', {key: key, diff: diff}, function(err, ret) {
+        if (err)
+          throw new Error('Failed to update ' + type + ': ' + err.message);
+        else if (!ret)
+          throw new Error('Validation error when updating ' + type);
+
+        callback && callback();
       });
     };
   }
