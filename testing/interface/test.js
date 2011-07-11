@@ -72,7 +72,10 @@ var data = function(r) {
 
   // Test creation
   var d = r.defer('creates convo');
-  api.create.convo({listing: 'listing/1'}, function(id) {
+  var convo = {
+    listing: 'listing/1'
+  };
+  api.create.convo(convo, function(id) {
     d.done(!!id);
 
     // Test fetching
