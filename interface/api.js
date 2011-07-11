@@ -509,6 +509,7 @@ spandex.auth.user = null;
     this._slis = [];    // Listeners we've registered on the sub
     this._sub = null;   // The current subscription.  Only set if hot.
     this._levents = {}; // The events currently being listened on this model.
+    this.hot = false;   // Default hot state.
 
     var self = this;
     this.on('newListener', function(event, listener) {
@@ -534,7 +535,7 @@ spandex.auth.user = null;
     // Subscribe for changes.
     var self = this;
     // Grab an existing sub for this key, or create one
-    this._sub = subs[this.key] || new Sub(this.key);
+    this._sub = subs[this._id] || new ModelSub(this._id);
     // If the sub isn't ready we should listen on the ready event
     // so we can update data.
     if (!this._sub.ready)
@@ -588,16 +589,24 @@ spandex.auth.user = null;
   spandex.models.IDList = function(type) { this._type = type; };
   spandex.models.IDList.prototype = new EventEmitter();
 
+  // Helper function -- ensures we have a sub for the specified key
+  // and fires the callback when the sub is ready
+  var _get = function(key, callback) {
+    var sub = subs[key] || new ModelSub(key);
+    if (!sub.ready) {
+      sub.on('ready', callback);
+    } else {
+      callback(sub.data);
+    }
+  };
+
   // Data initialization
   for (var i=0; i<config.models.length; i+=2) {
     var type = config.models[i];
     var ptype = config.models[i+1];
 
     // Create and register the model for this type
-    var M = function(key) {
-      this.hot = false;
-      this.key = key;
-    };
+    var M = function() {};
     M.prototype = new spandex.models.Model(type);
     spandex.models[type[0].toUpperCase() + type.substr(1)] = M;
 
@@ -643,21 +652,32 @@ spandex.auth.user = null;
       if (!callback || typeof callback != 'function')
         throw new Error('No callback was passed');
       if (typeof thing == 'string' && fields.length)
-        throw new Error('Getting through fields is invalid with a string argument');
+        throw new Error('Fetching through fields is invalid with a string argument');
 
-      // If the thing is a string, it's a key-based
-      // get, which is nice and easy to deal with.
+      // If the thing is an object, we need to do a bit of work to
+      // get the fields ID we're looking for.
+      if (typeof thing == 'object') {
+        // If no fields were specified and the thing was an object, we
+        // need to get the ID from the default fild on that object.
+        if (fields.length == 0)
+          thing = thing[type];
 
-      // Otherwise, if the thing is an object we want
-      // to use the default field (`type`), or the field
-      // chain if it was specified
-      if (fields.length == 0) { // Default field
+        // If there's just a single field specified, we need to just
+        // use an explicit field from the object to get the ID.
+        else if (fields.length == 1)
+          thing = thing[fields[0]];
 
-      } else if (fields.length == 1) { // Explicit field
-
-      } else { // Field chain
-
+        // Otherwise, we need to fetch multiple fields through multiple
+        // objects.  This is pretty simple to do -- just
+        else
+          return _get(thing[fields.shift()], function(data) {
+            var type = data._id.split('/')[0];
+            spandex.data[type].apply(this, [data].concat(fields.concat([callback])));
+          });
       }
+
+      // At this point, thing is a string set to the key of the thing
+      // we're looking for.
     };
   };
 

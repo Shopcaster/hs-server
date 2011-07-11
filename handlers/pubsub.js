@@ -1,4 +1,4 @@
-var keys = require('./../util/keys'),
+var ids = require('./../util/ids'),
     func = require('./../util/functional'),
     db = require('./../db'),
     auth = require('./auth'),
@@ -27,47 +27,39 @@ var sub = function(client, data, callback, errback) {
   if (client.state.subs[data.key]) return callback(true);
 
   // Break up the key into its components
-  var key = keys.parse(data.key);
-  if (!key) return errback('Bad key format');
+  var key = ids.parse(data.key);
 
   // Listen on non-relation
-  if (!key.relation) {
+  if (key instanceof ids.Key) {
 
-    // Subscribe on that key
-    client.state.subs[data.key] = func.efilter(db.events, 'update')
-    (function(fs) {
-      return fs.getCollection() == key.type
-          && fs._id == key.id;
-    })
-    .run(function(fs) {
-      // No need to send the ID field along
-      delete fs._id;
-
-      client.send('pub', {
-        key: data.key,
-        diff: fs
-      });
-    });
-
-    // Try to fetch the object from the database and send it to the
-    // client
+    // Do the initial data fetch
     var obj = new db.FieldSet(key.type);
     obj._id = key.id;
     db.get(obj, function(err, exists) {
       if (err === true) return errback('Database error');
       else if (!exists) return callback(false);
 
-      // Replace the Long date fields with their number-form
-      // counterparts
-      for (var i in obj) if (obj.hasOwnProperty(i))
-        if ((i == 'created' || i == 'modified') && obj[i].toNumber)
-          obj[i] = obj[i].toNumber();
+      // Subscribe on the key
+      client.state.subs[data.key] = func.efilter(db.events, 'update')
+      (function(fs) {
+        return fs._id == obj._id;
+      }).run(function(fs) {
+        // No need to send the ID field along
+        delete fs._id;
 
+        // Send along the update
+        client.send('pub', {
+          key: obj._id,
+          diff: fs
+        });
+      });
+
+      // Send the initial data back to the user
       callback(obj);
     });
 
   // Listen on the relation
-  } else {
+  } else if (key instanceof ids.Query) {
     // Util/DRY
     var send = function(add, remove) {
       client.send('pub', {
@@ -82,11 +74,8 @@ var sub = function(client, data, callback, errback) {
     // Register the subscription for creation
     client.state.subs[data.key] = func.efilter(db.events, 'create')
     (function(fs) {
-      return fs.getCollection() == key.relation.type
-          && fs[key.relation.field] == key.id;
-
+      return fs[key.field] == key.val;
     }).run(function(fs) {
-
       // Forward created items right down to the client
       send([fs._id]);
     })
@@ -95,7 +84,7 @@ var sub = function(client, data, callback, errback) {
     // There's only a  filter here, because we have to do it async.
     // Instead, the run callback basically handles the complex
     // filtering.
-    (function(fs) { return fs.getCollection() == key.relation.type })
+    (function(fs) { return fs.getCollection() == key.type })
     .run(function(fs) {
 
       // Fetch more data for the fieldset
@@ -104,7 +93,7 @@ var sub = function(client, data, callback, errback) {
         if (err) return;
 
         // Make sure we're talking to the right relation
-        if (fs[key.relation.field] != key.id) return;
+        if (fs[key.relation.field] != key.val) return;
 
         // Forward deleted items right down to the client
         send([], [fs._id]);
@@ -112,21 +101,25 @@ var sub = function(client, data, callback, errback) {
     }));
 
     // Get the IDs
-    db.queryRelated(key.relation.type, key.relation.field, key.id, function(err, ids) {
+    var q = {};
+    q[key.field] = key.val;
+    db.query(key.type, q, function(err, fss) {
 
       // Handle errors
       if (err) return errback('Database Error');
 
       // Send the ID's down to the client
+      var ids = [];
+      for (var i=0; i<fss.length; i++)
+        ids.push(fss[i]._id);
       callback(ids);
     });
+  } else {
+    return errback('Bad key format');
   }
 };
 
 var unsub = function(client, data, callback, errback) {
-  var wasSubbed = false;
-  var id = client.id;
-
   // Try to find the sub
   if (client.state.subs) {
     for (sub in client.state.subs) if (client.state.subs.hasOwnProperty(sub)) {
@@ -134,13 +127,13 @@ var unsub = function(client, data, callback, errback) {
       if (sub == data.key) {
         client.state.subs[sub].kill();
         delete client.state.subs[sub];
-        wasSubbed = true;
-        break;
+
+        return callback(true);
       }
     }
   }
 
-  return callback(wasSubbed);
+  return callback(false);
 };
 
 exports.sub = sub;

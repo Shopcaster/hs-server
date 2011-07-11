@@ -6,14 +6,16 @@ var mongo = require('mongodb'),
 // Utility
 ///////////////////////////////
 
-var makeId = uuid.uuid4;
+var makeId = function(collection, callback) {
+  return collection + ':' + uuid.uuid4();
+}
 
 var niceIds = {};
 var makeNiceId = function(collection, callback) {
 
   // If we already have a nice ID stored for this collection, return
   // it as a string, and increment it.
-  if (niceIds.hasOwnProperty(collection)) return callback((niceIds[collection]++) + '');
+  if (niceIds.hasOwnProperty(collection)) return callback(collection + ':' + (niceIds[collection]++));
 
   // Otherwise, we just need to count the number of items in the
   // collection and initialize the nice id counter to that value.
@@ -52,6 +54,25 @@ var makeNiceId = function(collection, callback) {
     });
 
   });
+};
+
+// Fixes data coming from the database
+var fixOutgoing = function(data) {
+  var fixOne = function(data) {
+    for (var i in data) if (data.hasOwnProperty(i) {
+      // If there's a `toNumber` function available, it's a Long
+      // and needs to be converted down.
+      if (data[i].toNumber) data[i] = data[i].toNumber();
+    }
+  }
+
+  if (data instanceof Array)
+    for (var i=0; i<data.length; i++)
+      fixOne(data[i]);
+  else
+    fixOne(data);
+
+  return data;
 };
 
 ///////////////////////////////
@@ -159,37 +180,57 @@ var get = function(fs, callback) {
     else col.find({_id: fs._id}).limit(1).nextObject(function(err, obj) {
       if (err) console.log(err.stack) || callback(true);
       else if (!obj) callback(false, false);
-      else fs.merge(obj) && callback(false, true);
+      else fs.merge(fixOutgoing(obj)) && callback(false, true);
     });
   });
 };
 
 var queryOne = function(type, q, callback) {
+  q.deleted = false;
+
   if (!type.prototype.getCollection) console.log('Type is not a fieldset class') || callback(true);
   else db.collection(type.prototype.getCollection(), function(err, col) {
     if (err) console.log(err.stack) || callback(true);
     else col.find(q).limit(1).nextObject(function(err, obj) {
       if (err) console.log(err.stack) || callback(true);
-      else callback(false, obj && new type().merge(obj));
+      else callback(false, obj && new type().merge(fixOutgoing(obj)));
     });
   });
 };
 
-var queryRelated = function(type, field, id, callback) {
-  var q = {};
-  q[field] = id;
+var query = function(type, q, callback) {
   q.deleted = false;
 
-  if (!type || !field || !id) console.log('Missing argument') || callback(true);
-  else db.collection(type, function(err, col) {
-    if (err) console.log(err.stack) || callback(true);
-    else col.find(q, {'_id': 1}).toArray(function(err, objs) {
-      if (err) console.log(err.stack) || callback(true);
-      else {
-        var ids = [];
-        for (var i=0; i<objs.length; i++) ids[i] = objs[i]._id;
-        callback(false, ids);
+  var typeName = '';
+  if (type instanceof string) {
+    typeName = type;
+    type = new FieldSet(typeName);
+  } else if (type instanceof FieldSet) {
+    typeName = type.prototype.getCollection();
+  } else {
+    console.log('Type is no a FieldSet or string');
+    console.log('');
+    return callback(err);
+  }
+
+  db.collection(typeName, function(err, col) {
+    if (err) {
+      console.log(err.stack);
+      console.log('');
+      return callback(err);
+    }
+
+    col.find(q).toArray(function(err, objs) {
+      if (err) {
+        console.log(err.stack)
+        return; callback(true);
       }
+
+      fixOutgoing(objs);
+      var fss = [];
+      for (var i=0; i<objs.length; i++)
+        fss.push(new type().merge(objs[i]));
+      callback(false, fss);
     });
   });
 };
@@ -208,7 +249,7 @@ var FieldSet = function(collection) {
   };
 };
 FieldSet.prototype.genId = function(callback) {
-  this._id = makeId();
+  this._id = makeId(this.getCollection());
   if (callback) callback();
 
   return this;
@@ -249,7 +290,7 @@ exports.init = init;
 exports.apply = apply;
 exports.get = get;
 exports.queryOne = queryOne;
-exports.queryRelated = queryRelated;
+exports.query = query;
 exports.makeNiceId = makeNiceId;
 
 exports.FieldSet = FieldSet;
