@@ -31,10 +31,10 @@ context.io = require('./_node-socketio-client').io;
 context.console = console;
 // Add the conf object
 with ({u: url.parse(settings.serverUri)}) {
-  context.spandexConf = {};
-  context.spandexConf.server = {};
-  context.spandexConf.server.host = u.hostname;
-  context.spandexConf.server.port = u.port;
+  context.zzConf = {};
+  context.zzConf.server = {};
+  context.zzConf.server.host = u.hostname;
+  context.zzConf.server.port = u.port;
 }
 // Add localStorage as an object
 context.localStorage = {};

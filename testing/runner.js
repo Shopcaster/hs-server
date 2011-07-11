@@ -40,22 +40,28 @@ var Unknown = function(name, val) {
   this.name = name;
 };
 Unknown.prototype.print = function(indent) {
-  console.log(indent + this.name.white + ': ' + 'Unknown '.yellow + this.val);
+  console.log(indent + this.name.white + ': ' + 'Unknown'.yellow.inverse +
+    ' ' + (this.val + '').yellow);
 };
 
 var Deferred = function(timeout, callback) {
-  this.done = callback;
+  this._callback = callback;
 
   //default timeout
   if (typeof timeout != 'number') timeout = 2000; //2sec default timeout
 
   var self = this;
   if (timeout) {
-    setTimeout(function() {
+    this._to = setTimeout(function() {
       self.done(new Error('Timed out'));
       self.done = function() {};
     }, timeout);
   }
+};
+Deferred.prototype = {};
+Deferred.prototype.done = function(success) {
+  if (this._to) clearTimeout(this._to);
+  this._callback(success);
 };
 
 var Runner = function(name, callback) {
@@ -109,6 +115,8 @@ Runner.prototype.test = function(name, x) {
     r.run(x);
   } else if (typeof x == 'boolean') {
     this.tests.push(x ? new Pass(name) : new Fail(name));
+  } else if (typeof x == 'undefined') {
+    this.tests.push(new Unknown(name));
   } else {
     this.tests.push(!!x ? new Pass(name) : new Fail(name));
   }
