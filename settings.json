@@ -12,7 +12,7 @@
     "clientUri": "http://beta.hipsell.com"
   },
   "test": {
-    "serverUri": "http://localhost:7654",
+    "serverUri": "http://127.0.0.1:7654",
     "clientUri": false
   }
 }

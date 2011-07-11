@@ -189,12 +189,22 @@ var auth = function(client, data, callback, errback, force) {
     var finish = function() {
       // Save the auth for the client
       client.state.auth = auth;
-      
+
       // Update presence information
       presence.online(client);
 
       // Remove the auth on dc
-      client.on('disconnect', function() { deauth(client, null, function() {}, function() {}) });
+      client.on('disconnect', function() {
+        // Clear the presence information
+        try {
+          presence.offline(client);
+          delete client.state.auth;
+        } catch (err) {
+          console.log('Error on client disconnect');
+          console.log(err);
+          console.log('');
+        }
+      });
 
       // Notify success!
       callback({
@@ -236,20 +246,6 @@ var auth = function(client, data, callback, errback, force) {
   });
 };
 
-var deauth = function(client, data, callback, errback) {
-  // Just clear the presence information
-  try {
-    presence.offline(client);
-    delete client.state.auth;
-    callback(true);
-
-  } catch (err) {
-    console.log(err.stack);
-    console.log('');
-    errback('Server error');
-  }
-};
-
 var passwd = function(client, data, callback, errback) {
 
   // Make sure the client is already authenticated
@@ -274,7 +270,6 @@ var passwd = function(client, data, callback, errback) {
 
 // Handlers
 exports.auth = auth;
-exports.deauth = deauth;
 exports.passwd = passwd;
 
 // Misc

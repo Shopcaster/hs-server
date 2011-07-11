@@ -6,11 +6,15 @@
 // module so that it can be loaded.
 //
 // This module has a single dependency: websocket-client
+// It also expects a settings module to be present in the parent.  This
+// module should contain a string uri, set to the server uri.
 //
 
 var vm = require('vm'),
     fs = require('fs'),
-    crypto = require('crypto');
+    crypto = require('crypto'),
+    url = require('url'),
+    settings = require('../settings');
 
 // The interface expects a certain environment; this sets it up.
 var context = {};
@@ -25,6 +29,15 @@ context.io = require('./_node-socketio-client').io;
 // JSON support is baked in, so we don't need to add it
 // Add console
 context.console = console;
+// Add the conf object
+with ({u: url.parse(settings.serverUri)}) {
+  context.spandexConf = {};
+  context.spandexConf.server = {};
+  context.spandexConf.server.host = u.hostname;
+  context.spandexConf.server.port = u.port;
+}
+// Add localStorage as an object
+context.localStorage = {};
 
 // Cache the current keys in the context so we know what to not export
 // later.
@@ -44,7 +57,7 @@ code.runInNewContext(context);
 
 // Export everything but the baked-in context
 for (var i in context) if (context.hasOwnProperty(i))
-  if (keys[i])
+  if (!keys[i])
     exports[i] = context[i];
 
 // Victory!

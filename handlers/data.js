@@ -1,5 +1,5 @@
 var validate = require('./../util/validation').validate,
-    keys = require('./../util/keys'),
+    ids = require('./../util/keys'),
     db = require('./../db');
 
 // Validation for all data types goes here
@@ -77,8 +77,8 @@ var update = function(client, data, callback, errback) {
   if (!client.state.auth) return errback('Access denied');
 
   // Try to parse the key
-  var key = keys.parse(data.key);
-  if (!key || key.relation) return errback('Invalid key');
+  var key = ids.parse(data.key);
+  if (!(key instanceof ids.Key)) return errback('Invalid key');
 
   // Do some basic validation
   if (!key.type in validators) return errback('Invalid type');
@@ -116,8 +116,8 @@ var del = function(client, data, callback, errback) {
   if (!client.state.auth) return errback('Access denied');
 
   // Try to parse the key
-  var key = keys.parse(data.key);
-  if (!key || key.relation) return errback('Invalid key');
+  var key = ids.parse(data.key);
+  if (!(key instanceof ids.Key)) return errback('Invalid key');
 
   // Check if we have a special handler for this data type
   if (key.type in specialHandlers) {
