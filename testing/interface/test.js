@@ -70,12 +70,11 @@ var data = function(r) {
     r.test('has ' + utype + ' model', !!api.models[utype]);
   }
 
+  api.data.convo('convo/123123', function() {});
+
   // Test creation
   var d = r.defer('creates convo');
-  var convo = {
-    listing: 'listing/1'
-  };
-  api.create.convo(convo, function(id) {
+  api.create.convo({listing: 'listing/1'}, function(id) {
     d.done(!!id);
 
     // Test fetching
@@ -84,6 +83,19 @@ var data = function(r) {
       d.done(!!convo);
 
       r.test('convo data correct', convo.listing == 'listing/1');
+
+      // Test update
+      d = r.defer('response when updates convo');
+      api.update.convo(convo, {listing: 'listings/2'}, function() {
+        d.done(true);
+
+        // Fetch the data to check the results
+        //d = r.defer('updates convo data');
+        //api.data.convo(id, function(convo) {
+
+        //  d.done(convo.listing == 'listing/2');
+        //});
+      });
     });
   });
 };
