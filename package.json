@@ -17,7 +17,8 @@
     "mailgun": "latest",
     "mongodb": "latest",
     "colors": "latest",
-    "websocket-client": "latest"
+    "websocket-client": "latest",
+    "uglify-js": "latest"
   },
 
   "bin": {"hss": "./main.js"}

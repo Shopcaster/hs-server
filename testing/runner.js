@@ -108,11 +108,22 @@ Runner.prototype.test = function(name, x) {
   var self = this;
 
   if (typeof x == 'function') {
+    var conts = [];
+    var cont = {
+      test: function() { conts.push(Array.prototype.slice.call(arguments)) }
+    };
+
     this._defers++;
     var self = this;
-    var r = new Runner(name, function() { self._dclbk() });
+    var r = new Runner(name, function() {
+      for (var i=0; i<conts.length; i++)
+        self.test.apply(self, conts[i]);
+      self._dclbk();
+    });
     this.tests.push(r);
     r.run(x);
+
+    return cont;
   } else if (typeof x == 'boolean') {
     this.tests.push(x ? new Pass(name) : new Fail(name));
   } else if (typeof x == 'undefined') {

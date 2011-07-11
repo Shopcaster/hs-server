@@ -17,7 +17,9 @@ var test = function() {
   testing.run(function(r) {
     r.print();
     console.log('');
-
+    console.log('');
+    console.log('Summary: TODO');
+    console.log('');
     //kill the server
     server.kill();
     //manually kill the process

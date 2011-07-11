@@ -9,6 +9,9 @@
 // It also expects a settings module to be present in the parent.  This
 // module should contain a string uri, set to the server uri.
 //
+// Optionally, if UglifyJS is installed, the loader will make use of
+// it to give detailed syntax errors should `api.js` contain any.
+//
 
 var vm = require('vm'),
     fs = require('fs'),
@@ -31,10 +34,11 @@ context.io = require('./_node-socketio-client').io;
 context.console = console;
 // Add the conf object
 with ({u: url.parse(settings.serverUri)}) {
-  context.zzConf = {};
-  context.zzConf.server = {};
-  context.zzConf.server.host = u.hostname;
-  context.zzConf.server.port = u.port;
+  context.conf = {};
+  context.conf.zz = {};
+  context.conf.zz.server = {};
+  context.conf.zz.server.host = u.hostname;
+  context.conf.zz.server.port = u.port;
 }
 // Add localStorage as an object
 context.localStorage = {};
@@ -48,6 +52,19 @@ for (var i in context) if (context.hasOwnProperty(i))
 // Load the code!  Note the synchrony; async will break CommonJS import
 // workings, since it's inline itself.
 var code = fs.readFileSync(__dirname + '/api.js', 'utf8');
+
+// Parse it using uglify, if it's available
+try {
+  var jsp = require('uglify-js').parser;
+} catch (err) {}
+if (jsp) {
+  try {
+    jsp.parse(code);
+  } catch (err) {
+    throw 'Syntax error in api.js (' + err.line + ':' + err.col +
+      ') \n  ' + err.message;
+  }
+}
 
 // Compile it
 code = vm.createScript(code, 'api.js');
