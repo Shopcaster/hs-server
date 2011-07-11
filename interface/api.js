@@ -738,17 +738,19 @@ zz.recordError = function(err) {
 //
 zz.create = {};
 for (var i=0; i<config.datatypes.length; i+=2) {
-  var type = config.datatypes[i];
-  zz.create[type] = function(data, callback) {
-    messaging.send('create', {type: type, data: data}, function(err, ret) {
-      if (err)
-        throw new Error('Failed to create ' + type + ': ' + err.message);
-      else if (!ret)
-        throw new Error('Validation error when creating ' + type);
+  with ({type: config.datatypes[i]}) {
+    console.log(type);
+    zz.create[type] = function(data, callback) {
+      messaging.send('create', {type: type, data: data}, function(err, ret) {
+        if (err)
+          throw new Error('Failed to create ' + type + ': ' + err.message);
+        else if (!ret)
+          throw new Error('Validation error when creating ' + type);
 
-      callback(ret);
-    });
-  };
+        callback(ret);
+      });
+    };
+  }
 }
 
 //
@@ -756,17 +758,18 @@ for (var i=0; i<config.datatypes.length; i+=2) {
 //
 zz.update = {};
 for (var i=0; i<config.datatypes.length; i+=2) {
-  var type = config.datatypes[i];
-  zz.update[type] = function(data, callback) {
-    messaging.send('update', {type: type, data: data}, function(err, ret) {
-      if (err)
-        throw new Error('Failed to create ' + type + ': ' + err.message);
-      else if (!ret)
-        throw new Error('Validation error when creating ' + type);
+  with ({type: config.datatypes[i]}) {
+    zz.update[type] = function(data, callback) {
+      messaging.send('update', {type: type, data: data}, function(err, ret) {
+        if (err)
+          throw new Error('Failed to create ' + type + ': ' + err.message);
+        else if (!ret)
+          throw new Error('Validation error when creating ' + type);
 
-      callback(ret);
-    });
-  };
+        callback(ret);
+      });
+    };
+  }
 }
 
 // End global closure
