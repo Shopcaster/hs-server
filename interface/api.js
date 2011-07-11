@@ -4,10 +4,11 @@ this.zz = null;
 //
 // * Auth bootstrapping on connect
 // * Presence
-// * Data read layer
+// * Data read layer (testing, relations)
 // * Data write layer
 // * Reconnect handling
-// * Remove deauth
+// * Presence (boiling in connection stuff)
+// * Redo deauth
 
 //
 // Expects the following to exist:
@@ -40,6 +41,22 @@ this.zz = null;
 
 // Global closure
 (function() {
+
+// "Import" the conf
+var zzConf = conf.zz;
+
+// Global config
+config = {};
+// Allowable models
+config.datatypes = [
+  // singular, plural
+  'listing', 'listings',
+  'offer', 'offers',
+  'user', 'users',
+  'convo', 'convos',
+  'message', 'messages',
+  'inquiry', 'inquiries'
+];
 
 //
 // Node.js style EventEmitter
@@ -133,9 +150,9 @@ zz.logging.outgoing = {
   auth: false,
   deauth: false,
   passwd: false,
-  sub: true,
+  sub: false,
   unsub: true,
-  create: false,
+  create: true,
   update: false,
   'delete': false,
   'sub-presence': false,
@@ -176,7 +193,7 @@ var messaging = new EventEmitter();
     msg = messaging.deserialize(msg);
 
     // Log the message if we're configured to do so
-    if (zz.logging[msg.type]) log(msg.type, msg.data);
+    if (zz.logging.incoming[msg.type]) log(msg.type, msg.data);
 
     // If the message is a response, fire the appropriate callback
     if (msg.type == 'response' && messaging.callbacks[msg.data.id]) {
@@ -384,21 +401,10 @@ zz.recordError = function(err) {
 
 })();
 
-
 //
-// Data layer logic
+// Data read layer logic
 //
 (function() {
-  // Configuration
-  var config = {};
-  // Allowable models
-  config.models = [
-    'listing', 'listings',
-    'offer', 'offers',
-    'user', 'users'
-  ];
-
-  // Active subscriptions
 
   // Initialize he data layer
   zz.data = {};
@@ -636,9 +642,9 @@ zz.recordError = function(err) {
   };
 
   // Data initialization
-  for (var i=0; i<config.models.length; i+=2) {
-    var type = config.models[i];
-    var ptype = config.models[i+1];
+  for (var i=0; i<config.datatypes.length; i+=2) {
+    var type = config.datatypes[i];
+    var ptype = config.datatypes[i+1];
 
     // Create and register the model for this type
     var M = function() {};
@@ -704,11 +710,10 @@ zz.recordError = function(err) {
 
         // Otherwise, we need to fetch multiple fields through multiple
         // objects.  This is pretty simple to do -- just
-        else
-          return _get(thing[fields.shift()], function(data) {
-            var type = data._id.split('/')[0];
-            zz.data[type].apply(this, [data].concat(fields.concat([callback])));
-          });
+        else return _get(thing[fields.shift()], function(data) {
+          var type = data._id.split('/')[0];
+          zz.data[type].apply(this, [data].concat(fields.concat([callback])));
+        });
       }
 
       // At this point, thing is a string set to the key of the thing
@@ -727,6 +732,42 @@ zz.recordError = function(err) {
     };
   };
 })();
+
+//
+// Data creation
+//
+zz.create = {};
+for (var i=0; i<config.datatypes.length; i+=2) {
+  var type = config.datatypes[i];
+  zz.create[type] = function(data, callback) {
+    messaging.send('create', {type: type, data: data}, function(err, ret) {
+      if (err)
+        throw new Error('Failed to create ' + type + ': ' + err.message);
+      else if (!ret)
+        throw new Error('Validation error when creating ' + type);
+
+      callback(ret);
+    });
+  };
+}
+
+//
+// Data update
+//
+zz.update = {};
+for (var i=0; i<config.datatypes.length; i+=2) {
+  var type = config.datatypes[i];
+  zz.update[type] = function(data, callback) {
+    messaging.send('update', {type: type, data: data}, function(err, ret) {
+      if (err)
+        throw new Error('Failed to create ' + type + ': ' + err.message);
+      else if (!ret)
+        throw new Error('Validation error when creating ' + type);
+
+      callback(ret);
+    });
+  };
+}
 
 // End global closure
 })();

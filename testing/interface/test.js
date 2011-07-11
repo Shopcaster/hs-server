@@ -4,10 +4,13 @@ var setup = function(r) {
 
   //import the library
   api = require('../../interface/load').zz;
-  r.test('has zz', api);
 
+  r.test('has zz', api);
   r.test('ping', ping);
-  r.test('auth', auth);
+
+  with (r.test('auth', auth)) {
+    test('data', data);
+  }
 };
 
 var ping = function(r) {
@@ -38,6 +41,46 @@ var auth = function(r) {
 
       r.test('changePassword succeeds', err);
       r.test('changePassword password changed');
+    });
+  });
+};
+
+var data = function(r) {
+  var dataTypes = [
+    'listing',
+    'offer',
+    'user',
+    'convo',
+    'message',
+    'inquiry'
+  ];
+
+  r.test('data defined', api.data);
+  r.test('create defined', api.create);
+  r.test('update defined', api.update);
+
+  // Check appropriate defines
+  for (var i=0; i<dataTypes.length; i++) {
+    var type = dataTypes[i];
+    var utype = type[0].toUpperCase() + type.substr(1);
+
+    r.test('has ' + type + ' data fetcher', !!api.data[type]);
+    r.test('has ' + type + ' creator', !!api.create[type]);
+    r.test('has ' + type + ' updater', !!api.update[type]);
+    r.test('has ' + utype + ' model', !!api.models[utype]);
+  }
+
+  // Test creation
+  var d = r.defer('creates convo');
+  api.create.convo({listing: 'listing/1'}, function(id) {
+    d.done(!!id);
+
+    // Test fetching
+    d = r.defer('fetches convo');
+    api.data.convo(id, function(convo) {
+      d.done(!!convo);
+
+      r.test('convo data correct', convo.listing == 'listing/1');
     });
   });
 };
