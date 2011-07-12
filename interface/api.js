@@ -289,21 +289,10 @@ var con = null;
       console.log('Disconnect');
   });
 
-  // Self explanatory
-  zz.connect = function() {
-    con.connect();
-  };
-  // Also self explanatory
-  zz.disconnect = function() {
-    con.disconnect();
-    if (zz.logging.connection)
-      console.log('Disconnect');
-  };
-
   // Register the message handler
   con.on('message', messaging.handleMessage);
   // Bootstrap it
-  zz.connect();
+  con.connect();
 })();
 
 //
@@ -311,7 +300,8 @@ var con = null;
 //
 zz.ping = function(callback) {
   messaging.send('ping', null, function() {
-    callback();
+    if (callback) callback();
+    else console.log('pong');
   });
 };
 
@@ -431,6 +421,46 @@ zz.recordError = function(err) {
     return curUser;
   };
 
+})();
+
+//
+// Presence
+//
+(function() {
+  zz.presence = new EventEmitter();
+  zz.presence.status = 'offline';
+
+  // Helpers
+  var setOffline = function() {
+    zz.presence.status = 'offline';
+    zz.presence.emit('offline');
+  };
+  var setOnline = function() {
+    zz.presence.status = 'online';
+    zz.presence.emit('online');
+  };
+  var setAway = function() {
+    setOffline();
+  };
+
+  // Set up events
+  con.on('disconnect', setOffline);
+  con.on('connect', setOnline);
+
+  zz.presence.offline = function() {
+    if (zz.presence.status == 'offline') return;
+    con.disconnect();
+  };
+
+  zz.presence.online = function() {
+    if (zz.presence.status == 'online') return;
+    con.connect();
+  };
+
+  zz.presence.away = function() {
+    // Eventually we'll add real away support
+    zz.presence.offline();
+  };
 })();
 
 //
