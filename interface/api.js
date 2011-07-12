@@ -138,7 +138,7 @@ zz = new ZZ();
 zz.logging = {};
 zz.logging.connection = false;
 zz.logging.incoming = {
-  response: false,
+  response: true,
   pub: false,
   presence: false,
   not: false
@@ -152,7 +152,7 @@ zz.logging.outgoing = {
   sub: false,
   unsub: true,
   create: false,
-  update: true,
+  update: false,
   'delete': false,
   'sub-presence': false,
   'unsub-presence': false

@@ -15,7 +15,7 @@ var makeNiceId = function(collection, callback) {
 
   // If we already have a nice ID stored for this collection, return
   // it as a string, and increment it.
-  if (niceIds.hasOwnProperty(collection)) return callback(collection + ':' + (niceIds[collection]++));
+  if (niceIds.hasOwnProperty(collection)) return callback(collection + '/' + (niceIds[collection]++));
 
   // Otherwise, we just need to count the number of items in the
   // collection and initialize the nice id counter to that value.
