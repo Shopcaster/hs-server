@@ -26,7 +26,7 @@ this.zz = null;
 //     server:
 //     {
 //       host: String,
-//       port: String
+//       port: [String|Number]
 //     },
 //     logging: // Optional, as are all properties
 //     {
@@ -275,7 +275,7 @@ var messaging = new EventEmitter();
 var con = null;
 (function() {
   con = new io.Socket(zzConf.server.host, {
-    secure: true,
+    secure: false,
     port: zzConf.server.port
   });
 
