@@ -704,14 +704,15 @@ zz.recordError = function(err) {
   };
 
   // Data initialization
-  for (var i=0; i<config.datatypes.length; i+=2) {
+  for (var i=0; i<config.datatypes.length; i+=2) with ({i: i}) {
     var type = config.datatypes[i];
     var ptype = config.datatypes[i+1];
 
     // Create and register the model for this type
     var M = function() {};
     M.prototype = new zz.models.Model(type);
-    zz.models[type[0].toUpperCase() + type.substr(1)] = M;
+    zz.models[type[0].toUpperCase() + type.substr(1)] = function() {};
+    var M = zz.models[type[0].toUpperCase() + type.substr(1)];
 
     // Add the relation
     zz.models.Model.prototype.related[ptype] = function() {
@@ -792,7 +793,7 @@ zz.recordError = function(err) {
         callback(m);
       });
     };
-  };
+  }
 })();
 
 //
