@@ -9,7 +9,8 @@ var setup = function(r) {
   r.test('ping', ping);
 
   with(r.test('auth', auth)) {
-    test('data', data);
+    test('basic data', data);
+    test('hot models', hotModels);
   }
 };
 
@@ -109,6 +110,9 @@ var data = function(r) {
     d2.done(true);
     r.test('listings have pretty ids', id.match(/\w+\/\d+/));
   });
+};
+
+var hotModels = function(r) {
 
 };
 

@@ -3,8 +3,7 @@ this.zz = null;
 // TODO
 //
 // * Auth bootstrapping on connect
-// * Presence
-// * Data read layer (testing, relations)
+// * Data read layer (relations)
 // * Reconnect handling
 // * Presence (boiling in connection stuff)
 // * Redo deauth
@@ -18,6 +17,7 @@ this.zz = null;
 //   io.Socket :: [Constructor] String -> Object -> unit
 //   console.log :: (Variable args) -> unit
 //   localStorage :: Object
+//   setTimeout :: Function -> Number -> Object
 //
 // As well as:
 //
@@ -133,6 +133,11 @@ ZZ.prototype = new EventEmitter();
 zz = new ZZ();
 
 //
+// Misc zz settings
+//
+zz.waitThreshold = 500;
+
+//
 // Logging Setup
 //
 zz.logging = {};
@@ -150,9 +155,9 @@ zz.logging.outgoing = {
   deauth: false,
   passwd: false,
   sub: false,
-  unsub: true,
+  unsub: false,
   create: false,
-  update: true,
+  update: false,
   'delete': false,
   'sub-presence': false,
   'unsub-presence': false
@@ -173,6 +178,8 @@ var messaging = new EventEmitter();
   messaging.id = 1;
   // Callbacks (id -> callback)
   messaging.callbacks = {};
+  // Actively pending responses
+  var pendingResponses = 0;
 
   messaging.serialize = function(type, data) {
     return type + ':' + JSON.stringify(data);
@@ -216,10 +223,34 @@ var messaging = new EventEmitter();
     // Default data
     data = data || {};
 
-    // Update the data to send with the ID
+    // Update the data with the message ID
     data.id = id;
+
+    // Set up a timeout to fire if this response takes too long
+    var to = setTimeout(function() {
+      // Increment the pending responses count.  If it was 0 prior to
+      // this, then we need to fire the `waiting` event on zz.
+      if (pendingResponses++ == 0)
+        zz.emit('waiting');
+
+      // Clear the callback handle so that the response callback knows
+      // it was fired.
+      to = null;
+    }, zz.waitThreshold);
+
     // Register the callback for this message's response
     messaging.callbacks[id] = function(data) {
+
+      // If the timeout was fired, decrement the pending responses count
+      // and fire the `done` message if it's back to 0
+      if (to === null) {
+        if (--pendingResponses === 0)
+          zz.emit('done');
+      // Otherwise, just clear the timeout
+      } else {
+        clearTimeout(to);
+      }
+
       // Log the response if needed
       if (zz.logging.responses && zz.logging.outgoing[msg])
         console.log('response', id, data.value);
@@ -231,6 +262,7 @@ var messaging = new EventEmitter();
       if (data.error) callback(new Error(data.error));
       else callback(undefined, data.value);
     };
+
 
     // Fire the message
     con.send(messaging.serialize(msg, data));

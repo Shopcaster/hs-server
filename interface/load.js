@@ -42,6 +42,9 @@ with ({u: url.parse(settings.serverUri)}) {
 }
 // Add localStorage as an object
 context.localStorage = {};
+// setTimeout doesn't exist by default : /
+context.setTimeout = setTimeout;
+context.clearTimeout = clearTimeout;
 
 // Cache the current keys in the context so we know what to not export
 // later.
