@@ -137,8 +137,8 @@ zz = new ZZ();
 //
 zz.logging = {};
 zz.logging.connection = false;
+zz.logging.responses = true;
 zz.logging.incoming = {
-  response: true,
   pub: false,
   presence: false,
   not: false
@@ -152,7 +152,7 @@ zz.logging.outgoing = {
   sub: false,
   unsub: true,
   create: false,
-  update: false,
+  update: true,
   'delete': false,
   'sub-presence': false,
   'unsub-presence': false
@@ -207,18 +207,23 @@ var messaging = new EventEmitter();
   // Sends a message
   messaging.send = function(msg, data, callback) {
 
+    // Create this message's ID
+    var id = messaging.id++;
+
     // Log if we're asked to
-    if (zz.logging.outgoing[msg]) console.log(msg, data);
+    if (zz.logging.outgoing[msg]) console.log(msg, id, data);
 
     // Default data
     data = data || {};
 
-    // Create this message's ID
-    var id = messaging.id++;
     // Update the data to send with the ID
     data.id = id;
     // Register the callback for this message's response
     messaging.callbacks[id] = function(data) {
+      // Log the response if needed
+      if (zz.logging.responses && zz.logging.outgoing[msg])
+        console.log('response', id, data.value);
+
       // If there's no callback, break early
       if (!callback) return;
 
@@ -540,7 +545,7 @@ zz.recordError = function(err) {
   messaging.on('pub', function(data) {
     if (!subs[data.key]) return console.log('Error: Dangling sub');
 
-    subs[data.key].update(data);
+    subs[data.key].update(data.diff);
   });
 
   // The model class

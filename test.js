@@ -28,7 +28,7 @@ var test = function() {
 }
 
 cli.parse({
-  showserver: ['s', 'Show server output', 'string']
+  showserver: ['s', 'Show server output', 'boolean']
 });
 
 cli.main(function(args, opts) {
