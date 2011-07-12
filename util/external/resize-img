@@ -5,7 +5,7 @@ import sys
 from cStringIO import StringIO
 
 # (w, h)
-size = (450, 450)
+size = (448, 448)
 output_ratio = size[0] / size[1]
 
 if __name__ == '__main__':
