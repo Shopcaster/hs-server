@@ -186,12 +186,16 @@ Runner.prototype.print = function(indent) {
   for (var i=0; i<this.tests.length; i++)
     this.tests[i].print(indent + '  ');
 };
-
-// TODO - load this by scanning the directory
-var testModules = [
-  './util',
-  './interface/test'
-];
+Runner.prototype.results = function() {
+  var r = {pass: 0, fail: 0, unknown: 0};
+  for (var i=0; i<this.tests.length; i++) {
+    var s = this.tests[i].results();
+    r.pass += s.pass || 0;
+    r.fail += s.fail || 0;
+    r.unknown += s.unknown || 0;
+  }
+  return r;
+};
 
 var run = function(callback) {
   var errors = [];
@@ -199,11 +203,14 @@ var run = function(callback) {
   var results = [];
 
   //record uncaught exceptions
-  process.on('uncaughtException', function(err) {
+  var exceptionHandler = function(err) {
     errors.push(new Fail('Exception ' + errors.length + 1, err));
-  });
+  };
+  process.on('uncaughtException', exceptionHandler);
 
   var finish = function() {
+    //clear the uncaught exception handler
+    process.removeListener('uncaughtException', exceptionHandler);
     //return the root runner
     var r = new Runner('');
     r.tests = errors.concat(results);
@@ -242,5 +249,11 @@ var run = function(callback) {
   //if nothing is running just hit the callback now
   if (running === 0) finish();
 };
+
+// TODO - load this by scanning the directory
+var testModules = [
+  './util',
+  './interface/test'
+];
 
 exports.run = run;

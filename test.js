@@ -18,7 +18,12 @@ var test = function() {
     r.print();
     console.log('');
     console.log('');
-    console.log('Summary: TODO');
+
+    var results = r.results();
+    console.log('Summary:');
+    console.log('  Fail: '.red + results.fail);
+    console.log('  Pass: '.green + results.pass);
+    console.log('  Unknown: '.yellow + results.unknown);
     console.log('');
     //kill the server
     server.kill();
@@ -38,7 +43,7 @@ cli.main(function(args, opts) {
   //run the test server
   var uri = url.parse(settings.serverUri);
   server = spawn('node', ['main.js', '--mode=test', '--dbname=test', '--noemail', '--port=' + uri.port, '--host=0.0.0.0']);
-  server.stdout.on('error', function(data) {
+  server.stderr.on('data', function(data) {
     if (opts.showserver)
       process.stdout.write(data.toString().grey.inverse);
   });
