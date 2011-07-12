@@ -24,14 +24,19 @@ Fail.prototype.print = function(indent) {
     for (var i=0; i<details.length; i++)
       details[i] = indent + '  ' + details[i];
     console.log(details.join('\n').white + '\n');
-
   }
+};
+Fail.prototype.results = function() {
+  return {fail: 1};
 };
 
 // Success
 var Pass = function(name) { this.name = name };
 Pass.prototype.print = function(indent) {
   console.log(indent + this.name.white + ': ' + 'Pass'.green);
+};
+Pass.prototype.results = function() {
+  return {pass: 1};
 };
 
 // What?
@@ -42,6 +47,9 @@ var Unknown = function(name, val) {
 Unknown.prototype.print = function(indent) {
   console.log(indent + this.name.white + ': ' + 'Unknown'.yellow.inverse +
     ' ' + (this.val + '').yellow);
+};
+Unknown.prototype.results = function() {
+  return {unknown: 1};
 };
 
 var Deferred = function(timeout, callback) {

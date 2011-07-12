@@ -704,95 +704,96 @@ zz.recordError = function(err) {
   };
 
   // Data initialization
-  for (var i=0; i<config.datatypes.length; i+=2) with ({i: i}) {
+  for (var i=0; i<config.datatypes.length; i+=2) {
     var type = config.datatypes[i];
     var ptype = config.datatypes[i+1];
 
     // Create and register the model for this type
-    var M = function() {};
-    M.prototype = new zz.models.Model(type);
     zz.models[type[0].toUpperCase() + type.substr(1)] = function() {};
     var M = zz.models[type[0].toUpperCase() + type.substr(1)];
+    M.prototype = new zz.models.Model(type);
 
     // Add the relation
-    zz.models.Model.prototype.related[ptype] = function() {
+    with ({type: type, ptype: ptype, M: M}) {
+      zz.models.Model.prototype.related[ptype] = function() {
 
-      // Arguments
-      var field;
-      var callback;
+        // Arguments
+        var field;
+        var callback;
 
-      // Magic arguments
-      var args = Array.prototype.slice.call(arguments);
-      if (args.length > 1)
-        field = args.shift();
-      callback = args.shift();
-      delete args;
+        // Magic arguments
+        var args = Array.prototype.slice.call(arguments);
+        if (args.length > 1)
+          field = args.shift();
+        callback = args.shift();
+        delete args;
 
-      // Set the default field
-      if (!field) field = type;
+        // Set the default field
+        if (!field) field = type;
 
-      // TODO - make the query
-    };
+        // TODO - make the query
+      };
 
-    // Create the fetcher
-    zz.data[type] = function() {
+      // Create the fetcher
+      zz.data[type] = function() {
 
-      // Arguments
-      var thing;
-      var fields = [];
-      var callback;
+        // Arguments
+        var thing;
+        var fields = [];
+        var callback;
 
-      // Magic arguments
-      var args = Array.prototype.slice.call(arguments);
-      thing = args.shift();
-      while (args.length > 1)
-        fields.push(args.shift());
-      callback = args[0];
+        // Magic arguments
+        var args = Array.prototype.slice.call(arguments);
+        thing = args.shift();
+        while (args.length > 1)
+          fields.push(args.shift());
+        callback = args[0];
 
-      // Validate arguments
-      if (typeof thing != 'string' && typeof thing != 'object')
-        throw new Error('Thing to fetch on must be a string or a Model; ' +
-                        'instead it was ' + typeof thing);
-      if (!callback || typeof callback != 'function')
-        throw new Error('No callback was passed');
-      if (typeof thing == 'string' && fields.length)
-        throw new Error('Fetching through fields is invalid with a string argument');
+        // Validate arguments
+        if (typeof thing != 'string' && typeof thing != 'object')
+          throw new Error('Thing to fetch on must be a string or a Model; ' +
+                          'instead it was ' + typeof thing);
+        if (!callback || typeof callback != 'function')
+          throw new Error('No callback was passed');
+        if (typeof thing == 'string' && fields.length)
+          throw new Error('Fetching through fields is invalid with a string argument');
 
-      // If the thing is an object, we need to do a bit of work to
-      // get the fields ID we're looking for.
-      if (typeof thing == 'object') {
-        // If no fields were specified and the thing was an object, we
-        // need to get the ID from the default fild on that object.
-        if (fields.length == 0)
-          thing = thing[type];
+        // If the thing is an object, we need to do a bit of work to
+        // get the fields ID we're looking for.
+        if (typeof thing == 'object') {
+          // If no fields were specified and the thing was an object, we
+          // need to get the ID from the default fild on that object.
+          if (fields.length == 0)
+            thing = thing[type];
 
-        // If there's just a single field specified, we need to just
-        // use an explicit field from the object to get the ID.
-        else if (fields.length == 1)
-          thing = thing[fields[0]];
+          // If there's just a single field specified, we need to just
+          // use an explicit field from the object to get the ID.
+          else if (fields.length == 1)
+            thing = thing[fields[0]];
 
-        // Otherwise, we need to fetch multiple fields through multiple
-        // objects.  This is pretty simple to do -- just
-        else return _get(thing[fields.shift()], function(data) {
-          var type = data._id.split('/')[0];
-          zz.data[type].apply(this, [data].concat(fields.concat([callback])));
+          // Otherwise, we need to fetch multiple fields through multiple
+          // objects.  This is pretty simple to do -- just
+          else return _get(thing[fields.shift()], function(data) {
+            var type = data._id.split('/')[0];
+            zz.data[type].apply(this, [data].concat(fields.concat([callback])));
+          });
+        }
+
+        // At this point, thing is a string set to the key of the thing
+        // we're looking for.  We can do a basic get on that key and
+        // then return it to the client.
+        _get(thing, function(data) {
+
+          // Clone the data into the appropriate model
+          var m = new M(thing);
+          for (var i in data) if (data.hasOwnProperty(i))
+            m[i] = data[i];
+
+          // Return the model to the user
+          callback(m);
         });
-      }
-
-      // At this point, thing is a string set to the key of the thing
-      // we're looking for.  We can do a basic get on that key and
-      // then return it to the client.
-      _get(thing, function(data) {
-
-        // Clone the data into the appropriate model
-        var m = new M(thing);
-        for (var i in data) if (data.hasOwnProperty(i))
-          m[i] = data[i];
-
-        // Return the model to the user
-        callback(m);
-      });
-    };
+      };
+    }
   }
 })();
 

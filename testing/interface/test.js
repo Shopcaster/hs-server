@@ -85,6 +85,7 @@ var data = function(r) {
         d.done(!!convo);
 
         r.test('convo data correct', convo.listing == 'listing/1');
+        r.test('convo type correct', convo._type == 'convo');
 
         // Test convo update
         d = r.defer('response when updates convo');
