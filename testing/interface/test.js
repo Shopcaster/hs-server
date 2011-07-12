@@ -8,7 +8,7 @@ var setup = function(r) {
   r.test('has zz', api);
   r.test('ping', ping);
 
-  with (r.test('auth', auth)) {
+  with(r.test('auth', auth)) {
     test('data', data);
   }
 };
@@ -70,7 +70,7 @@ var data = function(r) {
     r.test('has ' + utype + ' model', !!api.models[utype]);
   }
 
-  api.data.convo('convo/123123', function() {});
+  //api.data.convo('convo/123123', function() {});
 
   // Test creation
   var d = r.defer('creates convo');
@@ -92,7 +92,6 @@ var data = function(r) {
         // Fetch the data to check the results
         //d = r.defer('updates convo data');
         //api.data.convo(id, function(convo) {
-
         //  d.done(convo.listing == 'listing/2');
         //});
       });

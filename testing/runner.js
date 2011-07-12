@@ -61,6 +61,7 @@ var Deferred = function(timeout, callback) {
 Deferred.prototype = {};
 Deferred.prototype.done = function(success) {
   if (this._to) clearTimeout(this._to);
+  this.done = function() {};
   this._callback(success);
 };
 
@@ -68,18 +69,47 @@ var Runner = function(name, callback) {
   this.name = name;
   this.tests = [];
   this._defers = 0;
-  this._done = callback;
+  this._callback = callback;
+  this._conts = [];
 
   var self = this;
   this._dclbk = function() {
     self._defers--;
   };
 };
-Runner.prototype.run = function(r) {
+Runner.prototype._done = function() {
+  // If we have continuations to run, save the needed state
+  // and then re-initialize and rerun the test using the conts.
+  if (this._conts.length) {
+    var conts = this._conts;
+    var tests = this.tests;
+    var callback = this._callback;
+    var name = this.name;
+
+    // Reinit the object
+    Runner.call(this);
+    // Fix the state
+    this.tests = tests;
+    this._callback = callback;
+    this.name = name;
+
+    // Run each continuation
+    var self = this;
+    self.run(function() {
+      for (var i=0; i<conts.length; i++)
+        self.test.apply(self, conts[i]);
+    });
+
+  // Otherwise, just fire the callback to signal that we're done
+  } else {
+    this._callback();
+  }
+};
+Runner.prototype.run = function(f) {
   var e;
 
   try {
-    r(this);
+    f(this);
   } catch (err) {
     // rethrow error later
     e = err;
@@ -108,22 +138,19 @@ Runner.prototype.test = function(name, x) {
   var self = this;
 
   if (typeof x == 'function') {
-    var conts = [];
-    var cont = {
-      test: function() { conts.push(Array.prototype.slice.call(arguments)) }
-    };
-
     this._defers++;
     var self = this;
-    var r = new Runner(name, function() {
-      for (var i=0; i<conts.length; i++)
-        self.test.apply(self, conts[i]);
-      self._dclbk();
-    });
+    var r = new Runner(name, function() { self._dclbk(); });
     this.tests.push(r);
     r.run(x);
 
-    return cont;
+    return {
+      test: function() {
+        var args = Array.prototype.slice.call(arguments);
+        self._conts.push(args);
+      }
+    };
+
   } else if (typeof x == 'boolean') {
     this.tests.push(x ? new Pass(name) : new Fail(name));
   } else if (typeof x == 'undefined') {
@@ -131,6 +158,8 @@ Runner.prototype.test = function(name, x) {
   } else {
     this.tests.push(!!x ? new Pass(name) : new Fail(name));
   }
+
+  return this;
 };
 Runner.prototype.defer = function(name, timeout) {
   this._defers++;
