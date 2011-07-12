@@ -572,7 +572,7 @@ var authEmitter = new EventEmitter();
       var self = this;
       setTimeout(function() {
         if (self.refs < 1) self.destroy();
-      }, 10 * 10);
+      }, 10 * 1000);
     }
   };
 
