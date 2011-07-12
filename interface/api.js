@@ -355,13 +355,9 @@ zz.recordError = function(err) {
       _AuthUserCur.heat();
 
       // Wire up the data
-      for (var i in user) if (user.hasOwnProperty(i)) {
-        self[i] = user[i];
-        user.on(i, function(val) {
-          self[i] = val;
-          self.emit(i, val);
-        });
-      };
+      var fields = ['name', 'avatar'];
+      for (var i=0; i<fields.length; i++)
+        this[fields[i]] = user[fields[i]];
     };
     AuthUser.prototype = new EventEmitter();
     AuthUser.prototype.destroy = function() {
@@ -405,7 +401,7 @@ zz.recordError = function(err) {
         curUser = new AuthUser(user);
 
         // Success callback
-        callback(undefined);
+        callback && callback(undefined);
       });
     });
   };
@@ -425,7 +421,7 @@ zz.recordError = function(err) {
       localStorage['zz.auth.password'] = value;
 
       // Return success to the callback
-      callback(undefined);
+      callback && callback(undefined);
     });
   };
 
