@@ -14,6 +14,10 @@ var setup = function(r) {
   }
 };
 
+var reconnect = function(r) {
+
+};
+
 var ping = function(r) {
   r.test('has ping', !!api.ping);
 
@@ -121,7 +125,31 @@ var data = function(r) {
 };
 
 var hotModels = function(r) {
+  d = r.defer('model becomes hot');
 
+  // Create a single model to play around with
+  api.create.convo({listing: 'listing/1'}, function(id) {
+    // Get the convo
+    api.data.convo(id, function(convo) {
+      // Heat it up
+      convo.heat();
+      d.done(convo.hot);
+      // Register the change handler
+      var didChange = r.defer('data updated on hot model');
+      convo.on('listing', function(val) {
+        didChange.done(val == 'listing/2');
+        r.test('model updated', convo.listing == 'listing/2');
+
+        // Freeze it
+        convo.freeze();
+        r.test('becomes cold', !convo.hot);
+        r.test('freeze removes event handlers', !convo._listeners.length);
+        r.test('freeze clears sub', !convo._sub);
+      });
+      // Make the change
+      api.update.convo(convo, {listing: 'listing/2'});
+    });
+  });
 };
 
 

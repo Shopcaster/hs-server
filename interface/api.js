@@ -7,6 +7,8 @@ this.zz = null;
 // * Reconnect handling
 // * Presence (boiling in connection stuff)
 // * Redo deauth
+// * data -> get, nonexistant returns null
+//
 
 //
 // Expects the following to exist:
@@ -144,7 +146,7 @@ zz.logging = {};
 zz.logging.connection = false;
 zz.logging.responses = true;
 zz.logging.incoming = {
-  pub: false,
+  pub: true,
   presence: false,
   not: false
 };
@@ -154,8 +156,8 @@ zz.logging.outgoing = {
   auth: false,
   deauth: false,
   passwd: false,
-  sub: false,
-  unsub: false,
+  sub: true,
+  unsub: true,
   create: false,
   update: false,
   'delete': false,
@@ -315,6 +317,7 @@ zz.recordError = function(err) {
 //
 // Auth
 //
+var authEmitter = new EventEmitter();
 (function() {
 
   var bootstrapAuth = function() {
@@ -335,26 +338,28 @@ zz.recordError = function(err) {
     });
   };
 
-  var AuthUser;
   var _AuthUserCur = null;
-  (function() {
-    AuthUser = function(user) {
-      var self = this;
+  var AuthUser = function(user) {
+    var self = this;
 
-      _AuthUserCur = user;
-      _AuthUserCur.heat();
+    _AuthUserCur = user;
+    _AuthUserCur.heat();
 
-      // Wire up the data
-      var fields = ['name', 'avatar'];
-      for (var i=0; i<fields.length; i++)
-        this[fields[i]] = user[fields[i]];
-    };
-    AuthUser.prototype = new EventEmitter();
-    AuthUser.prototype.destroy = function() {
-      _AuthUserCur.freeze();
-      _AuthUserCur = null;
-    };
-  })();
+    // Wire up the data
+    var self = this;
+    var fields = ['name', 'avatar'];
+    for (var i=0; i<fields.length; i++) with ({i: i}) {
+      this[fields[i]] = user[fields[i]];
+      user.on(fields[i], function(val) {
+        self[fields[i]] = val;
+      });
+    }
+  };
+  AuthUser.prototype = new EventEmitter();
+  AuthUser.prototype.destroy = function() {
+    _AuthUserCur.freeze();
+    _AuthUserCur = null;
+  };
 
   zz.auth = function(email, password, callback) {
 
@@ -389,6 +394,24 @@ zz.recordError = function(err) {
 
         // Save the new current user
         curUser = new AuthUser(user);
+
+        // When the socket connects, attempt to do this auth again
+        con.on('connect', function() {
+          // Clear the currently authed user
+          curUser && curUser.destroy();
+          curUser = null;
+
+          zz.auth(email, password, function(err) {
+            // If something went wrong with re-auth, we should clear
+            // the user's auth data.
+            delete localStorage['zz.auth.email'];
+            delete localStorage['zz.auth.password'];
+
+            // Let people know that we've finished with re-auth
+            // (whether we succeeded or not).
+            authEmitter.emit('ready');
+          });
+        });
 
         // Success callback
         callback && callback(undefined);
@@ -533,13 +556,13 @@ zz.recordError = function(err) {
   Sub.prototype.update = function(data) { throw new Error('NYI') };
   Sub.prototype.destroy = function() {
     // Unsub this sub
-    messaging.send('unsub', {key: key}, function(err, data) {
+    messaging.send('unsub', {key: this.key}, function(err, data) {
       // Handle errors by failing
       if (err) return console.log('Error while unsubbing:', err);
     });
 
     // And remove ourselves from the list
-    delete subs[key];
+    delete subs[this.key];
   };
   Sub.prototype.retain = function() { this.refs++ };
   Sub.prototype.release = function() {
@@ -549,7 +572,7 @@ zz.recordError = function(err) {
       var self = this;
       setTimeout(function() {
         if (self.refs < 1) self.destroy();
-      }, 10 * 1000);
+      }, 10 * 10);
     }
   };
 
@@ -605,6 +628,11 @@ zz.recordError = function(err) {
 
     subs[data.key].update(data.diff);
   });
+  // Whenever auth changes, we have to resub everything.
+  authEmitter.on('ready', function() {
+    for (var i=0; i<subs.length; i++)
+      subs[i].resub();
+  });
 
   // The model class
   zz.models.Model = function(type) {
@@ -652,8 +680,8 @@ zz.recordError = function(err) {
     var field = function(field, val) {
       // The sub already checks whether the field changed before firing
       // the field event.
-      self[i] = val;
-      self.emit(i, val);
+      self[field] = val;
+      self.emit(field, val);
     };
     this._sub.on('field', field);
 
