@@ -1,5 +1,3 @@
-this.zz = null;
-
 // TODO
 //
 // * Auth bootstrapping on connect
@@ -17,7 +15,7 @@ this.zz = null;
 //   JSON.parse :: String -> Object
 //   sha256 :: String -> String
 //   io.Socket :: [Constructor] String -> Object -> unit
-//   console.log :: (Variable args) -> unit
+//   log :: (Variable args) -> unit
 //   localStorage :: Object
 //   setTimeout :: Function -> Number -> Object
 //
@@ -77,7 +75,7 @@ EventEmitter.prototype.on = function(event, listener) {
 EventEmitter.prototype.once = function(event, listener) {
   if (!this._onceListeners) this._onceListeners = {};
   if (!this._onceListeners[event]) this._onceListeners[event] = [];
-  this._onceListeners[event].push(listeners);
+  this._onceListeners[event].push(listener);
 
   this.emit('newListener', event, listener);
 
@@ -143,10 +141,10 @@ zz.waitThreshold = 500;
 // Logging Setup
 //
 zz.logging = {};
-zz.logging.connection = false;
+zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
-  pub: true,
+  pub: false,
   presence: false,
   not: false
 };
@@ -156,7 +154,7 @@ zz.logging.outgoing = {
   auth: false,
   deauth: false,
   passwd: false,
-  sub: true,
+  sub: false,
   unsub: true,
   create: false,
   update: false,
@@ -165,10 +163,9 @@ zz.logging.outgoing = {
   'unsub-presence': false
 };
 
+// Friendly log
 var log = function() {
-  if (this.console && console.log) {
-    this.console.log.apply(this, Array.prototype.slice.call(arguments));
-  }
+  console && console.log.apply(console, Array.prototype.slice.call(arguments));
 };
 
 //
@@ -198,6 +195,7 @@ var messaging = new EventEmitter();
 
   // Handles incoming messages
   messaging.handleMessage = function(msg) {
+    console.log(msg);
     msg = messaging.deserialize(msg);
 
     // Log the message if we're configured to do so
@@ -215,12 +213,12 @@ var messaging = new EventEmitter();
   };
   // Sends a message
   messaging.send = function(msg, data, callback) {
-
+    console.log(msg, data);
     // Create this message's ID
     var id = messaging.id++;
 
     // Log if we're asked to
-    if (zz.logging.outgoing[msg]) console.log(msg, id, data);
+    if (zz.logging.outgoing[msg]) log(msg, id, data);
 
     // Default data
     data = data || {};
@@ -255,7 +253,7 @@ var messaging = new EventEmitter();
 
       // Log the response if needed
       if (zz.logging.responses && zz.logging.outgoing[msg])
-        console.log('response', id, data.value);
+        log('response', id, data.value);
 
       // If there's no callback, break early
       if (!callback) return;
@@ -267,34 +265,69 @@ var messaging = new EventEmitter();
 
 
     // Fire the message
-    con.send(messaging.serialize(msg, data));
+    connection.send(messaging.serialize(msg, data));
   };
 })();
 
 //
 // Connection Logic
 //
-var con = null;
+var connection = new EventEmitter();
 (function() {
-  con = new io.Socket(zzConf.server.host, {
+  var con = new io.Socket(zzConf.server.host, {
     secure: false,
     port: zzConf.server.port
   });
 
+  var delayedMessages = [];
+
   // Set up logging
   con.on('connect', function() {
     if (zz.logging.connection)
-      console.log('Connect');
+      log('Connect');
+
+    // Attempt to reauth
+    zz.auth(undefined, undefined, function() {
+
+      // Send all the delayed messages
+      for (var i=0; i<delayedMessages.length; i++)
+        try { con.send.call(con, delayedMessages[i]) }
+        catch(err) { log(err) }
+
+      // Call the callbacks
+      connection.emit('connect');
+    });
   });
   con.on('disconnect', function() {
     if (zz.logging.connection)
-      console.log('Disconnect');
+      log('Disconnect');
+    connection.emit('disconnect');
   });
+
+  connection.send = function(msg) {
+    // If the connection is ready pass everything through
+    if (con.connected) con.send.call(con, msg);
+    // Otherwise, delay the messages
+    else delayedMessages.push(msg);
+  };
+  connection.connect = function() {
+    con.connect();
+  };
+  connection.disconnect = function() {
+    con.disconnect();
+  };
 
   // Register the message handler
   con.on('message', messaging.handleMessage);
   // Bootstrap it
   con.connect();
+
+  // Set the `init` function here.  It doesn't actually trigger the
+  // init, but doesn't fire until init is over.
+  zz.init = function(callback) {
+    if (con.connected) callback();
+    else connection.once('connect', callback);
+  };
 })();
 
 //
@@ -303,7 +336,7 @@ var con = null;
 zz.ping = function(callback) {
   messaging.send('ping', null, function() {
     if (callback) callback();
-    else console.log('pong');
+    else log('pong');
   });
 };
 
@@ -317,7 +350,6 @@ zz.recordError = function(err) {
 //
 // Auth
 //
-var authEmitter = new EventEmitter();
 (function() {
 
   var bootstrapAuth = function() {
@@ -339,11 +371,13 @@ var authEmitter = new EventEmitter();
   };
 
   var _AuthUserCur = null;
-  var AuthUser = function(user) {
+  var AuthUser = function(user, email) {
     var self = this;
 
     _AuthUserCur = user;
     _AuthUserCur.heat();
+
+    this.email = email;
 
     // Wire up the data
     var self = this;
@@ -361,17 +395,28 @@ var authEmitter = new EventEmitter();
     _AuthUserCur = null;
   };
 
+  var connectionAuthed = false;
+
   zz.auth = function(email, password, callback) {
 
     // Can't auth if we're already authed
-    if (zz.auth.curUser()) throw new Error('Already authed');
+    if (connectionAuthed) throw new Error('Already authed');
 
-    // Default password to nothing
-    password = password || '';
+    // If both email and password are undefined, try to use the
+    // stored credentials
+    if (email === undefined && password === undefined) {
+      email = localStorage['zz.auth.email'] || null;
+      password = localStorage['zz.auth.password'] || null;
+
+      // If either of those credentials was missing from local storage
+      // then fail now via the callback
+      if (email === null || password === null)
+        callback(new Error("Cannot auth with stored credentials because they're missing"));
+    }
 
     // If the password doesn't appear to be of hashed form, do that
     // for them.
-    if (!password.match(/^[A-F0-9]{64}$/))
+    if (password && !password.match(/^[A-F0-9]{64}$/))
       password = sha256(password + email).toUpperCase();
 
     // Send the auth message
@@ -389,35 +434,31 @@ var authEmitter = new EventEmitter();
       localStorage['zz.auth.email'] = email;
       localStorage['zz.auth.password'] = ret.password;
 
+      // This connection is now authed for its lifetime
+      connectionAuthed = true;
+      connection.on('disconnect', function() { connectionAuthed = false; });
+
       // Fetch the appropriate user object
       zz.data.user(ret.userid, function(user) {
 
         // Save the new current user
-        curUser = new AuthUser(user);
-
-        // When the socket connects, attempt to do this auth again
-        con.on('connect', function() {
-          // Clear the currently authed user
-          curUser && curUser.destroy();
-          curUser = null;
-
-          zz.auth(email, password, function(err) {
-            // If something went wrong with re-auth, we should clear
-            // the user's auth data.
-            delete localStorage['zz.auth.email'];
-            delete localStorage['zz.auth.password'];
-
-            // Let people know that we've finished with re-auth
-            // (whether we succeeded or not).
-            authEmitter.emit('ready');
-          });
-        });
+        curUser = new AuthUser(user, email);
 
         // Success callback
         callback && callback(undefined);
+
+        // Emit the change event
+        zz.auth.emit('change');
       });
     });
   };
+  // Turn zz.auth into an event emitter by creating a new one and
+  // monkey patching in all its functions
+  with ({l: new EventEmitter}) {
+    for (var i in l) if (typeof l[i] == 'function')
+      zz.auth[i] = l[i];
+  }
+
   zz.auth.changePassword = function(old, password, callback) {
 
     // Send the passwd message
@@ -436,6 +477,18 @@ var authEmitter = new EventEmitter();
       // Return success to the callback
       callback && callback(undefined);
     });
+  };
+
+  zz.auth.deauth = function(callback) {
+    delete localStorage['zz.auth.email'];
+    delete localStorage['zz.auth.password'];
+
+    curUser = null;
+
+    connection.disconnect();
+    connection.connect();
+
+    callback && callback();
   };
 
   // The user we're authenticated as, which is null to start
@@ -467,17 +520,17 @@ var authEmitter = new EventEmitter();
   };
 
   // Set up events
-  con.on('disconnect', setOffline);
-  con.on('connect', setOnline);
+  connection.on('disconnect', setOffline);
+  connection.on('connect', setOnline);
 
   zz.presence.offline = function() {
     if (zz.presence.status == 'offline') return;
-    con.disconnect();
+    connection.disconnect();
   };
 
   zz.presence.online = function() {
     if (zz.presence.status == 'online') return;
-    con.connect();
+    connection.connect();
   };
 
   zz.presence.away = function() {
@@ -530,13 +583,13 @@ var authEmitter = new EventEmitter();
       // Handle errors by deleting the subscription
       if (err) {
         delete subs[self.key];
-        console.log('Error while subscribing:', err);
+        log('Error while subscribing:', err);
         return;
       }
       // Log bad subs to console
       if (data === false) {
         delete subs[self.key];
-        console.log('Attempted to subscribe to nonexistent key:', self.key);
+        log('Attempted to subscribe to nonexistent key:', self.key);
         return;
       }
       // Store the data
@@ -558,7 +611,7 @@ var authEmitter = new EventEmitter();
     // Unsub this sub
     messaging.send('unsub', {key: this.key}, function(err, data) {
       // Handle errors by failing
-      if (err) return console.log('Error while unsubbing:', err);
+      if (err) return log('Error while unsubbing:', err);
     });
 
     // And remove ourselves from the list
@@ -624,14 +677,16 @@ var authEmitter = new EventEmitter();
   // Register a handler for `pub` messages so that we can update
   // the relevant sub
   messaging.on('pub', function(data) {
-    if (!subs[data.key]) return console.log('Error: Dangling sub');
+    if (!subs[data.key]) return log('Error: Dangling sub');
 
     subs[data.key].update(data.diff);
   });
   // Whenever auth changes, we have to resub everything.
-  authEmitter.on('ready', function() {
-    for (var i=0; i<subs.length; i++)
-      subs[i].resub();
+  zz.init(function() {
+    connection.on('connect', function() {
+      for (var i in subs) if (subs.hasOwnProperty(i))
+        subs[i].resub();
+    });
   });
 
   // The model class
@@ -687,6 +742,9 @@ var authEmitter = new EventEmitter();
 
     // Push the field event listeners so we can remove it
     this._slis.push(['field', field]);
+
+    // Increase the sub's retain count
+    this._sub.retain();
 
     // Finally, mark this model as hot
     this.hot = true;

@@ -7,6 +7,8 @@ var staticServing = require('./static-serving'),
 
 // Serves an individual file
 var file = function(file, type) {
+  type = type || 'text/plain; charset=utf-8';
+
   return function(req, res) {
 
     res.writeHead(200, {'Content-Type': type});
@@ -29,7 +31,7 @@ var urls = {
   '^/static/': staticServing.serve,
 
   //serve the api library
-  '^/api-interface.js': file('interface/api.js'),
+  '^/api-interface.js': file('interface/api.js', 'text/javascript'),
 
   //delegate to the internal api
   '^/iapi/': iapi.serve,
