@@ -73,10 +73,9 @@ init = function(server, handler) {
       }
     });
     //listen for disconnect
-    console.log(client.id, 'connected');
     c.on('disconnect', function() {
-      console.log(client.id, 'disconnected');
       client.emit('disconnect');
+      delete clients[client.id];
     });
   });
 };

@@ -63,6 +63,7 @@ config.datatypes = [
 var EventEmitter = function EventEmitter() {};
 EventEmitter.prototype = {};
 
+
 EventEmitter.prototype.on = function(event, listener) {
   if (!this._listeners) this._listeners = {};
   if (!this._listeners[event]) this._listeners[event] = [];
@@ -131,9 +132,8 @@ EventEmitter.prototype.listeners = function(event) { throw new Error('Not Yet Im
 var ZZ = function() {};
 ZZ.prototype = new EventEmitter();
 zz = new ZZ();
-
-//export EventEmitter
-zz.EventEmitter = EventEmitter
+// Export EventEmitter in case somebody else wants it
+zz.EventEmitter = EventEmitter;
 
 //
 // Misc zz settings
@@ -158,7 +158,7 @@ zz.logging.outgoing = {
   deauth: false,
   passwd: false,
   sub: false,
-  unsub: true,
+  unsub: false,
   create: false,
   update: false,
   'delete': false,
@@ -198,7 +198,6 @@ var messaging = new EventEmitter();
 
   // Handles incoming messages
   messaging.handleMessage = function(msg) {
-    console.log(msg);
     msg = messaging.deserialize(msg);
 
     // Log the message if we're configured to do so
@@ -216,7 +215,6 @@ var messaging = new EventEmitter();
   };
   // Sends a message
   messaging.send = function(msg, data, callback) {
-    console.log(msg, data);
     // Create this message's ID
     var id = messaging.id++;
 
