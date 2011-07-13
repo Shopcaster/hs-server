@@ -1,5 +1,4 @@
 var ids = require('./../util/ids'),
-    func = require('./../util/functional'),
     db = require('./../db'),
     auth = require('./auth'),
     mongo = require('mongodb');
@@ -9,15 +8,16 @@ var ids = require('./../util/ids'),
 //
 
 var sub = function(client, data, callback, errback) {
-  // If the client has no sub hash, we have some setup to do
+
+  // If the client has no sub hash, do some cleanup
   if (!(client.state.subs)) {
-    // Create them a sub hash
     client.state.subs = {};
-    // When the client disconnects, clear each sub and then delete
-    // the sub hash.
+
+    // Clean up handlers on disconnect
     client.on('disconnect', function() {
-      for (var sub in client.state.subs) if (client.state.subs.hasOwnProperty(sub)) {
-        client.state.subs[sub].kill();
+      for (var i in client.state.subs) if (client.state.subs.hasOwnProperty(i)) {
+        client.state.subs[i]();
+        delete client.state.subs[i];
       }
       delete client.state.subs;
     });
@@ -40,19 +40,29 @@ var sub = function(client, data, callback, errback) {
       else if (!exists) return callback(false);
 
       // Subscribe on the key
-      client.state.subs[data.key] = func.efilter(db.events, 'update')
-      (function(fs) {
-        return fs._id == obj._id;
-      }).run(function(fs) {
-        // No need to send the ID field along
+      var sub = function(fs) {
+        // Only send along pubs if the ID's match
+        if (fs._id != obj._id) return;
+
+        // Don't want to pass the ID field down the line, so
+        // delete it here.  This is safe, as the db events are
+        // only ever passed copies, and don't share references.
         delete fs._id;
 
-        // Send along the update
+        // Send the pub on down
         client.send('pub', {
           key: obj._id,
           diff: fs
         });
-      });
+      };
+
+      // Register the handler
+      db.events.on('update', sub);
+
+      // Set the subbed status to the handler killer
+      client.state.subs[data.key] = function() {
+        db.events.removeListener('update', sub);
+      };
 
       // Send the initial data back to the user
       callback(obj);
@@ -71,21 +81,21 @@ var sub = function(client, data, callback, errback) {
       });
     };
 
-    // Register the subscription for creation
-    client.state.subs[data.key] = func.efilter(db.events, 'create')
-    (function(fs) {
-      return fs[key.field] == key.val;
-    }).run(function(fs) {
-      // Forward created items right down to the client
-      send([fs._id]);
-    })
-    // Register the subscription for deletion
-    .join(func.efilter(db.events, 'delete')
-    // There's only a  filter here, because we have to do it async.
-    // Instead, the run callback basically handles the complex
-    // filtering.
-    (function(fs) { return fs.getCollection() == key.type })
-    .run(function(fs) {
+    // Creation handling
+    var createHandler = function(fs) {
+      // Ignore anything that isn't of the correct type
+      if (fs.getCollection() != key.type) return;
+
+      // Only pass things down if the field is set to the right value
+      if (fs[key.field] != key.val) return;
+
+      // Forward the created thing right down to the client
+      send([fs._id], []);
+    };
+    // Deletion handling
+    var deleteHandler = function(fs) {
+      // Ignore anything that isn't of the correct type
+      if (fs.getCollection() != key.type) return;
 
       // Fetch more data for the fieldset
       db.get(fs, function(err) {
@@ -93,12 +103,22 @@ var sub = function(client, data, callback, errback) {
         if (err) return;
 
         // Make sure we're talking to the right relation
-        if (fs[key.relation.field] != key.val) return;
+        if (fs[key.field] != key.val) return;
 
-        // Forward deleted items right down to the client
+        // Forward the deleted item right down to the client
         send([], [fs._id]);
       });
-    }));
+    };
+
+    // Register the handlers
+    db.events.on('create', createHandler);
+    db.events.on('delete', deleteHandler);
+
+    // Set subbed status to the event killer
+    client.state.subs[data.key] = function() {;
+      db.events.removeListener('create', createHandler);
+      db.events.removeListener('delete', deleteHandler);
+    };
 
     // Get the IDs
     var q = {};
@@ -125,7 +145,7 @@ var unsub = function(client, data, callback, errback) {
     for (sub in client.state.subs) if (client.state.subs.hasOwnProperty(sub)) {
       // If we found it, call the killer and remove the sub
       if (sub == data.key) {
-        client.state.subs[sub].kill();
+        client.state.subs[sub]();
         delete client.state.subs[sub];
 
         return callback(true);

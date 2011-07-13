@@ -1,16 +1,8 @@
-var _functional = require('../util/functional'),
-    _validation = require('../util/validation'),
+var _validation = require('../util/validation'),
     _uuid = require('../util/uuid');
 
 var validation = function(r) {
 
-};
-var functional = function(r) {
-  r.test('efilter', efilter);
-};
-
-var efilter = function(r) {
-  r.test('is defined', !!_functional.efilter);
 };
 
 var uuid = function(r) {
@@ -20,6 +12,5 @@ var uuid = function(r) {
 
 exports.desc = 'Utility Tests';
 exports.run = function(r) {
-  r.test('functional', functional);
   r.test('uuid', uuid);
 };

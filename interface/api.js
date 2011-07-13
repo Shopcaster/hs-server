@@ -155,7 +155,7 @@ zz.logging.outgoing = {
   deauth: false,
   passwd: false,
   sub: false,
-  unsub: true,
+  unsub: false,
   create: false,
   update: false,
   'delete': false,
@@ -195,7 +195,6 @@ var messaging = new EventEmitter();
 
   // Handles incoming messages
   messaging.handleMessage = function(msg) {
-    console.log(msg);
     msg = messaging.deserialize(msg);
 
     // Log the message if we're configured to do so
@@ -213,7 +212,6 @@ var messaging = new EventEmitter();
   };
   // Sends a message
   messaging.send = function(msg, data, callback) {
-    console.log(msg, data);
     // Create this message's ID
     var id = messaging.id++;
 

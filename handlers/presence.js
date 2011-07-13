@@ -1,5 +1,4 @@
-var func = require('./../util/functional'),
-    presence = require('./../presence');
+var  presence = require('./../presence');
 
 var sub = function(client, data, callback, errback) {
 
@@ -19,10 +18,11 @@ var sub = function(client, data, callback, errback) {
   if (client.state.presenceSubs[data.user]) return callback(true);
 
   //subscribe to this user's presence notifications
-  client.state.presenceSubs[data.user] = func.efilter(presence.events, data.user)
-    .run(function(state) {
-      client.send('presence', {user: data.user, state: state});
-    });
+  var handler = function() {
+    client.send('presence', {user: data.user, state: state});
+  };
+  presence.events.on('data.user', handler);
+  client.state.presenceSubs[data.user] = handler;
 
   //send the response
   callback(true);
@@ -33,7 +33,7 @@ var sub = function(client, data, callback, errback) {
 
 var unsub = function(client, data, callback, errback) {
 
-  client.state.presenceSubs[data.user].kill();
+  presence.events.removeListener(client.state.presenceSubs[data.user]);
   delete client.state.presenceSubs[data.user];
 
   callback(true);
