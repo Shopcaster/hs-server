@@ -63,6 +63,7 @@ config.datatypes = [
 var EventEmitter = function() {};
 EventEmitter.prototype = {};
 
+
 EventEmitter.prototype.on = function(event, listener) {
   if (!this._listeners) this._listeners = {};
   if (!this._listeners[event]) this._listeners[event] = [];
@@ -131,9 +132,8 @@ EventEmitter.prototype.listeners = function(event) { throw new Error('Not Yet Im
 var ZZ = function() {};
 ZZ.prototype = new EventEmitter();
 zz = new ZZ();
-
-//export EventEmitter
-zz.EventEmitter = EventEmitter
+// Export EventEmitter in case somebody else wants it
+zz.EventEmitter = EventEmitter;
 
 //
 // Misc zz settings

@@ -6,6 +6,7 @@ var setup = function(r) {
   api = require('../../interface/load').zz;
 
   r.test('has zz', api);
+  r.test('exports EventEmitter', !!api.EventEmitter);
   r.test('ping', ping);
 
   with(r.test('auth', auth)) {
