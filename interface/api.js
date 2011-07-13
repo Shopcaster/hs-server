@@ -132,6 +132,9 @@ var ZZ = function() {};
 ZZ.prototype = new EventEmitter();
 zz = new ZZ();
 
+//export EventEmitter
+zz.EventEmitter = EventEmitter
+
 //
 // Misc zz settings
 //
