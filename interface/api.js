@@ -1,11 +1,7 @@
 // TODO
 //
-// * Auth bootstrapping on connect
 // * Data read layer (relations)
-// * Reconnect handling
-// * Presence (boiling in connection stuff)
-// * Redo deauth
-// * data -> get, nonexistant returns null
+// * Presence (third-party user)
 //
 
 //
@@ -584,14 +580,14 @@ zz.recordError = function(err) {
       // Handle errors by deleting the subscription
       if (err) {
         delete subs[self.key];
-        log('Error while subscribing:', err);
-        return;
+        return log('Error while subscribing:', err);
       }
-      // Log bad subs to console
+      // If we subbed on a bad key we don't want to exist in the subs
+      // list.  However, we want to pass data along as null for
+      // the sake of our listeners.
       if (data === false) {
         delete subs[self.key];
-        log('Attempted to subscribe to nonexistent key:', self.key);
-        return;
+        data = null;
       }
       // Store the data
       self.data = data;
@@ -604,6 +600,11 @@ zz.recordError = function(err) {
     var self = this;
 
     this._sub(function(data) {
+      // If the data is null, the key no longer exists.  This is
+      // rather weird and should be resolved somehow.
+      if (data === null)
+        return log('Resubbed, but key is no longer valid');
+
       self.update(data);
     });
   };
@@ -870,6 +871,10 @@ zz.recordError = function(err) {
         // we're looking for.  We can do a basic get on that key and
         // then return it to the client.
         _get(thing, function(data) {
+
+          // If the data is null, we can pass that straight down
+          // to the callback.
+          if (data === null) return callback(null);
 
           // Clone the data into the appropriate model
           var m = new M(thing);

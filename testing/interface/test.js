@@ -118,6 +118,12 @@ var data = function(r) {
       d2.done(true);
       r.test('listings have pretty ids', id.match(/\w+\/\d+/));
     });
+
+    // Non-existent data handling
+    var d3 = r.defer('nonexistent data returns null');
+    api.data.user('user/0000deadbeef', function(data) {
+      d3.done(data === null);
+    });
   };
 
   // Do the testing
