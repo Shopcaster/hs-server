@@ -57,7 +57,8 @@ cli.main(function(args, opts) {
 
   server.on('exit', function() {
     console.log('');
-    console.log('Test Server Exit'.red.inverse);
+    console.log('Unexpected Test Server Exit'.red.inverse);
+    if (!opts.showserver) console.log('Run with -s to show server output'.red.inverse);
     console.log('');
     process.exit();
   });

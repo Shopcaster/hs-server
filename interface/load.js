@@ -17,7 +17,8 @@ var vm = require('vm'),
     fs = require('fs'),
     crypto = require('crypto'),
     url = require('url'),
-    settings = require('../settings');
+    settings = require('../settings'),
+    common = require('./common');
 
 // The interface expects a certain environment; this sets it up.
 var context = {};
@@ -32,14 +33,6 @@ context.io = require('./_node-socketio-client').io;
 // JSON support is baked in, so we don't need to add it
 // Add console
 context.console = console;
-// Add the conf object
-with ({u: url.parse(settings.serverUri)}) {
-  context.conf = {};
-  context.conf.zz = {};
-  context.conf.zz.server = {};
-  context.conf.zz.server.host = u.hostname;
-  context.conf.zz.server.port = u.port;
-}
 // Add localStorage as an object
 context.localStorage = {};
 // setTimeout doesn't exist by default : /
@@ -54,9 +47,10 @@ for (var i in context) if (context.hasOwnProperty(i))
 
 // Load the code!  Note the synchrony; async will break CommonJS import
 // workings, since it's inline itself.
-var code = fs.readFileSync(__dirname + '/api.js', 'utf8');
+var code = common.getCode();
 
-// Parse it using uglify, if it's available
+// Parse it using uglify, if it's available.  This lets us throw better
+// error messages.
 try {
   var jsp = require('uglify-js').parser;
 } catch (err) {}

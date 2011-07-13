@@ -2,7 +2,7 @@
 //
 // * Data read layer (relations)
 // * Presence (third-party user)
-//
+// * There are bad race conditions on auto-auth that should be solved
 
 //
 // Expects the following to exist:
@@ -15,30 +15,10 @@
 //   localStorage :: Object
 //   setTimeout :: Function -> Number -> Object
 //
-// As well as:
-//
-//   zzConf
-//   {
-//     server:
-//     {
-//       host: String,
-//       port: [String|Number]
-//     },
-//     logging: // Optional, as are all properties
-//     {
-//       connection: bool,
-//       outgoing: [outgoing message types: bool]
-//       incoming: [incoming message types: bool]
-//     }
-//   }
-//
 
 
 // Global closure
 (function() {
-
-// "Import" the conf
-var zzConf = conf.zz;
 
 // Global config
 config = {};
@@ -140,6 +120,7 @@ zz.waitThreshold = 500;
 // Logging Setup
 //
 zz.logging = {};
+zz.logging.waiting = true;
 zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
@@ -227,8 +208,10 @@ var messaging = new EventEmitter();
     var to = setTimeout(function() {
       // Increment the pending responses count.  If it was 0 prior to
       // this, then we need to fire the `waiting` event on zz.
-      if (pendingResponses++ == 0)
+      if (pendingResponses++ == 0) {
         zz.emit('waiting');
+        if (zz.logging.waiting) log('Waiting');
+      }
 
       // Clear the callback handle so that the response callback knows
       // it was fired.
@@ -241,8 +224,10 @@ var messaging = new EventEmitter();
       // If the timeout was fired, decrement the pending responses count
       // and fire the `done` message if it's back to 0
       if (to === null) {
-        if (--pendingResponses === 0)
+        if (--pendingResponses === 0) {
           zz.emit('done');
+          if (zz.logging.waiting) log('Done Waiting');
+        }
       // Otherwise, just clear the timeout
       } else {
         clearTimeout(to);
@@ -271,9 +256,9 @@ var messaging = new EventEmitter();
 //
 var connection = new EventEmitter();
 (function() {
-  var con = new io.Socket(zzConf.server.host, {
-    secure: false,
-    port: zzConf.server.port
+  var con = new io.Socket(/*$host$*/, {
+    secure: /*$secure$*/,
+    port: /*$port$*/
   });
 
   var delayedMessages = [];
