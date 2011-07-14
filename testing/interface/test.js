@@ -91,6 +91,7 @@ var data = function(r) {
 
         r.test('convo data correct', convo.listing == 'listing/1');
         r.test('convo type correct', convo._type == 'convo');
+        r.test('date conversion happens', !!convo.created.getTime);
 
         // Test convo update
         d = r.defer('response when updates convo');

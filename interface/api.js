@@ -1,8 +1,7 @@
 // TODO
 //
 // * Data read layer (relations)
-// * Presence (third-party user)
-// * Notifications
+// * When update/create receives a model as a data item, take its id
 
 //
 // Expects the following to exist:
@@ -99,8 +98,13 @@ EventEmitter.prototype.emit = function() {
 };
 // We have no concept of max listeners...
 EventEmitter.prototype.setMaxListeners = function() {};
-// NYI
-EventEmitter.prototype.listeners = function(event) { throw new Error('Not Yet Implemented') };
+// This is slightly broken in that it doesn't return once listeners
+EventEmitter.prototype.listeners = function(event) {
+  if (!this._listeners) this._listeners = {};
+  if (!this._listeners[event]) this._listeners[event] = [];
+
+  return this._listeners[event];
+};
 
 //
 // Initialize the zz object
@@ -524,11 +528,11 @@ zz.recordError = function(err) {
   // Helpers
   var setOffline = function() {
     zz.presence.status = 'offline';
-    zz.presence.emit('offline');
+    zz.presence.emit('me', 'offline');
   };
   var setOnline = function() {
     zz.presence.status = 'online';
-    zz.presence.emit('online');
+    zz.presence.emit('me', 'online');
   };
   var setAway = function() {
     setOffline();
@@ -552,6 +556,53 @@ zz.recordError = function(err) {
     // Eventually we'll add real away support
     zz.presence.offline();
   };
+
+  // Register the presence handler
+  messaging.on('presence', function(data) {
+
+    // If there are no longer any listeners for this user, remove
+    // the sub and don't send the message.  The race condition here
+    // has a benign failure mode, so we don't need to worry about it.
+    if (zz.presence.listeners(data.user).length == 0) {
+      messaging.send('unsub-presence', {user: data.user});
+      return;
+    }
+
+    // Convert status into something nice
+    var status;
+    switch (data.state) {
+      case 0:
+        status = 'offline';
+        break;
+      case 1:
+        status = 'online';
+        break;
+      case 2:
+        status = 'away';
+        break;
+    }; // Do we need a semicolon here?  Who knows!
+
+    // Fire ze message
+    zz.presence.emit(data.user, state);
+  });
+
+  // And here comes the magic.  When a user adds a presence listener,
+  // we record the fact that they've done it.
+  zz.presence.on('newListener', function(event, listener) {
+    // Me is a special case and already handled
+    if (event == 'me') return;
+
+    // So is newListener...
+    if (event == 'newListener') return;
+
+    // For anything else, we need to ensure that there's a sub for
+    // their presence.  If the listener count is one, then there was
+    // no listener prior to this one being added, and we need to
+    // sub.
+    if (zz.presence.listeners(event).length == 1)
+      messaging.send('sub-presence', {user: data.user});
+
+  });
 })();
 
 //
@@ -575,6 +626,7 @@ zz.recordError = function(err) {
 
     var self = this;
 
+    this.data = null;
     this.ready = false;
     this.key = key;
     // Add to the active subscriptions list
@@ -608,10 +660,11 @@ zz.recordError = function(err) {
         data = null;
       }
       // Store the data
-      self.data = data;
+      if (data)
+        self.update(data);
 
       // Call the callback
-      if (callback) callback(data);
+      if (callback) callback(self.data);
     });
   };
   Sub.prototype.resub = function() {
@@ -655,13 +708,24 @@ zz.recordError = function(err) {
   };
   ModelSub.prototype = new Sub();
   ModelSub.prototype.update = function(data) {
+    if (!this.data) this.data = {};
+
     for (var i in data) if (data.hasOwnProperty(i)) {
+      var d = data[i];
+
+      // Data conversion
+      if (typeof d == 'object' && d.type) {
+        // Date
+        if (d.type == 'date')
+          d = new Date(d.val + 1307042003319);
+      }
+
       // Only update fields if they're different
-      if (this.data[i] != data[i]) {
+      if (this.data[i] != d) {
         // Update the field in our internal data storage
-        this.data[i] = data[i];
+        this.data[i] = d;
         // Fire the relevant callback
-        this.emit('field', i, data[i]);
+        this.emit('field', i, d);
       }
     }
   };
@@ -673,6 +737,8 @@ zz.recordError = function(err) {
   };
   RelationSub.prototype = new Sub();
   RelationSub.prototype.update = function(data) {
+    if (!this.data) this.data = [];
+
     // Add elements
     for (var i=0; i<data.add.length; i++) {
       var x = data.add[i];
@@ -910,10 +976,40 @@ zz.recordError = function(err) {
 //
 // Data creation
 //
+(function() {
+
+var validate = function(data) {
+
+  // Validate the data
+  for (var i in data) if (data.hasOwnProperty(i)) {
+    var d = data[i];
+
+    // Auto convert id
+    if (d instanceof zz.models.Model) data[i] = d._id;
+    // Auto convert date
+    else if (d instanceof Date) data[i] = {type: 'date', val: +d - 1307042003319};
+
+    // Check data types
+    else switch (typeof d) {
+      case 'string':
+      case 'boolean':
+      case 'number':
+        continue;
+      default:
+        throw new Error("Can't send data of type " + typeof d + " in field " + i);
+    }
+  }
+
+};
+
 zz.create = {};
 for (var i=0; i<config.datatypes.length; i+=2) {
   with ({type: config.datatypes[i]}) {
     zz.create[type] = function(data, callback) {
+
+      // validate and convert the data
+      validate(data);
+
       messaging.send('create', {type: type, data: data}, function(err, ret) {
         if (err)
           throw new Error('Failed to create ' + type + ': ' + err.message);
@@ -933,9 +1029,13 @@ zz.update = {};
 for (var i=0; i<config.datatypes.length; i+=2) {
   with ({type: config.datatypes[i]}) {
     zz.update[type] = function(key, diff, callback) {
+
       // Update can either be passed an ID, or a model
       var key = typeof key == 'string' ? key
                                        : key._id;
+
+      // Validate and convert the data
+      validate(diff);
 
       messaging.send('update', {key: key, diff: diff}, function(err, ret) {
         if (err)
@@ -948,6 +1048,13 @@ for (var i=0; i<config.datatypes.length; i+=2) {
     };
   }
 }
+})();
+//
+// Notifications
+//
+messaging.on('not', function(data) {
+  zz.emit('notification', data.message, data.key);
+});
 
 // End global closure
 })();
