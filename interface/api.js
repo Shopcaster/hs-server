@@ -2,7 +2,7 @@
 //
 // * Data read layer (relations)
 // * Presence (third-party user)
-// * Notifications
+// * When update/create receives a model as a data item, take its id
 
 //
 // Expects the following to exist:
@@ -99,8 +99,13 @@ EventEmitter.prototype.emit = function() {
 };
 // We have no concept of max listeners...
 EventEmitter.prototype.setMaxListeners = function() {};
-// NYI
-EventEmitter.prototype.listeners = function(event) { throw new Error('Not Yet Implemented') };
+// This is slightly broken in that it doesn't return once listeners
+EventEmitter.prototype.listeners = function(event) {
+  if (!this._listeners) this._listeners = {};
+  if (!this._listeners[event]) this._listeners[event] = [];
+
+  return this._listeners[event];
+};
 
 //
 // Initialize the zz object
@@ -524,11 +529,11 @@ zz.recordError = function(err) {
   // Helpers
   var setOffline = function() {
     zz.presence.status = 'offline';
-    zz.presence.emit('offline');
+    zz.presence.emit('me', 'offline');
   };
   var setOnline = function() {
     zz.presence.status = 'online';
-    zz.presence.emit('online');
+    zz.presence.emit('me', 'online');
   };
   var setAway = function() {
     setOffline();
@@ -552,6 +557,53 @@ zz.recordError = function(err) {
     // Eventually we'll add real away support
     zz.presence.offline();
   };
+
+  // Register the presence handler
+  messaging.handleMessage('presence', function(data) {
+
+    // If there are no longer any listeners for this user, remove
+    // the sub and don't send the message.  The race condition here
+    // has a benign failure mode, so we don't need to worry about it.
+    if (zz.presence.listeners(data.user).length == 0) {
+      messaging.send('unsub-presence', {user: data.user});
+      return;
+    }
+
+    // Convert status into something nice
+    var status;
+    switch (data.state) {
+      case 0:
+        status = 'offline';
+        break;
+      case 1:
+        status = 'online';
+        break;
+      case 2:
+        status = 'away';
+        break;
+    }; // Do we need a semicolon here?  Who knows!
+
+    // Fire ze message
+    zz.presence.emit(data.user, state);
+  });
+
+  // And here comes the magic.  When a user adds a presence listener,
+  // we record the fact that they've done it.
+  zz.presence.on('newListener', function(event, listener) {
+    // Me is a special case and already handled
+    if (event == 'me') return;
+
+    // So is newListener...
+    if (event == 'newListener') return;
+
+    // For anything else, we need to ensure that there's a sub for
+    // their presence.  If the listener count is one, then there was
+    // no listener prior to this one being added, and we need to
+    // sub.
+    if (zz.presence.listeners(event).length == 1)
+      messaging.send('sub-presence', {user: data.user});
+
+  });
 })();
 
 //
@@ -948,6 +1000,13 @@ for (var i=0; i<config.datatypes.length; i+=2) {
     };
   }
 }
+
+//
+// Notifications
+//
+messaging.handleMessage('not', function(data) {
+  zz.emit('notification', data.message, data.key);
+});
 
 // End global closure
 })();
