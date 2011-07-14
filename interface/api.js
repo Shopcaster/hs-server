@@ -253,6 +253,7 @@ var messaging = new EventEmitter();
 
 //
 // Connection Logic
+// Auth Logic
 //
 var connection = new EventEmitter();
 (function() {
@@ -310,48 +311,10 @@ var connection = new EventEmitter();
     if (con.connected) callback();
     else connection.once('connect', callback);
   };
-})();
 
-//
-// Ping
-//
-zz.ping = function(callback) {
-  messaging.send('ping', null, function() {
-    if (callback) callback();
-    else log('pong');
-  });
-};
-
-//
-// Error
-//
-zz.recordError = function(err) {
-  messaging.send('error', err);
-};
-
-//
-// Auth
-//
-(function() {
-
-  var bootstrapAuth = function() {
-    // Initialize data from local storage
-    var email = localStorage['zz.auth.email'] || null,
-        password = localStorage['zz.auth.password'] || null;
-
-    // Bootstrap -- if we have a stored email/password, try to auth with
-    // them.
-    if (email && password) zz.auth(email, password, function(err, user) {
-
-      // If something went wrong, nuke the auth info
-      if (err) {
-        delete localStorage['zz.auth.email'];
-        delete localStorage['zz.auth.password'];
-        return;
-      }
-    });
-  };
-
+  //
+  // Auth stuff
+  //
   var _AuthUserCur = null;
   var AuthUser = function(user, email) {
     var self = this;
@@ -376,8 +339,6 @@ zz.recordError = function(err) {
     _AuthUserCur.freeze();
     _AuthUserCur = null;
   };
-
-  var connectionAuthed = false;
 
   zz.auth = function(email, password, callback) {
 
@@ -434,12 +395,6 @@ zz.recordError = function(err) {
       });
     });
   };
-  // Turn zz.auth into an event emitter by creating a new one and
-  // monkey patching in all its functions
-  with ({l: new EventEmitter}) {
-    for (var i in l) if (typeof l[i] == 'function')
-      zz.auth[i] = l[i];
-  }
 
   zz.auth.changePassword = function(old, password, callback) {
 
@@ -473,6 +428,13 @@ zz.recordError = function(err) {
     callback && callback();
   };
 
+  // Turn zz.auth into an event emitter by creating a new one and
+  // monkey patching in all its functions
+  with ({l: new EventEmitter}) {
+    for (var i in l) if (typeof l[i] == 'function')
+      zz.auth[i] = l[i];
+  }
+
   // The user we're authenticated as, which is null to start
   var curUser = null;
   zz.auth.curUser = function() {
@@ -480,6 +442,23 @@ zz.recordError = function(err) {
   };
 
 })();
+
+//
+// Ping
+//
+zz.ping = function(callback) {
+  messaging.send('ping', null, function() {
+    if (callback) callback();
+    else log('pong');
+  });
+};
+
+//
+// Error
+//
+zz.recordError = function(err) {
+  messaging.send('error', err);
+};
 
 //
 // Presence
