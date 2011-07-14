@@ -2,6 +2,25 @@ var validate = require('./../util/validation').validate,
     ids = require('./../util/ids'),
     db = require('./../db');
 
+// Special data conversion
+var convertSpecialData = function(data) {
+  for (var i in data) if (data.hasOwnProperty(i)) {
+    var d = data[i];
+
+    // We only care about our special data objects
+    if (typeof data != 'object' || !d.type) continue;
+
+    //
+    // Do the conversions
+    //
+
+    // Date
+    if (d.type == 'date') {
+      data[i] = new Date(d.val + 1307042003319);
+    }
+  }
+};
+
 // Validation for all data types goes here
 var validators = {
   'user': {name: 'string?',
@@ -42,6 +61,9 @@ var create = function(client, data, callback, errback) {
   // Don't let unauthed clients create
   if (!client.state.auth) return errback('Access denied');
 
+  // Convert the special data before it hits the validator
+  convertSpecialData(data);
+
   // Do some basic validation
   if (!data.type in validators) return errback('Invalid type');
   if (!validate(validators[data.type], data.data)) return errback('Invalid field');
@@ -79,6 +101,9 @@ var update = function(client, data, callback, errback) {
   // Try to parse the key
   var key = ids.parse(data.key);
   if (!(key instanceof ids.Key)) return errback('Invalid key');
+
+  // Convert the special data before it hits the validator
+  convertSpecialData(data);
 
   // Do some basic validation
   if (!key.type in validators) return errback('Invalid type');

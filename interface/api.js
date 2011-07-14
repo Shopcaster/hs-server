@@ -1,7 +1,6 @@
 // TODO
 //
 // * Data read layer (relations)
-// * Presence (third-party user)
 // * When update/create receives a model as a data item, take its id
 
 //
@@ -559,7 +558,7 @@ zz.recordError = function(err) {
   };
 
   // Register the presence handler
-  messaging.handleMessage('presence', function(data) {
+  messaging.on('presence', function(data) {
 
     // If there are no longer any listeners for this user, remove
     // the sub and don't send the message.  The race condition here
@@ -627,6 +626,7 @@ zz.recordError = function(err) {
 
     var self = this;
 
+    this.data = null;
     this.ready = false;
     this.key = key;
     // Add to the active subscriptions list
@@ -660,10 +660,11 @@ zz.recordError = function(err) {
         data = null;
       }
       // Store the data
-      self.data = data;
+      if (data)
+        self.update(data);
 
       // Call the callback
-      if (callback) callback(data);
+      if (callback) callback(self.data);
     });
   };
   Sub.prototype.resub = function() {
@@ -707,13 +708,24 @@ zz.recordError = function(err) {
   };
   ModelSub.prototype = new Sub();
   ModelSub.prototype.update = function(data) {
+    if (!this.data) this.data = {};
+
     for (var i in data) if (data.hasOwnProperty(i)) {
+      var d = data[i];
+
+      // Data conversion
+      if (typeof d == 'object' && d.type) {
+        // Date
+        if (d.type == 'date')
+          d = new Date(d.val + 1307042003319);
+      }
+
       // Only update fields if they're different
-      if (this.data[i] != data[i]) {
+      if (this.data[i] != d) {
         // Update the field in our internal data storage
-        this.data[i] = data[i];
+        this.data[i] = d;
         // Fire the relevant callback
-        this.emit('field', i, data[i]);
+        this.emit('field', i, d);
       }
     }
   };
@@ -725,6 +737,8 @@ zz.recordError = function(err) {
   };
   RelationSub.prototype = new Sub();
   RelationSub.prototype.update = function(data) {
+    if (!this.data) this.data = [];
+
     // Add elements
     for (var i=0; i<data.add.length; i++) {
       var x = data.add[i];
@@ -962,10 +976,40 @@ zz.recordError = function(err) {
 //
 // Data creation
 //
+(function() {
+
+var validate = function(data) {
+
+  // Validate the data
+  for (var i in data) if (data.hasOwnProperty(i)) {
+    var d = data[i];
+
+    // Auto convert id
+    if (d instanceof zz.models.Model) data[i] = d._id;
+    // Auto convert date
+    else if (d instanceof Date) data[i] = {type: 'date', val: +d - 1307042003319};
+
+    // Check data types
+    else switch (typeof d) {
+      case 'string':
+      case 'boolean':
+      case 'number':
+        continue;
+      default:
+        throw new Error("Can't send data of type " + typeof d + " in field " + i);
+    }
+  }
+
+};
+
 zz.create = {};
 for (var i=0; i<config.datatypes.length; i+=2) {
   with ({type: config.datatypes[i]}) {
     zz.create[type] = function(data, callback) {
+
+      // validate and convert the data
+      validate(data);
+
       messaging.send('create', {type: type, data: data}, function(err, ret) {
         if (err)
           throw new Error('Failed to create ' + type + ': ' + err.message);
@@ -985,9 +1029,13 @@ zz.update = {};
 for (var i=0; i<config.datatypes.length; i+=2) {
   with ({type: config.datatypes[i]}) {
     zz.update[type] = function(key, diff, callback) {
+
       // Update can either be passed an ID, or a model
       var key = typeof key == 'string' ? key
                                        : key._id;
+
+      // Validate and convert the data
+      validate(diff);
 
       messaging.send('update', {key: key, diff: diff}, function(err, ret) {
         if (err)
@@ -1000,11 +1048,11 @@ for (var i=0; i<config.datatypes.length; i+=2) {
     };
   }
 }
-
+})();
 //
 // Notifications
 //
-messaging.handleMessage('not', function(data) {
+messaging.on('not', function(data) {
   zz.emit('notification', data.message, data.key);
 });
 
