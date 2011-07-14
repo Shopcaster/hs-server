@@ -308,7 +308,7 @@ var connection = new EventEmitter();
 
       // Otherwise, we want to fetch user data before making ready
       allowThrough = true;
-      doAuthUser(email, userid, makeReady());
+      doAuthUser(email, userid, makeReady);
       allowThrough = false;
     });
     // But don't let anything else through
@@ -1022,14 +1022,14 @@ zz.recordError = function(err) {
 
     // Create and register the model for this type
     var M = function() { zz.models.Model.apply(this, Array.prototype.slice.call(arguments)) };
-    M.name = type[0].toUpperCase() + type.substr(1)
-    zz.models[M.name] = M;
+    M.fname = type[0].toUpperCase() + type.substr(1);
+    zz.models[M.fname] = M;
     M.prototype = new zz.models.Model(type);
 
     // Create and register the related list for this type
     var ML = function() { zz.models.ModelList.apply(this, Array.prototype.slice.call(arguments)) };
-    ML.name = ptype[0].toUpperCase() + ptype.substr(1) + 'List';
-    zz.models[ML.name] = ML;
+    ML.fname = ptype[0].toUpperCase() + ptype.substr(1) + 'List';
+    zz.models[ML.fname] = ML;
     ML.prototype = new zz.models.ModelList(type, [], null);
 
     // Add the relation
