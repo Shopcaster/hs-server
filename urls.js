@@ -1,4 +1,5 @@
 var staticServing = require('./static-serving'),
+    interfaceServing = require('./interface/serve');
     iapi = require('./iapi/urls'),
     facebook = require('./third-party/facebook'),
     twitter = require('./third-party/twitter'),
@@ -31,7 +32,7 @@ var urls = {
   '^/static/': staticServing.serve,
 
   //serve the api library
-  '^/api-interface.js': file('interface/api.js', 'text/javascript'),
+  '^/api-interface.js': interfaceServing.serve,
 
   //delegate to the internal api
   '^/iapi/': iapi.serve,

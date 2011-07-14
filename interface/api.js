@@ -1,12 +1,8 @@
 // TODO
 //
-// * Auth bootstrapping on connect
 // * Data read layer (relations)
-// * Reconnect handling
-// * Presence (boiling in connection stuff)
-// * Redo deauth
-// * data -> get, nonexistant returns null
-//
+// * Presence (third-party user)
+// * Notifications
 
 //
 // Expects the following to exist:
@@ -19,30 +15,10 @@
 //   localStorage :: Object
 //   setTimeout :: Function -> Number -> Object
 //
-// As well as:
-//
-//   zzConf
-//   {
-//     server:
-//     {
-//       host: String,
-//       port: [String|Number]
-//     },
-//     logging: // Optional, as are all properties
-//     {
-//       connection: bool,
-//       outgoing: [outgoing message types: bool]
-//       incoming: [incoming message types: bool]
-//     }
-//   }
-//
 
 
 // Global closure
 (function() {
-
-// "Import" the conf
-var zzConf = conf.zz;
 
 // Global config
 config = {};
@@ -144,6 +120,7 @@ zz.waitThreshold = 500;
 // Logging Setup
 //
 zz.logging = {};
+zz.logging.waiting = true;
 zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
@@ -231,8 +208,10 @@ var messaging = new EventEmitter();
     var to = setTimeout(function() {
       // Increment the pending responses count.  If it was 0 prior to
       // this, then we need to fire the `waiting` event on zz.
-      if (pendingResponses++ == 0)
+      if (pendingResponses++ == 0) {
         zz.emit('waiting');
+        if (zz.logging.waiting) log('Waiting');
+      }
 
       // Clear the callback handle so that the response callback knows
       // it was fired.
@@ -245,8 +224,10 @@ var messaging = new EventEmitter();
       // If the timeout was fired, decrement the pending responses count
       // and fire the `done` message if it's back to 0
       if (to === null) {
-        if (--pendingResponses === 0)
+        if (--pendingResponses === 0) {
           zz.emit('done');
+          if (zz.logging.waiting) log('Done Waiting');
+        }
       // Otherwise, just clear the timeout
       } else {
         clearTimeout(to);
@@ -273,41 +254,74 @@ var messaging = new EventEmitter();
 //
 // Connection Logic
 //
+// Auth Logic
+//
 var connection = new EventEmitter();
 (function() {
-  var con = new io.Socket(zzConf.server.host, {
-    secure: false,
-    port: zzConf.server.port
+  var con = new io.Socket(/*$host$*/, {
+    secure: /*$secure$*/,
+    port: /*$port$*/
   });
 
+  var ready = false;
   var delayedMessages = [];
+  var allowThrough = false;
+
+  var makeReady = function() {
+    // Ensure ready is set to true
+    ready = true;
+
+    // Start allowing messages through again
+    allowThrough = true;
+
+    // Call the onconnect callbacks
+    connection.emit('connect');
+
+    // Send all the delayed messages
+    for (var i=0; i<delayedMessages.length; i++)
+      try { con.send.call(con, delayedMessages[i]) }
+      catch(err) { log(err) }
+  };
+  var makeUnready = function() {
+    // Stop messages from going through
+    allowThrough = false;
+
+    // Fire the ondisconnect callbacks
+    connection.emit('disconnect');
+  };
 
   // Set up logging
   con.on('connect', function() {
     if (zz.logging.connection)
       log('Connect');
 
+    // Allow this auth message through
+    allowThrough = true;
     // Attempt to reauth
-    zz.auth(undefined, undefined, function() {
+    doAuth(undefined, undefined, function(err, email, userid) {
 
-      // Send all the delayed messages
-      for (var i=0; i<delayedMessages.length; i++)
-        try { con.send.call(con, delayedMessages[i]) }
-        catch(err) { log(err) }
+      // If the auth fails, we make ready here and stop
+      if (err) return makeReady();
 
-      // Call the callbacks
-      connection.emit('connect');
+      // Otherwise, we want to fetch user data before making ready
+      allowThrough = true;
+      doAuthUser(email, userid, makeReady());
+      allowThrough = false;
     });
+    // But don't let anything else through
+    allowThrough = false;
   });
+
   con.on('disconnect', function() {
     if (zz.logging.connection)
       log('Disconnect');
-    connection.emit('disconnect');
+
+    makeUnready();
   });
 
   connection.send = function(msg) {
-    // If the connection is ready pass everything through
-    if (con.connected) con.send.call(con, msg);
+    // Send messages if they're allowed through
+    if (allowThrough) con.send.call(con, msg);
     // Otherwise, delay the messages
     else delayedMessages.push(msg);
   };
@@ -326,51 +340,13 @@ var connection = new EventEmitter();
   // Set the `init` function here.  It doesn't actually trigger the
   // init, but doesn't fire until init is over.
   zz.init = function(callback) {
-    if (con.connected) callback();
+    if (ready) callback();
     else connection.once('connect', callback);
   };
-})();
 
-//
-// Ping
-//
-zz.ping = function(callback) {
-  messaging.send('ping', null, function() {
-    if (callback) callback();
-    else log('pong');
-  });
-};
-
-//
-// Error
-//
-zz.recordError = function(err) {
-  messaging.send('error', err);
-};
-
-//
-// Auth
-//
-(function() {
-
-  var bootstrapAuth = function() {
-    // Initialize data from local storage
-    var email = localStorage['zz.auth.email'] || null,
-        password = localStorage['zz.auth.password'] || null;
-
-    // Bootstrap -- if we have a stored email/password, try to auth with
-    // them.
-    if (email && password) zz.auth(email, password, function(err, user) {
-
-      // If something went wrong, nuke the auth info
-      if (err) {
-        delete localStorage['zz.auth.email'];
-        delete localStorage['zz.auth.password'];
-        return;
-      }
-    });
-  };
-
+  //
+  // Auth stuff
+  //
   var _AuthUserCur = null;
   var AuthUser = function(user, email) {
     var self = this;
@@ -396,13 +372,7 @@ zz.recordError = function(err) {
     _AuthUserCur = null;
   };
 
-  var connectionAuthed = false;
-
-  zz.auth = function(email, password, callback) {
-
-    // Can't auth if we're already authed
-    if (connectionAuthed) throw new Error('Already authed');
-
+  var doAuth = function(email, password, callback) {
     // If both email and password are undefined, try to use the
     // stored credentials
     if (email === undefined && password === undefined) {
@@ -416,11 +386,11 @@ zz.recordError = function(err) {
     }
 
     // If the password doesn't appear to be of hashed form, do that
-    // for them.
+    // automatically.
     if (password && !password.match(/^[A-F0-9]{64}$/))
       password = sha256(password + email).toUpperCase();
 
-    // Send the auth message
+      // Send the auth message
     messaging.send('auth', {email: email, password: password}, function(err, ret) {
 
       // If we didn't have an error, check the return value.  If it's
@@ -435,30 +405,48 @@ zz.recordError = function(err) {
       localStorage['zz.auth.email'] = email;
       localStorage['zz.auth.password'] = ret.password;
 
-      // This connection is now authed for its lifetime
-      connectionAuthed = true;
-      connection.on('disconnect', function() { connectionAuthed = false; });
+      // Fire the callback
+      callback && callback(undefined, email, ret.userid);
+    });
+  };
 
-      // Fetch the appropriate user object
-      zz.data.user(ret.userid, function(user) {
+  var doAuthUser = function(email, userid, callback) {
+    // Fetch the user object
+    zz.data.user(userid, function(user) {
 
-        // Save the new current user
-        curUser = new AuthUser(user, email);
+      // This is a rare error and will be handled with... pain
+      if (user === null) throw new Error('Null user from auth');
 
-        // Success callback
-        callback && callback(undefined);
+      // Save the new current user
+      curUser = new AuthUser(user, email);
 
-        // Emit the change event
+      // Fire the success callback
+      callback && callback(undefined);
+
+    });
+  };
+
+  zz.auth = function(email, password, callback) {
+
+    // Can't auth if we're already authed
+    if (zz.auth.curUser()) throw new Error('Already authed');
+
+    // Do the auth steps
+    doAuth(email, password, function(err, email, userid) {
+
+      // Break early on error
+      if (err) return callback(err);
+
+      // Fetch the user object
+      doAuthUser(email, userid, function() {
+        // Emit the auth change event
         zz.auth.emit('change');
+
+        // Fire success callback
+        callback && callback();
       });
     });
   };
-  // Turn zz.auth into an event emitter by creating a new one and
-  // monkey patching in all its functions
-  with ({l: new EventEmitter}) {
-    for (var i in l) if (typeof l[i] == 'function')
-      zz.auth[i] = l[i];
-  }
 
   zz.auth.changePassword = function(old, password, callback) {
 
@@ -467,7 +455,7 @@ zz.recordError = function(err) {
 
       // Handle user errors
       if (!err && !value) err = new Error(zz.auth.user ? 'Old password was incorrect'
-                                                            : "Can't change password when not logged in");
+                                                       : "Can't change password when not logged in");
 
       // Pass errors through
       if (err) return callback && callback(err);
@@ -490,7 +478,16 @@ zz.recordError = function(err) {
     connection.connect();
 
     callback && callback();
+
+    zz.auth.emit('change');
   };
+
+  // Turn zz.auth into an event emitter by creating a new one and
+  // monkey patching in all its functions
+  with ({l: new EventEmitter}) {
+    for (var i in l) if (typeof l[i] == 'function')
+      zz.auth[i] = l[i];
+  }
 
   // The user we're authenticated as, which is null to start
   var curUser = null;
@@ -499,6 +496,23 @@ zz.recordError = function(err) {
   };
 
 })();
+
+//
+// Ping
+//
+zz.ping = function(callback) {
+  messaging.send('ping', null, function() {
+    if (callback) callback();
+    else log('pong');
+  });
+};
+
+//
+// Error
+//
+zz.recordError = function(err) {
+  messaging.send('error', err);
+};
 
 //
 // Presence
@@ -584,14 +598,14 @@ zz.recordError = function(err) {
       // Handle errors by deleting the subscription
       if (err) {
         delete subs[self.key];
-        log('Error while subscribing:', err);
-        return;
+        return log('Error while subscribing:', err);
       }
-      // Log bad subs to console
+      // If we subbed on a bad key we don't want to exist in the subs
+      // list.  However, we want to pass data along as null for
+      // the sake of our listeners.
       if (data === false) {
         delete subs[self.key];
-        log('Attempted to subscribe to nonexistent key:', self.key);
-        return;
+        data = null;
       }
       // Store the data
       self.data = data;
@@ -604,6 +618,11 @@ zz.recordError = function(err) {
     var self = this;
 
     this._sub(function(data) {
+      // If the data is null, the key no longer exists.  This is
+      // rather weird and should be resolved somehow.
+      if (data === null)
+        return log('Resubbed, but key is no longer valid');
+
       self.update(data);
     });
   };
@@ -870,6 +889,10 @@ zz.recordError = function(err) {
         // we're looking for.  We can do a basic get on that key and
         // then return it to the client.
         _get(thing, function(data) {
+
+          // If the data is null, we can pass that straight down
+          // to the callback.
+          if (data === null) return callback(null);
 
           // Clone the data into the appropriate model
           var m = new M(thing);

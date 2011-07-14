@@ -1,18 +1,22 @@
 {
   "development": {
     "serverUri": "http://dev.hipsell.com:8000",
-    "clientUri": "http://dev.hipsell.com:3000"
+    "clientUri": "http://dev.hipsell.com:3000",
+    "compressApiInterface": false
   },
   "production": {
     "serverUri": "http://hipsell.com:8000",
-    "clientUri": "http://dev.hipsell.com:3000"
+    "clientUri": "http://dev.hipsell.com:3000",
+    "compressApiInterface": true
   },
   "staging": {
     "serverUri": "http://beta.hipsell.com:8000",
-    "clientUri": "http://beta.hipsell.com"
+    "clientUri": "http://beta.hipsell.com",
+    "compressApiInterface": false
   },
   "test": {
     "serverUri": "http://127.0.0.1:7654",
-    "clientUri": false
+    "clientUri": false,
+    "compressApiInterface": false
   }
 }
