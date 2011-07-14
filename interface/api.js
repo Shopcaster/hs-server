@@ -1,7 +1,6 @@
 // TODO
 //
 // * Data read layer (relations)
-// * When update/create receives a model as a data item, take its id
 
 //
 // Expects the following to exist:
@@ -860,9 +859,150 @@ zz.recordError = function(err) {
     return this;
   };
 
-  // The IDList class
-  zz.models.IDList = function(type) { this._type = type; };
-  zz.models.IDList.prototype = new EventEmitter();
+  // The ModelList class
+  zz.models.ModelList = function(type, ids, callback) {
+    this._type = type;  // Model type (e.g. 'listing')
+    this._slis = [];    // Listeners we've registered on the sub
+    this._sub = null;   // The current subscription.  Only set if hot.
+    this._levents = {}; // The events currently being listened on this model.
+    this.hot = false;   // Default hot state.
+
+    // Monkey patch in EventEmitter
+    var em = new EventEmitter();
+    for (var i in em) this[i] = em[i];
+
+    // Whenever listeners are registered, we should record them so we
+    // can remove them.
+    var self = this;
+    this.on('newListener', function(event, listener) {
+      if (event != 'newListeners') self._levents[event] = true;
+    });
+
+    // Fetch all models and insert them
+    var toFetch = ids.length;
+    for (var i=0; i<ids.length; i++) {
+      zz.data[type](ids[i], function(m) {
+        ids[i] = m;
+
+        // If we've fetched all the objects, attach them to the list
+        // and fire the callback
+        if (--toFetch == 0) {
+          self.concat(ids);
+          callback();
+        }
+      });
+    }
+  };
+  zz.models.ModelList.prototype = [];
+  zz.models.ModelList.prototype.related = {};
+  zz.models.ModelList.prototype.heat = function() {
+    if (this.hot) throw new Error('ModelList is already hot');
+
+    // We're gonna need this...
+    var self = this;
+
+    // Helper functions to add and remove elements
+    var add = function(id) {
+      // Make sure the model isn't already here
+      for (var i=0; i<self.length; i++)
+        if (self[i]._id == id) return;
+
+      // Fetch the model
+      zz.data[self._type](id, function(m) {
+        self.push(m);
+        self.emit('add', m, -1);
+      });
+    };
+    var remove = function(id) {
+      // Find the ID the model's at
+      for (var i=0; i<self.length; i++)
+        if (self[i]._id == id)
+          break;
+
+      // If we couldn't find the model, then do nothing
+      if (i == self.length) return;
+
+      // Otherwise, splice it out
+      self.splice(i, 1);
+
+      // And send the event on to listeners
+      self.emit('remove', id, i);
+    };
+
+    // This is a helper function that bootstraps all the data.
+    var bootstrap = function(ids) {
+      // Collect current ids
+      var curIds = [];
+      for (var i=0; i<self.length; i++)
+        curIds.push(self[i]._id);
+
+      // Sort both id lists so that we can compare in linear time
+      ids.sort()
+      curIds.sort();
+
+      // Find things we need to add and remove
+      var toRemove = [];
+      var toAdd = [];
+
+      // Think mergesort, and coroutines.
+      c = curIds[0];
+      while (ids.length && curIds.length) {
+        for (var i=ids.shift(); i !== undefined && (c === undefined || i<c); i=ids.shift())
+          toAdd.push(i);
+        for (var c=curIds.shift(); c !== undefined && (i === undefined || c<i); c=curIds.shift())
+          toRemove.push(c);
+      }
+    };
+
+    // Grab an existing sub for this key, or create one
+    this._sub = subs[this._id] || new RelationSub(this._id);
+    // If the sub isn't ready we should listen on the ready event
+    // so we can update data.
+    if (!this._sub.ready)
+      this._sub.on('ready', bootstrap) && this._slis.push(['ready', bootstrap]);
+    // If the sub is ready, we need to just bootstrap the data from
+    // it directly.
+    else
+      bootstrap(this._sub.data);
+
+    // Listen on field events
+    this._sub.on('add', add);
+    this._sub.on('remove', remove);
+
+    // Push the field event listeners so we can remove it
+    this._slis.push(['add', add]);
+    this._slis.push(['remove', remove]);
+
+    // Increase the sub's retain count
+    this._sub.retain();
+
+    // Finally, mark this model as hot
+    this.hot = true;
+    return this;
+  };
+  zz.models.ModelList.prototype.freeze = function() {
+    if (!this.hot) throw new Error('ModelList is already cold');
+
+    // Unsubscribe all registered events on the sub
+    for (var i=0; i<this._slis.length; i++) {
+      var ev = this._slis[i];
+      this._sub.removeListener(ev[0], ev[1]);
+    }
+    this._slis = [];
+    // Decrease the reference count of the base sub
+    this._sub.release();
+    this._sub = null;
+    // Unregister all events registered on this model
+    for (var i=0; i<this._levents.length; i++) {
+      var event = this._levents[i];
+      this.removeAllListeners(event)
+    }
+    this._levents = {};
+
+    // Finally, mark this model list as cold
+    this.hot = false;
+    return this;
+  };
 
   // Helper function -- ensures we have a sub for the specified key
   // and fires the callback when the sub is ready
@@ -881,9 +1021,16 @@ zz.recordError = function(err) {
     var ptype = config.datatypes[i+1];
 
     // Create and register the model for this type
-    zz.models[type[0].toUpperCase() + type.substr(1)] = function() {};
-    var M = zz.models[type[0].toUpperCase() + type.substr(1)];
+    var M = function() { zz.models.Model.apply(this, Array.prototype.slice.call(arguments)) };
+    M.name = type[0].toUpperCase() + type.substr(1)
+    zz.models[M.name] = M;
     M.prototype = new zz.models.Model(type);
+
+    // Create and register the related list for this type
+    var ML = function() { zz.models.ModelList.apply(this, Array.prototype.slice.call(arguments)) };
+    ML.name = ptype[0].toUpperCase() + ptype.substr(1) + 'List';
+    zz.models[ML.name] = ML;
+    ML.prototype = new zz.models.ModelList(type, [], null);
 
     // Add the relation
     with ({type: type, ptype: ptype, M: M}) {
@@ -901,9 +1048,24 @@ zz.recordError = function(err) {
         delete args;
 
         // Set the default field
-        if (!field) field = type;
+        if (!field) field = this._type;
 
-        // TODO - make the query
+        // Generate the key
+        var key = ptype + '(' + field + '=' + this._id + ')';
+        console.log('key', key);
+
+        // Get the sub
+        _get(key, function(data) {
+          // If the data is null, we can pass that straight down
+          // to the callback.
+          if (data === null) return callback(null);
+
+          // Create the model list, and when it's initialized return
+          // it via the callback;
+          var ml = new ML(type, data, function() {
+            callback(ml);
+          });
+        });
       };
 
       // Create the fetcher
@@ -1049,6 +1211,7 @@ for (var i=0; i<config.datatypes.length; i+=2) {
   }
 }
 })();
+
 //
 // Notifications
 //
