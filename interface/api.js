@@ -2,7 +2,7 @@
 //
 // * Data read layer (relations)
 // * Presence (third-party user)
-// * There are bad race conditions on auto-auth that should be solved
+// * Notifications
 
 //
 // Expects the following to exist:
@@ -253,6 +253,7 @@ var messaging = new EventEmitter();
 
 //
 // Connection Logic
+//
 // Auth Logic
 //
 var connection = new EventEmitter();
@@ -262,34 +263,65 @@ var connection = new EventEmitter();
     port: /*$port$*/
   });
 
+  var ready = false;
   var delayedMessages = [];
+  var allowThrough = false;
+
+  var makeReady = function() {
+    // Ensure ready is set to true
+    ready = true;
+
+    // Start allowing messages through again
+    allowThrough = true;
+
+    // Call the onconnect callbacks
+    connection.emit('connect');
+
+    // Send all the delayed messages
+    for (var i=0; i<delayedMessages.length; i++)
+      try { con.send.call(con, delayedMessages[i]) }
+      catch(err) { log(err) }
+  };
+  var makeUnready = function() {
+    // Stop messages from going through
+    allowThrough = false;
+
+    // Fire the ondisconnect callbacks
+    connection.emit('disconnect');
+  };
 
   // Set up logging
   con.on('connect', function() {
     if (zz.logging.connection)
       log('Connect');
 
+    // Allow this auth message through
+    allowThrough = true;
     // Attempt to reauth
-    zz.auth(undefined, undefined, function() {
+    doAuth(undefined, undefined, function(err, email, userid) {
 
-      // Send all the delayed messages
-      for (var i=0; i<delayedMessages.length; i++)
-        try { con.send.call(con, delayedMessages[i]) }
-        catch(err) { log(err) }
+      // If the auth fails, we make ready here and stop
+      if (err) return makeReady();
 
-      // Call the callbacks
-      connection.emit('connect');
+      // Otherwise, we want to fetch user data before making ready
+      allowThrough = true;
+      doAuthUser(email, userid, makeReady());
+      allowThrough = false;
     });
+    // But don't let anything else through
+    allowThrough = false;
   });
+
   con.on('disconnect', function() {
     if (zz.logging.connection)
       log('Disconnect');
-    connection.emit('disconnect');
+
+    makeUnready();
   });
 
   connection.send = function(msg) {
-    // If the connection is ready pass everything through
-    if (con.connected) con.send.call(con, msg);
+    // Send messages if they're allowed through
+    if (allowThrough) con.send.call(con, msg);
     // Otherwise, delay the messages
     else delayedMessages.push(msg);
   };
@@ -308,7 +340,7 @@ var connection = new EventEmitter();
   // Set the `init` function here.  It doesn't actually trigger the
   // init, but doesn't fire until init is over.
   zz.init = function(callback) {
-    if (con.connected) callback();
+    if (ready) callback();
     else connection.once('connect', callback);
   };
 
@@ -340,11 +372,7 @@ var connection = new EventEmitter();
     _AuthUserCur = null;
   };
 
-  zz.auth = function(email, password, callback) {
-
-    // Can't auth if we're already authed
-    if (connectionAuthed) throw new Error('Already authed');
-
+  var doAuth = function(email, password, callback) {
     // If both email and password are undefined, try to use the
     // stored credentials
     if (email === undefined && password === undefined) {
@@ -358,11 +386,11 @@ var connection = new EventEmitter();
     }
 
     // If the password doesn't appear to be of hashed form, do that
-    // for them.
+    // automatically.
     if (password && !password.match(/^[A-F0-9]{64}$/))
       password = sha256(password + email).toUpperCase();
 
-    // Send the auth message
+      // Send the auth message
     messaging.send('auth', {email: email, password: password}, function(err, ret) {
 
       // If we didn't have an error, check the return value.  If it's
@@ -377,21 +405,45 @@ var connection = new EventEmitter();
       localStorage['zz.auth.email'] = email;
       localStorage['zz.auth.password'] = ret.password;
 
-      // This connection is now authed for its lifetime
-      connectionAuthed = true;
-      connection.on('disconnect', function() { connectionAuthed = false; });
+      // Fire the callback
+      callback && callback(undefined, email, ret.userid);
+    });
+  };
 
-      // Fetch the appropriate user object
-      zz.data.user(ret.userid, function(user) {
+  var doAuthUser = function(email, userid, callback) {
+    // Fetch the user object
+    zz.data.user(userid, function(user) {
 
-        // Save the new current user
-        curUser = new AuthUser(user, email);
+      // This is a rare error and will be handled with... pain
+      if (user === null) throw new Error('Null user from auth');
 
-        // Success callback
-        callback && callback(undefined);
+      // Save the new current user
+      curUser = new AuthUser(user, email);
 
-        // Emit the change event
+      // Fire the success callback
+      callback && callback(undefined);
+
+    });
+  };
+
+  zz.auth = function(email, password, callback) {
+
+    // Can't auth if we're already authed
+    if (zz.auth.curUser()) throw new Error('Already authed');
+
+    // Do the auth steps
+    doAuth(email, password, function(err, email, userid) {
+
+      // Break early on error
+      if (err) return callback(err);
+
+      // Fetch the user object
+      doAuthUser(email, userid, function() {
+        // Emit the auth change event
         zz.auth.emit('change');
+
+        // Fire success callback
+        callback && callback();
       });
     });
   };
@@ -403,7 +455,7 @@ var connection = new EventEmitter();
 
       // Handle user errors
       if (!err && !value) err = new Error(zz.auth.user ? 'Old password was incorrect'
-                                                            : "Can't change password when not logged in");
+                                                       : "Can't change password when not logged in");
 
       // Pass errors through
       if (err) return callback && callback(err);
@@ -426,6 +478,8 @@ var connection = new EventEmitter();
     connection.connect();
 
     callback && callback();
+
+    zz.auth.emit('change');
   };
 
   // Turn zz.auth into an event emitter by creating a new one and
