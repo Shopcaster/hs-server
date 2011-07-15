@@ -658,6 +658,10 @@ zz.recordError = function(err) {
       if (data === false) {
         delete subs[self.key];
         data = null;
+      // If we receive `true`, it means we're already subbed, and that
+      // this sub is therefore a duplicate.  This is bad.
+      } else if (data === true) {
+        throw new Error('Double sub on key ' + self._key);
       }
       // Store the data
       if (data)
@@ -737,6 +741,11 @@ zz.recordError = function(err) {
   RelationSub.prototype = new Sub();
   RelationSub.prototype.update = function(data) {
     if (!this.data) this.data = [];
+
+    // If data is an array, treat it as add
+    console.log('data', data);
+    if (data instanceof Array)
+      data = {add: data, remove: []};
 
     // Add elements
     for (var i=0; i<data.add.length; i++) {
@@ -860,11 +869,12 @@ zz.recordError = function(err) {
   };
 
   // The ModelList class
-  zz.models.ModelList = function(type, ids, callback) {
+  zz.models.ModelList = function(type, ids, key, callback) {
     this._type = type;  // Model type (e.g. 'listing')
     this._slis = [];    // Listeners we've registered on the sub
     this._sub = null;   // The current subscription.  Only set if hot.
     this._levents = {}; // The events currently being listened on this model.
+    this._key = key;    // The key we're subscribed on
     this.hot = false;   // Default hot state.
 
     // Monkey patch in EventEmitter
@@ -966,7 +976,7 @@ zz.recordError = function(err) {
     };
 
     // Grab an existing sub for this key, or create one
-    this._sub = subs[this._id] || new RelationSub(this._id);
+    this._sub = subs[this._key] || new RelationSub(this._key);
     // If the sub isn't ready we should listen on the ready event
     // so we can update data.
     if (!this._sub.ready)
@@ -1018,7 +1028,13 @@ zz.recordError = function(err) {
   // Helper function -- ensures we have a sub for the specified key
   // and fires the callback when the sub is ready
   var _get = function(key, callback) {
-    var sub = subs[key] || new ModelSub(key);
+    // Figure out the type to fetch.  If the key starts with \w+/, then
+    // it's a model sub.  Anything else is a relation sub.
+    var type = key.match(/^\w+\//) ? ModelSub
+                                   : RelationSub
+
+
+    var sub = subs[key] || new type(key);
     if (!sub.ready) {
       sub.on('ready', callback);
     } else {
@@ -1076,7 +1092,7 @@ zz.recordError = function(err) {
 
           // Create the model list, and when it's initialized return
           // it via the callback;
-          var ml = new ML(type, data, function(ml) {
+          var ml = new ML(type, data, key, function(ml) {
             console.log(ml);
             callback(ml);
           });
