@@ -358,6 +358,7 @@ var connection = new EventEmitter();
     _AuthUserCur.heat();
 
     this.email = email;
+    this._id = user._id;
 
     // Wire up the data
     var self = this;
@@ -732,7 +733,6 @@ zz.recordError = function(err) {
   // Subscription on a relation
   var RelationSub = function() {
     Sub.apply(this, Array.prototype.slice.call(arguments));
-    this.data = [];
   };
   RelationSub.prototype = new Sub();
   RelationSub.prototype.update = function(data) {
@@ -949,12 +949,20 @@ zz.recordError = function(err) {
       // Think mergesort, and coroutines.
       var c = curIds.shift();
       var i = ids.shift();
-      while (ids.length || curIds.length) {
+      while (c !== undefined || i !== undefined) {
+        if (c == i) {
+          c = curIds.shift();
+          i = ids.shift();
+        }
         for (; i !== undefined && (c === undefined || i<c); i=ids.shift())
           toAdd.push(i);
         for (; c !== undefined && (i === undefined || c<i); c=curIds.shift())
           toRemove.push(c);
       }
+
+      // Do the work
+      for (var i=0; i<toRemove; i++) remove(toRemove[i]);
+      for (var i=0; i<toAdd; i++) add(toAdd[i]);
     };
 
     // Grab an existing sub for this key, or create one
