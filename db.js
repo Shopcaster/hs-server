@@ -227,15 +227,16 @@ var query = function(type, q, callback) {
   q.deleted = false;
 
   var typeName = '';
-  if (type instanceof string) {
+  if (typeof type == 'string') {
     typeName = type;
     type = new FieldSet(typeName);
   } else if (type instanceof FieldSet) {
     typeName = type.prototype.getCollection();
   } else {
-    console.log('Type is no a FieldSet or string');
+    console.log('Type is not a FieldSet or String');
+    console.log('type: ', type);
     console.log('');
-    return callback(err);
+    throw new Error('Type must be a FieldSet or String');
   }
 
   db.collection(typeName, function(err, col) {
