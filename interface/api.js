@@ -1049,6 +1049,8 @@ zz.recordError = function(err) {
   // Helper function -- ensures we have a sub for the specified key
   // and fires the callback when the sub is ready
   var _get = function(key, callback) {
+    if (!key) throw new Error('Trying to use _get on a falsey key');
+
     // Figure out the type to fetch.  If the key starts with \w+/, then
     // it's a model sub.  Anything else is a relation sub.
     var type = key.match(/^\w+\//) ? ModelSub
