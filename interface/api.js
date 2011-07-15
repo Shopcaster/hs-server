@@ -915,12 +915,11 @@ zz.recordError = function(err) {
     var toFetch = ids.length;
     for (var i=0; i<ids.length; i++) {
       zz.data[type](ids[i], function(m) {
-        ids[i] = m;
+        // Add the model to ourselves
+        self.push(m);
 
-        // If we've fetched all the objects, attach them to the list
-        // and fire the callback
+        // If we've fetched all the objects, fire the callback
         if (--toFetch == 0) {
-          self.concat(ids);
           callback(self);
         }
       });
@@ -1116,7 +1115,6 @@ zz.recordError = function(err) {
           // Create the model list, and when it's initialized return
           // it via the callback;
           var ml = new ML(type, data, key, function(ml) {
-            console.log(ml);
             callback(ml);
           });
         });
