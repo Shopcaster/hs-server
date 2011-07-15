@@ -12,6 +12,7 @@ var setup = function(r) {
   with(r.test('auth', auth)) {
     test('basic data', data);
     test('hot models', hotModels);
+    test('relations', relations);
   }
 };
 
@@ -156,6 +157,28 @@ var hotModels = function(r) {
       });
       // Make the change
       api.update.convo(convo, {listing: 'listing/2'});
+    });
+  });
+};
+
+var relations = function(r) {
+  d = r.defer('fetches current user model');
+  api.data.user(api.auth.curUser()._id, function(user) {
+    d.done(!!user);
+
+    // Create on offer
+    d = r.defer('creates offer');
+    api.create.offer({amount: 123, listing: 'listing/1'}, function(id) {
+      d.done(!!id);
+
+      d = r.defer('receives response to relatedOffers sub');
+      user.relatedOffers('creator', function(ml) {
+        d.done(true);
+
+        r.test('modellist has correct initial data', ml.length == 1 && ml[0]._id == id);
+
+        // TODO - heat and serve
+      });
     });
   });
 };
