@@ -229,9 +229,10 @@ var query = function(type, q, callback) {
   var typeName = '';
   if (typeof type == 'string') {
     typeName = type;
-    type = new FieldSet(typeName);
+    var genType = function() { return new FieldSet(typeName); };
   } else if (type instanceof FieldSet) {
     typeName = type.prototype.getCollection();
+    var genType = function() { return new type(); };
   } else {
     console.log('Type is not a FieldSet or String');
     console.log('type: ', type);
@@ -255,7 +256,7 @@ var query = function(type, q, callback) {
       fixOutgoing(objs);
       var fss = [];
       for (var i=0; i<objs.length; i++)
-        fss.push(new type().merge(objs[i]));
+        fss.push(genType().merge(objs[i]));
       callback(false, fss);
     });
   });
