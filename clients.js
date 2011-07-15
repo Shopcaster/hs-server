@@ -32,7 +32,8 @@ var Client = function(client_id) {
 };
 Client.prototype = new events.EventEmitter();
 Client.prototype.send = function(type, data) {
-  clients[this.id].send(serialize(type, data));
+  if (clients[this.id])
+    clients[this.id].send(serialize(type, data));
 };
 
 init = function(server, handler) {
