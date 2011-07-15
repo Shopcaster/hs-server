@@ -17,15 +17,15 @@ var create = function(client, data, callback, errback) {
     // offer's listing's creator
 
     // Get the offer so that we can get the listing
-    var offer = new models.Offer();
-    offer._id = fs.offer;
-    db.get(offer, function(err, success) {
+    var convo = new models.Convo();
+    convo._id = fs.convo;
+    db.get(convo, function(err, success) {
       // Bail on errors
       if (err) return;
 
       // Get the listing
       var listing = new models.Listing();
-      listing._id = offer.listing;
+      listing._id = convo.listing;
       db.get(listing, function(err, success) {
         // Bail on errors
         if (err) return;
@@ -34,7 +34,7 @@ var create = function(client, data, callback, errback) {
         // Send the notification to the listing's creator
         nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
         // Send the notificaton to the offer's creator
-        nots.send(offer.creator, nots.Types.NewMessage, fs, listing);
+        nots.send(convo.creator, nots.Types.NewMessage, fs, listing);
       });
     });
   });

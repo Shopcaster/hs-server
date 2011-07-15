@@ -238,7 +238,7 @@ var messaging = new EventEmitter();
 
       // Log the response if needed
       if (zz.logging.responses && zz.logging.outgoing[msg])
-        log('response', id, data.value);
+        log('response', id, data.value || data.error);
 
       // If there's no callback, break early
       if (!callback) return;
@@ -658,7 +658,7 @@ zz.recordError = function(err) {
       // Handle errors by deleting the subscription
       if (err) {
         delete subs[self.key];
-        return log('Error while subscribing:', err);
+        return log('Error while subscribing on key ' + self.key + ':', err);
       }
       // If we subbed on a bad key we don't want to exist in the subs
       // list.  However, we want to pass data along as null for
@@ -754,7 +754,6 @@ zz.recordError = function(err) {
     if (!this.data) this.data = [];
 
     // If data is an array, treat it as add
-    console.log('data', data);
     if (data instanceof Array)
       data = {add: data, remove: []};
 
@@ -937,31 +936,39 @@ zz.recordError = function(err) {
     var self = this;
 
     // Helper functions to add and remove elements
-    var add = function(id) {
-      // Make sure the model isn't already here
-      for (var i=0; i<self.length; i++)
-        if (self[i]._id == id) return;
+    var add = function(ids) {
+      for (var i=0; i<ids.length; i++) {
+        var id = ids[i];
 
-      // Fetch the model
-      zz.data[self._type](id, function(m) {
-        self.push(m);
-        self.emit('add', m, -1);
-      });
+        // Make sure the model isn't already here
+        for (var i=0; i<self.length; i++)
+          if (self[i]._id == id) return;
+
+        // Fetch the model
+        zz.data[self._type](id, function(m) {
+          self.push(m);
+          self.emit('add', m, -1);
+        });
+      }
     };
-    var remove = function(id) {
-      // Find the ID the model's at
-      for (var i=0; i<self.length; i++)
-        if (self[i]._id == id)
-          break;
+    var remove = function(ids) {
+      for (var i=0; i<ids.length; i++) {
+        var id = ids[i];
 
-      // If we couldn't find the model, then do nothing
-      if (i == self.length) return;
+        // Find the ID the model's at
+        for (var i=0; i<self.length; i++)
+          if (self[i]._id == id)
+            break;
 
-      // Otherwise, splice it out
-      self.splice(i, 1);
+        // If we couldn't find the model, then do nothing
+        if (i == self.length) return;
 
-      // And send the event on to listeners
-      self.emit('remove', id, i);
+        // Otherwise, splice it out
+        self.splice(i, 1);
+
+        // And send the event on to listeners
+        self.emit('remove', id, i);
+      }
     };
 
     // This is a helper function that bootstraps all the data.
@@ -993,8 +1000,8 @@ zz.recordError = function(err) {
       }
 
       // Do the work
-      for (var i=0; i<toRemove; i++) remove(toRemove[i]);
-      for (var i=0; i<toAdd; i++) add(toAdd[i]);
+      remove(toRemove);
+      add(toAdd);
     };
 
     // Grab an existing sub for this key, or create one
@@ -1050,6 +1057,8 @@ zz.recordError = function(err) {
   // Helper function -- ensures we have a sub for the specified key
   // and fires the callback when the sub is ready
   var _get = function(key, callback) {
+    if (!key) throw new Error('Trying to use _get on a falsey key');
+
     // Figure out the type to fetch.  If the key starts with \w+/, then
     // it's a model sub.  Anything else is a relation sub.
     var type = key.match(/^\w+\//) ? ModelSub
