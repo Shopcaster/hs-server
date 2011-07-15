@@ -358,6 +358,7 @@ var connection = new EventEmitter();
     _AuthUserCur.heat();
 
     this.email = email;
+    this._id = user._id;
 
     // Wire up the data
     var self = this;
@@ -732,7 +733,6 @@ zz.recordError = function(err) {
   // Subscription on a relation
   var RelationSub = function() {
     Sub.apply(this, Array.prototype.slice.call(arguments));
-    this.data = [];
   };
   RelationSub.prototype = new Sub();
   RelationSub.prototype.update = function(data) {
@@ -888,10 +888,13 @@ zz.recordError = function(err) {
         // and fire the callback
         if (--toFetch == 0) {
           self.concat(ids);
-          callback();
+          callback(self);
         }
       });
     }
+    // If there were no IDs that loop would never get called, and the
+    // callback would thusly never fire.  We handle that case here.
+    if (!ids.length) callback && callback(this);
   };
   zz.models.ModelList.prototype = [];
   zz.models.ModelList.prototype.related = {};
@@ -936,7 +939,6 @@ zz.recordError = function(err) {
       for (var i=0; i<self.length; i++)
         curIds.push(self[i]._id);
 
-      // Sort both id lists so that we can compare in linear time
       ids.sort()
       curIds.sort();
 
@@ -945,13 +947,22 @@ zz.recordError = function(err) {
       var toAdd = [];
 
       // Think mergesort, and coroutines.
-      c = curIds[0];
-      while (ids.length && curIds.length) {
-        for (var i=ids.shift(); i !== undefined && (c === undefined || i<c); i=ids.shift())
+      var c = curIds.shift();
+      var i = ids.shift();
+      while (c !== undefined || i !== undefined) {
+        if (c == i) {
+          c = curIds.shift();
+          i = ids.shift();
+        }
+        for (; i !== undefined && (c === undefined || i<c); i=ids.shift())
           toAdd.push(i);
-        for (var c=curIds.shift(); c !== undefined && (i === undefined || c<i); c=curIds.shift())
+        for (; c !== undefined && (i === undefined || c<i); c=curIds.shift())
           toRemove.push(c);
       }
+
+      // Do the work
+      for (var i=0; i<toRemove; i++) remove(toRemove[i]);
+      for (var i=0; i<toAdd; i++) add(toAdd[i]);
     };
 
     // Grab an existing sub for this key, or create one
@@ -1028,13 +1039,13 @@ zz.recordError = function(err) {
 
     // Create and register the related list for this type
     var ML = function() { zz.models.ModelList.apply(this, Array.prototype.slice.call(arguments)) };
-    ML.fname = ptype[0].toUpperCase() + ptype.substr(1) + 'List';
+    ML.fname = type[0].toUpperCase() + type.substr(1) + 'List';
     zz.models[ML.fname] = ML;
     ML.prototype = new zz.models.ModelList(type, [], null);
 
     // Add the relation
-    with ({type: type, ptype: ptype, M: M}) {
-      zz.models.Model.prototype.related[ptype] = function() {
+    with ({type: type, ptype: ptype, M: M, ML: ML}) {
+      zz.models.Model.prototype['related' + ptype[0].toUpperCase() + ptype.substr(1)] = function() {
 
         // Arguments
         var field;
@@ -1047,12 +1058,15 @@ zz.recordError = function(err) {
         callback = args.shift();
         delete args;
 
+        // Callback must be supplied
+        if (!callback || typeof callback != 'function')
+          throw new Error('No callback was supplied');
+
         // Set the default field
         if (!field) field = this._type;
 
         // Generate the key
-        var key = ptype + '(' + field + '=' + this._id + ')';
-        console.log('key', key);
+        var key = type + '(' + field + '=' + this._id + ')';
 
         // Get the sub
         _get(key, function(data) {
@@ -1062,7 +1076,8 @@ zz.recordError = function(err) {
 
           // Create the model list, and when it's initialized return
           // it via the callback;
-          var ml = new ML(type, data, function() {
+          var ml = new ML(type, data, function(ml) {
+            console.log(ml);
             callback(ml);
           });
         });
@@ -1088,7 +1103,7 @@ zz.recordError = function(err) {
           throw new Error('Thing to fetch on must be a string or a Model; ' +
                           'instead it was ' + typeof thing);
         if (!callback || typeof callback != 'function')
-          throw new Error('No callback was passed');
+          throw new Error('No callback was supplied');
         if (typeof thing == 'string' && fields.length)
           throw new Error('Fetching through fields is invalid with a string argument');
 
@@ -1123,7 +1138,7 @@ zz.recordError = function(err) {
           if (data === null) return callback(null);
 
           // Clone the data into the appropriate model
-          var m = new M(thing);
+          var m = new M(type);
           for (var i in data) if (data.hasOwnProperty(i))
             m[i] = data[i];
 
