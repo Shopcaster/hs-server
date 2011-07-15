@@ -29,6 +29,9 @@ Message.prototype = new FieldSet('message');
 var Inquiry = function() {};
 Inquiry.prototype = new FieldSet('inquiry');
 
+var Convo = function() {};
+Convo.prototype = new FieldSet('convo');
+
 var File = function() {};
 File.prototype = new FieldSet('staticfile');
 File.prototype.generateHash = function() {
@@ -45,4 +48,5 @@ exports.Offer = Offer;
 exports.Message = Message;
 exports.Inquiry = Inquiry;
 exports.File = File;
+exports.Convo = Convo;
 exports.ClientError = ClientError;

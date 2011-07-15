@@ -754,7 +754,6 @@ zz.recordError = function(err) {
     if (!this.data) this.data = [];
 
     // If data is an array, treat it as add
-    console.log('data', data);
     if (data instanceof Array)
       data = {add: data, remove: []};
 
