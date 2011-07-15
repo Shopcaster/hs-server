@@ -315,11 +315,15 @@ var connection = new EventEmitter();
     allowThrough = false;
   });
 
+  var holdDisconnect = false;
   con.on('disconnect', function() {
     if (zz.logging.connection)
       log('Disconnect');
 
     makeUnready();
+
+    // If we didn't explicitly disconnect, try to reconnect
+    if (!holdDisconnect) con.connect();
   });
 
   connection.send = function(msg) {
@@ -329,9 +333,11 @@ var connection = new EventEmitter();
     else delayedMessages.push(msg);
   };
   connection.connect = function() {
+    holdDisconnect = false;
     con.connect();
   };
   connection.disconnect = function() {
+    holdDisconnect = true;
     con.disconnect();
   };
 
@@ -439,7 +445,7 @@ var connection = new EventEmitter();
     doAuth(email, password, function(err, email, userid) {
 
       // Break early on error
-      if (err) return callback(err);
+      if (err) return callback && callback(err);
 
       // Fetch the user object
       doAuthUser(email, userid, function() {
@@ -476,10 +482,12 @@ var connection = new EventEmitter();
     delete localStorage['zz.auth.email'];
     delete localStorage['zz.auth.password'];
 
+    curUser.destroy();
     curUser = null;
 
+    // Reconnect as soon as we disconnect
+    connection.once('disconnect', connection.connect);
     connection.disconnect();
-    connection.connect();
 
     callback && callback();
 
@@ -658,6 +666,10 @@ zz.recordError = function(err) {
       if (data === false) {
         delete subs[self.key];
         data = null;
+      // If we receive `true`, it means we're already subbed, and that
+      // this sub is therefore a duplicate.  This is bad.
+      } else if (data === true) {
+        throw new Error('Double sub on key ' + self.key);
       }
       // Store the data
       if (data)
@@ -690,13 +702,16 @@ zz.recordError = function(err) {
     // And remove ourselves from the list
     delete subs[this.key];
   };
-  Sub.prototype.retain = function() { this.refs++ };
+  Sub.prototype.retain = function() {
+    this.refs++;
+    if (this.destroyTimeout) clearTimeout(this.destroyTimeout);
+  };
   Sub.prototype.release = function() {
     if (--this.refs < 1) {
       // Don't remove the subscription right away.  Instead, hold it
       // for about 10s in case anybody else wants it in that time.
       var self = this;
-      setTimeout(function() {
+      self.destroyTimeout = setTimeout(function() {
         if (self.refs < 1) self.destroy();
       }, 10 * 1000);
     }
@@ -738,6 +753,11 @@ zz.recordError = function(err) {
   RelationSub.prototype.update = function(data) {
     if (!this.data) this.data = [];
 
+    // If data is an array, treat it as add
+    console.log('data', data);
+    if (data instanceof Array)
+      data = {add: data, remove: []};
+
     // Add elements
     for (var i=0; i<data.add.length; i++) {
       var x = data.add[i];
@@ -772,6 +792,18 @@ zz.recordError = function(err) {
       for (var i in subs) if (subs.hasOwnProperty(i))
         subs[i].resub();
     });
+  });
+  // Whenever there's a disconnection, we should clear pending unsubs
+  // right away.
+  connection.on('disconnect', function() {
+    for (var i in subs) if (subs.hasOwnProperty(i)) {
+      // If it has a pending destroy timeout
+      if (subs[i].destroyTimeout) {
+        // Bypass the destroy logic entirely and just remove the sub
+        clearTimeout(subs[i].destroyTimeout);
+        delete subs[i];
+      }
+    }
   });
 
   // The model class
@@ -860,11 +892,12 @@ zz.recordError = function(err) {
   };
 
   // The ModelList class
-  zz.models.ModelList = function(type, ids, callback) {
+  zz.models.ModelList = function(type, ids, key, callback) {
     this._type = type;  // Model type (e.g. 'listing')
     this._slis = [];    // Listeners we've registered on the sub
     this._sub = null;   // The current subscription.  Only set if hot.
     this._levents = {}; // The events currently being listened on this model.
+    this._key = key;    // The key we're subscribed on
     this.hot = false;   // Default hot state.
 
     // Monkey patch in EventEmitter
@@ -966,7 +999,7 @@ zz.recordError = function(err) {
     };
 
     // Grab an existing sub for this key, or create one
-    this._sub = subs[this._id] || new RelationSub(this._id);
+    this._sub = subs[this._key] || new RelationSub(this._key);
     // If the sub isn't ready we should listen on the ready event
     // so we can update data.
     if (!this._sub.ready)
@@ -1018,7 +1051,13 @@ zz.recordError = function(err) {
   // Helper function -- ensures we have a sub for the specified key
   // and fires the callback when the sub is ready
   var _get = function(key, callback) {
-    var sub = subs[key] || new ModelSub(key);
+    // Figure out the type to fetch.  If the key starts with \w+/, then
+    // it's a model sub.  Anything else is a relation sub.
+    var type = key.match(/^\w+\//) ? ModelSub
+                                   : RelationSub
+
+
+    var sub = subs[key] || new type(key);
     if (!sub.ready) {
       sub.on('ready', callback);
     } else {
@@ -1076,7 +1115,7 @@ zz.recordError = function(err) {
 
           // Create the model list, and when it's initialized return
           // it via the callback;
-          var ml = new ML(type, data, function(ml) {
+          var ml = new ML(type, data, key, function(ml) {
             console.log(ml);
             callback(ml);
           });
