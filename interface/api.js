@@ -137,8 +137,8 @@ zz.logging.outgoing = {
   auth: false,
   deauth: false,
   passwd: false,
-  sub: true,
-  unsub: true,
+  sub: false,
+  unsub: false,
   create: false,
   update: false,
   'delete': false,
@@ -658,7 +658,7 @@ zz.recordError = function(err) {
       // Handle errors by deleting the subscription
       if (err) {
         delete subs[self.key];
-        return log('Error while subscribing on key ' + self.key + ':', err);
+        return log('Error while subscribing on key ' + self.key + ':', err.message);
       }
       // If we subbed on a bad key we don't want to exist in the subs
       // list.  However, we want to pass data along as null for
