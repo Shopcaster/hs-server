@@ -445,7 +445,7 @@ var connection = new EventEmitter();
     doAuth(email, password, function(err, email, userid) {
 
       // Break early on error
-      if (err) return callback(err);
+      if (err) return callback && callback(err);
 
       // Fetch the user object
       doAuthUser(email, userid, function() {
@@ -482,6 +482,7 @@ var connection = new EventEmitter();
     delete localStorage['zz.auth.email'];
     delete localStorage['zz.auth.password'];
 
+    curUser.destroy();
     curUser = null;
 
     // Reconnect as soon as we disconnect
@@ -668,7 +669,7 @@ zz.recordError = function(err) {
       // If we receive `true`, it means we're already subbed, and that
       // this sub is therefore a duplicate.  This is bad.
       } else if (data === true) {
-        throw new Error('Double sub on key ' + self._key);
+        throw new Error('Double sub on key ' + self.key);
       }
       // Store the data
       if (data)
@@ -701,13 +702,16 @@ zz.recordError = function(err) {
     // And remove ourselves from the list
     delete subs[this.key];
   };
-  Sub.prototype.retain = function() { this.refs++ };
+  Sub.prototype.retain = function() {
+    this.refs++;
+    if (this.destroyTimeout) clearTimeout(this.destroyTimeout);
+  };
   Sub.prototype.release = function() {
     if (--this.refs < 1) {
       // Don't remove the subscription right away.  Instead, hold it
       // for about 10s in case anybody else wants it in that time.
       var self = this;
-      setTimeout(function() {
+      self.destroyTimeout = setTimeout(function() {
         if (self.refs < 1) self.destroy();
       }, 10 * 1000);
     }
@@ -788,6 +792,18 @@ zz.recordError = function(err) {
       for (var i in subs) if (subs.hasOwnProperty(i))
         subs[i].resub();
     });
+  });
+  // Whenever there's a disconnection, we should clear pending unsubs
+  // right away.
+  connection.on('disconnect', function() {
+    for (var i in subs) if (subs.hasOwnProperty(i)) {
+      // If it has a pending destroy timeout
+      if (subs[i].destroyTimeout) {
+        // Bypass the destroy logic entirely and just remove the sub
+        clearTimeout(subs[i].destroyTimeout);
+        delete subs[i];
+      }
+    }
   });
 
   // The model class
