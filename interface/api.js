@@ -315,11 +315,15 @@ var connection = new EventEmitter();
     allowThrough = false;
   });
 
+  var holdDisconnect = false;
   con.on('disconnect', function() {
     if (zz.logging.connection)
       log('Disconnect');
 
     makeUnready();
+
+    // If we didn't explicitly disconnect, try to reconnect
+    if (!holdDisconnect) con.connect();
   });
 
   connection.send = function(msg) {
@@ -329,9 +333,11 @@ var connection = new EventEmitter();
     else delayedMessages.push(msg);
   };
   connection.connect = function() {
+    holdDisconnect = false;
     con.connect();
   };
   connection.disconnect = function() {
+    holdDisconnect = true;
     con.disconnect();
   };
 
@@ -478,8 +484,9 @@ var connection = new EventEmitter();
 
     curUser = null;
 
+    // Reconnect as soon as we disconnect
+    connection.once('disconnect', connection.connect);
     connection.disconnect();
-    connection.connect();
 
     callback && callback();
 
