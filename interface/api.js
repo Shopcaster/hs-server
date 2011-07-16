@@ -357,13 +357,14 @@ var connection = new EventEmitter();
   // Auth stuff
   //
   var _AuthUserCur = null;
-  var AuthUser = function(user, email) {
+  var AuthUser = function(user, email, password) {
     var self = this;
 
     _AuthUserCur = user;
     _AuthUserCur.heat();
 
     this.email = email;
+    this.password = password;
     this._id = user._id;
 
     // Wire up the data
@@ -416,11 +417,11 @@ var connection = new EventEmitter();
       localStorage['zz.auth.password'] = ret.password;
 
       // Fire the callback
-      callback && callback(undefined, email, ret.userid);
+      callback && callback(undefined, email, ret.password, ret.userid);
     });
   };
 
-  var doAuthUser = function(email, userid, callback) {
+  var doAuthUser = function(email, password, userid, callback) {
     // Fetch the user object
     zz.data.user(userid, function(user) {
 
@@ -428,7 +429,7 @@ var connection = new EventEmitter();
       if (user === null) throw new Error('Null user from auth');
 
       // Save the new current user
-      curUser = new AuthUser(user, email);
+      curUser = new AuthUser(user, email, password);
 
       // Fire the success callback
       callback && callback(undefined);
@@ -442,13 +443,13 @@ var connection = new EventEmitter();
     if (zz.auth.curUser()) throw new Error('Already authed');
 
     // Do the auth steps
-    doAuth(email, password, function(err, email, userid) {
+    doAuth(email, password, function(err, email, password, userid) {
 
       // Break early on error
       if (err) return callback && callback(err);
 
       // Fetch the user object
-      doAuthUser(email, userid, function() {
+      doAuthUser(email, password, userid, function() {
         // Emit the auth change event
         zz.auth.emit('change');
 
