@@ -301,14 +301,14 @@ var connection = new EventEmitter();
     // Allow this auth message through
     allowThrough = true;
     // Attempt to reauth
-    doAuth(undefined, undefined, function(err, email, userid) {
+    doAuth(undefined, undefined, function(err, email, password, userid) {
 
       // If the auth fails, we make ready here and stop
       if (err) return makeReady();
 
       // Otherwise, we want to fetch user data before making ready
       allowThrough = true;
-      doAuthUser(email, userid, makeReady);
+      doAuthUser(email, password, userid, makeReady);
       allowThrough = false;
     });
     // But don't let anything else through
