@@ -10,6 +10,10 @@ var reload = function() {
   setMode(currentMode);
 };
 
+var getMode = function() {
+  return currentMode;
+};
+
 // Updates the settings mode and sets up exports
 var setMode = function(mode) {
 
@@ -32,3 +36,4 @@ reload();
 
 // Allow external modules to change the mode
 exports.setMode = setMode;
+exports.getMode = getMode;

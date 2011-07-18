@@ -46,36 +46,42 @@ var serve = function(req, res) {
         //set the ceator
         fs.creator = obj.creator;
 
-        //resize the image
-        listings.createImg(q.photo, function(err, id) {
-          //handle errors
-          if (err) {
-            res.writeHead(500, {'Content-Type': 'text/plain',
-                                'Access-Control-Allow-Origin': '*'});
-            return res.end('Server Error');
-          }
+        //generate an id for the fieldset so that we can use it now
+        fs.genId(function() {
 
-          //set the photo field
-          fs.photo = id;
+          //resize the image
+          listings.createImg(q.photo, function(err, id) {
+            //handle errors
+            if (err) {
+              res.writeHead(500, {'Content-Type': 'text/plain',
+                                  'Access-Control-Allow-Origin': '*'});
+              return res.end('Server Error');
+            }
 
-          //save the listing
-          db.apply(fs, function() {
+            //set the photo field
+            fs.photo = id;
+            //set up the email autoresponder
+            fs.email = email.makeRoute(fs._id.replace('/', '-'), '/iapi/email/' + fs._id);
 
-            // Tell the client we succeeded
-            res.writeHead(201, {'Content-Type': 'application/json',
-                                'Access-Control-Allow-Origin': '*'});
+            //save the listing
+            db.apply(fs, function() {
 
-            res.end('{"listing": "' + fs._id + '", ' +
-                    '"password": "' + obj.password + '"}');
+              // Tell the client we succeeded
+              res.writeHead(201, {'Content-Type': 'application/json',
+                                  'Access-Control-Allow-Origin': '*'});
 
-            // Generate the message
-            var msg = templating['email/listing_created'].render({id: fs._id});
+              res.end('{"listing": "' + fs._id + '", ' +
+                      '"password": "' + obj.password + '"}');
 
-            // Notify the user that their listing was posted
-            email.send(q.email, 'We\'ve Listed Your Item', msg);
+              // Generate the message
+              var msg = templating['email/listing_created'].render({id: fs._id});
 
-            //Notify hipsell that the listing was posted
-            email.send('sold@hipsell.com', 'New Listing', msg);
+              // Notify the user that their listing was posted
+              email.send(q.email, 'We\'ve Listed Your Item', msg);
+
+              // Notify hipsell that the listing was posted
+              email.send('sold@hipsell.com', 'New Listing', msg);
+            });
           });
         });
       };

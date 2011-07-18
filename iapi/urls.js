@@ -1,5 +1,6 @@
 var listings = require('./listings'),
-    auth = require('./auth');
+    auth = require('./auth'),
+    email = require('./email');
 
 
 var serve = function(req, res) {
@@ -7,6 +8,7 @@ var serve = function(req, res) {
 
   if (url.match(/^listings/)) return listings.serve(req, res);
   if (url.match(/^auth/)) return auth.serve(req, res);
+  if (url.match(/^email\/listing\/\d+$/)) return email.server(req, res);
 
   res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
   res.end('Not Found');
