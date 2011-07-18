@@ -1,6 +1,6 @@
 // TODO
 //
-// * Data read layer (relations)
+// * Relation sorting
 
 //
 // Expects the following to exist:
@@ -9,7 +9,7 @@
 //   JSON.parse :: String -> Object
 //   sha256 :: String -> String
 //   io.Socket :: [Constructor] String -> Object -> unit
-//   log :: (Variable args) -> unit
+//   console.log :: (Variable args) -> unit
 //   localStorage :: Object
 //   setTimeout :: Function -> Number -> Object
 //
@@ -819,7 +819,6 @@ zz.recordError = function(err) {
     });
   };
   zz.models.Model.prototype = new EventEmitter();
-  zz.models.Model.prototype.related = {};
   zz.models.Model.prototype.heat = function() {
     if (this.hot) throw new Error('Model is already hot');
 
