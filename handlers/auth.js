@@ -75,6 +75,28 @@ var authUser = function(email, password, callback) {
   });
 };
 
+var signup = function(email, callback) {
+  var auth = new models.Auth();
+  auth.email = email;
+  auth.password = createPassword(email);
+
+  // Also create the relevant user object
+  var user = new models.User();
+  user.avatar = gravatar.getAvatarUrl(email);
+  // In order to give the new Auth object a reference to this
+  // user, it needs to have an id.  However, since it hasn't
+  // been saved yet it doesn't have one -- as such, we manually
+  // bootstrap the fieldset and create an id.
+  user.bootstrap().genId(function() {
+    auth.creator = user._id;
+
+    // Save the records, and return success when it's done.
+    db.apply(auth, user, function() {
+      callback(auth, user);
+    });
+  });
+};
+
 var auth = function(client, data, callback, errback, force) {
 
   //
@@ -220,29 +242,14 @@ var auth = function(client, data, callback, errback, force) {
     if (bad) return callback(false);
 
     // If the user object doesn't exist, create it
-    if (!auth) {
-      auth = new models.Auth();
-      auth.email = data.email;
-      auth.password = createPassword(data.email);
-
-      // Also create the relevant user object
-      var user = new models.User();
-      user.avatar = gravatar.getAvatarUrl(data.email);
-      // In order to give the new Auth object a reference to this
-      // user, it needs to have an id.  However, since it hasn't
-      // been saved yet it doesn't have one -- as such, we manually
-      // bootstrap the fieldset and create an id.
-      user.bootstrap().genId(function() {
-        auth.creator = user._id;
-
-        // Save the records, and return success when it's done.
-        db.apply(auth, user, finish);
+    if (!auth)
+      signup(data.email, function(newAuth, user) {
+        auth = newAuth;
+        return finish();
       });
-
     // Otherwise, just wrap up.
-    } else {
+    else
       return finish();
-    }
   });
 };
 
@@ -274,3 +281,4 @@ exports.passwd = passwd;
 
 // Misc
 exports.authUser = authUser;
+exports.signup = signup;
