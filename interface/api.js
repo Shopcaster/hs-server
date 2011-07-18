@@ -947,8 +947,44 @@ zz.recordError = function(err) {
 
         // Fetch the model
         zz.data[self._type](id, function(m) {
-          self.push(m);
-          self.emit('add', m, -1);
+          // If this isn't a sorted list just push it and call it
+          // a day
+          if (!self.sorted) {
+            self.push(m);
+            self.emit('add', m, -1);
+            return;
+          }
+
+          // Otherwise, do a binary search for the position to
+          // insert at.
+          var end = self.length;
+          var start = 0;
+          i = null;
+
+          // Edge case handling, because the first item is a little
+          // funky
+          if (self._cmp(self[0], m) > 0) i = 0;
+
+          while (i === null) {
+            if (start + 1 == end) {
+              i = start + 1;
+              break;
+            }
+
+            var p = start + parseInt((end - start) / 2 + 0.5);
+
+            var c = self._cmp(self[p], m);
+            if (c == 0)
+              i = p + 1;
+            else if (c > 0)
+              end = p;
+            else // if (c < 0)
+              start = p;
+          }
+
+          // Splice the element in there, and send the event.
+          self.splice(i, 0, m);
+          self.emit('add', m, i);
         });
       }
     };
@@ -1053,6 +1089,21 @@ zz.recordError = function(err) {
     // Finally, mark this model list as cold
     this.hot = false;
     return this;
+  };
+  zz.models.ModelList.prototype.sort = function(cmp) {
+    if (!cmp) throw new Error('Sorry, unlike native .sort(), you must provide a comparator');
+
+    // Set the sorted state
+    this.sorted = true;
+    this._cmp = cmp;
+
+    // Do the initial sort
+    Array.prototype.sort.call(this, cmp);
+
+    return this;
+  };
+  zz.models.ModelList.prototype.unsort = function() {
+    delete this.sorted;
   };
 
   // Helper function -- ensures we have a sub for the specified key

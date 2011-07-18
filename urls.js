@@ -32,7 +32,7 @@ var urls = {
   '^/static/': staticServing.serve,
 
   //serve the api library
-  '^/api-interface.js': interfaceServing.serve,
+  '^/api-library.js': interfaceServing.serve,
 
   //delegate to the internal api
   '^/iapi/': iapi.serve,
