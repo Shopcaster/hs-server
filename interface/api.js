@@ -269,8 +269,10 @@ var connection = new EventEmitter();
   var ready = false;
   var delayedMessages = [];
   var allowThrough = false;
+  var inits = [];
 
   var makeReady = function() {
+
     // Ensure ready is set to true
     ready = true;
 
@@ -284,6 +286,11 @@ var connection = new EventEmitter();
     for (var i=0; i<delayedMessages.length; i++)
       try { con.send.call(con, delayedMessages[i]) }
       catch(err) { log(err) }
+
+    // Fire the inits if we need to
+    if (inits.length)
+      while (i=inits.shift())
+        i();
   };
   var makeUnready = function() {
     // Stop messages from going through
@@ -312,7 +319,8 @@ var connection = new EventEmitter();
       allowThrough = false;
     });
     // But don't let anything else through
-    allowThrough = false;
+    if (!ready)
+      allowThrough = false;
   });
 
   var holdDisconnect = false;
@@ -350,7 +358,7 @@ var connection = new EventEmitter();
   // init, but doesn't fire until init is over.
   zz.init = function(callback) {
     if (ready) callback();
-    else connection.once('connect', callback);
+    else inits.push(callback);
   };
 
   //
@@ -393,7 +401,7 @@ var connection = new EventEmitter();
       // If either of those credentials was missing from local storage
       // then fail now via the callback
       if (email === null || password === null)
-        callback(new Error("Cannot auth with stored credentials because they're missing"));
+        return callback(new Error("Cannot auth with stored credentials because they're missing"));
     }
 
     // If the password doesn't appear to be of hashed form, do that
