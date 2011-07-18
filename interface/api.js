@@ -357,13 +357,14 @@ var connection = new EventEmitter();
   // Auth stuff
   //
   var _AuthUserCur = null;
-  var AuthUser = function(user, email) {
+  var AuthUser = function(user, email, password) {
     var self = this;
 
     _AuthUserCur = user;
     _AuthUserCur.heat();
 
     this.email = email;
+    this.password = password;
     this._id = user._id;
 
     // Wire up the data
@@ -416,11 +417,11 @@ var connection = new EventEmitter();
       localStorage['zz.auth.password'] = ret.password;
 
       // Fire the callback
-      callback && callback(undefined, email, ret.userid);
+      callback && callback(undefined, email, ret.password, ret.userid);
     });
   };
 
-  var doAuthUser = function(email, userid, callback) {
+  var doAuthUser = function(email, password, userid, callback) {
     // Fetch the user object
     zz.data.user(userid, function(user) {
 
@@ -428,7 +429,7 @@ var connection = new EventEmitter();
       if (user === null) throw new Error('Null user from auth');
 
       // Save the new current user
-      curUser = new AuthUser(user, email);
+      curUser = new AuthUser(user, email, password);
 
       // Fire the success callback
       callback && callback(undefined);
@@ -442,13 +443,13 @@ var connection = new EventEmitter();
     if (zz.auth.curUser()) throw new Error('Already authed');
 
     // Do the auth steps
-    doAuth(email, password, function(err, email, userid) {
+    doAuth(email, password, function(err, email, password, userid) {
 
       // Break early on error
       if (err) return callback && callback(err);
 
       // Fetch the user object
-      doAuthUser(email, userid, function() {
+      doAuthUser(email, password, userid, function() {
         // Emit the auth change event
         zz.auth.emit('change');
 
@@ -939,14 +940,49 @@ zz.recordError = function(err) {
       for (var i=0; i<ids.length; i++) {
         var id = ids[i];
 
-        // Make sure the model isn't already here
-        for (var i=0; i<self.length; i++)
-          if (self[i]._id == id) return;
+        // For safety, we should check that the given model ID isn't
+        // already in our list.  Luckily, our Sub does this for us.
 
         // Fetch the model
         zz.data[self._type](id, function(m) {
-          self.push(m);
-          self.emit('add', m, -1);
+          // If this isn't a sorted list just push it and call it
+          // a day
+          if (!self.sorted) {
+            self.push(m);
+            self.emit('add', m, -1);
+            return;
+          }
+
+          // Otherwise, do a binary search for the position to
+          // insert at.
+          var end = self.length;
+          var start = 0;
+          i = null;
+
+          // Edge case handling, because the first item is a little
+          // funky
+          if (self._cmp(self[0], m) > 0) i = 0;
+
+          while (i === null) {
+            if (start + 1 == end) {
+              i = start + 1;
+              break;
+            }
+
+            var p = start + parseInt((end - start) / 2 + 0.5);
+
+            var c = self._cmp(self[p], m);
+            if (c == 0)
+              i = p + 1;
+            else if (c > 0)
+              end = p;
+            else // if (c < 0)
+              start = p;
+          }
+
+          // Splice the element in there, and send the event.
+          self.splice(i, 0, m);
+          self.emit('add', m, i);
         });
       }
     };
@@ -1051,6 +1087,21 @@ zz.recordError = function(err) {
     // Finally, mark this model list as cold
     this.hot = false;
     return this;
+  };
+  zz.models.ModelList.prototype.sort = function(cmp) {
+    if (!cmp) throw new Error('Sorry, unlike native .sort(), you must provide a comparator');
+
+    // Set the sorted state
+    this.sorted = true;
+    this._cmp = cmp;
+
+    // Do the initial sort
+    Array.prototype.sort.call(this, cmp);
+
+    return this;
+  };
+  zz.models.ModelList.prototype.unsort = function() {
+    delete this.sorted;
   };
 
   // Helper function -- ensures we have a sub for the specified key
