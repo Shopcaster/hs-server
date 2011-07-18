@@ -941,9 +941,8 @@ zz.recordError = function(err) {
       for (var i=0; i<ids.length; i++) {
         var id = ids[i];
 
-        // Make sure the model isn't already here
-        for (var i=0; i<self.length; i++)
-          if (self[i]._id == id) return;
+        // For safety, we should check that the given model ID isn't
+        // already in our list.  Luckily, our Sub does this for us.
 
         // Fetch the model
         zz.data[self._type](id, function(m) {
