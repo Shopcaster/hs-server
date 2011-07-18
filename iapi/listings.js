@@ -60,15 +60,13 @@ var serve = function(req, res) {
 
           //save the listing
           db.apply(fs, function() {
-            //todo - notify success to the client
+
+            // Tell the client we succeeded
             res.writeHead(201, {'Content-Type': 'application/json',
                                 'Access-Control-Allow-Origin': '*'});
 
             res.end('{"listing": "' + fs._id + '", ' +
                     '"password": "' + obj.password + '"}');
-
-            var clientServer = 'beta.hipsell.com';
-            var listingPath = '/listings/';
 
             // Generate the message
             var msg = templating['email/listing_created'].render({id: fs._id});

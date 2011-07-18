@@ -30,11 +30,12 @@ var create = function(client, data, callback, errback) {
         // Bail on errors
         if (err) return;
 
-
         // Send the notification to the listing's creator
-        nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
+        if (fs.creator != listing.creator)
+          nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
         // Send the notificaton to the offer's creator
-        nots.send(convo.creator, nots.Types.NewMessage, fs, listing);
+        if (fs.creator != convo.creator)
+          nots.send(convo.creator, nots.Types.NewMessage, fs, listing);
       });
     });
   });
