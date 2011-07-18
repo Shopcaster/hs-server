@@ -3,6 +3,7 @@
 
 //  * Mailgun; for email sending
 var mailgun = require('mailgun'),
+    crypto = require('crypto'),
     db = require('./db'),
     models = require('./models'),
     settings = require('./settings');
@@ -143,8 +144,20 @@ var makeRoute = function(email, dest) {
   return email;
 };
 
+// Verifies the authenticity of webhooks for Mailgun's HTTP callbacks.
+// See http://documentation.mailgun.net/Documentation/DetailedDocsAndAPIReference#HTTP_POST_Authentication
+// for details.
+var verify = function(timestamp, token, signature) {
+  var msg = timestamp + token;
+  var key = mgSettings.apiKey;
+  var algo = 'sha256';
+
+  return crypto.createHmac(algo, key).update(msg).digest('hex') == signature;
+};
+
 // Expose only the init function and email sending.
 exports.init = init;
 exports.send = send;
 exports.sendToUser = sendToUser;
 exports.makeRoute = makeRoute;
+exports.verify = verify;
