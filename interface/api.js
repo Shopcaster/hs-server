@@ -387,7 +387,7 @@ var connection = new EventEmitter();
   };
   AuthUser.prototype = new EventEmitter();
   AuthUser.prototype.destroy = function() {
-    this.freeze();
+    _AuthUserCur.freeze();
     this.removeAllListeners('name');
     this.removeAllListeners('avatar');
   };
@@ -1016,13 +1016,19 @@ zz.recordError = function(err) {
     };
 
     // This is a helper function that bootstraps all the data.
-    var bootstrap = function(ids) {
+    var bootstrap = function(_ids) {
       // Collect current ids
       var curIds = [];
       for (var i=0; i<self.length; i++)
         curIds.push(self[i]._id);
 
-      ids.sort()
+      // Clone _ids so that we don't shift it into oblivion
+      var ids = [];
+      for (var i=0; i<_ids.length; i++)
+        ids.push[_ids[i]];
+
+      // Sort them so that we can optimize
+      ids.sort();
       curIds.sort();
 
       // Find things we need to add and remove
