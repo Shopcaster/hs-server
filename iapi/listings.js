@@ -7,7 +7,6 @@ var querystring = require('querystring'),
     auth = require('../handlers/auth');
 
 var serve = function(req, res) {
-  console.log(req.method);
   //only serve posts and cors
   if (req.method == 'OPTIONS') {
     res.writeHead(200, {'Access-Control-Allow-Origin': '*',
