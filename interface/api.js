@@ -137,7 +137,7 @@ zz.logging.outgoing = {
   auth: false,
   deauth: false,
   passwd: false,
-  sub: true,
+  sub: false,
   unsub: false,
   create: false,
   update: false,
