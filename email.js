@@ -3,8 +3,10 @@
 
 //  * Mailgun; for email sending
 var mailgun = require('mailgun'),
+    crypto = require('crypto'),
     db = require('./db'),
-    models = require('./models');
+    models = require('./models'),
+    settings = require('./settings');
 
 // These are the static mailgun settings.  Nothing too fancy going on
 // here, but if we ever publish this source code these should be
@@ -63,11 +65,11 @@ var send = function(to, subject, body) {
              body;
 
   // Use the raw send command since we're going the MIME route.  We
-  // *aren't* settings the sender field, as this will let Mailgun
+  // *aren't* setting the sender field, as this will let Mailgun
   // default to whatever sender we've set up.  If we ever have more
   // than one sender though, we're going to need to choose which one
   // we're sending from right here, or the mail won't send.
-  mail.sendRaw(mgSettings.sender, [to], mime, null, function(err) {
+  mail.sendRaw(mgSettings.sender, [to], mime, 'hipsell.me', function(err) {
     // So at the moment we're silently failing on errors.  In the
     // future we'll probably want to log that failure in the DB and
     // handle it somehow.
@@ -103,7 +105,59 @@ var sendToUser = function(userId, subject, body) {
   });
 };
 
+// This sets up a route from the designated email address to a url on
+// this server.  For example, from `listing-1` to `/iapi/email/listing/1`.
+// Note that this won't function at all in testing or development mode,
+// and that it will ensure that email addresses are unique across
+// staging and production.
+//
+// Because it may have to modify the supplied email address, this
+// function returns the email that was used to create the route.
+var makeRoute = function(email, dest) {
+
+  // Find out what mode we're in.
+  var mode = settings.getMode();
+
+  // If it's `testing` or `development`, print to the console rather than
+  // setting up the actual route, as our endpoint is unlikely to be
+  // reachable
+  if (mode == 'test' || mode == 'development') {
+    console.log('New email route from ' + email + '@hipsell.me --> ' + dest);
+    console.log('');
+    return email + '@hipsell.me';
+  }
+
+  // Add suffixes specific to server mode, to ensure uniqueness.
+  if (mode == 'production') {
+    // Do nothing for production, so that they're the prettiest.
+  } else if (mode == 'staging') {
+    email = email + '-stg';
+  }
+
+  // Add the domain to the email address to use.
+  email = email + '@hipsell.me';
+
+  // Now create the route.
+  mail.createRoute(email, settings.serverUri + dest);
+
+  // And return the email address we used to the caller.
+  return email;
+};
+
+// Verifies the authenticity of webhooks for Mailgun's HTTP callbacks.
+// See http://documentation.mailgun.net/Documentation/DetailedDocsAndAPIReference#HTTP_POST_Authentication
+// for details.
+var verify = function(timestamp, token, signature) {
+  var msg = timestamp + token;
+  var key = mgSettings.apiKey;
+  var algo = 'sha256';
+
+  return crypto.createHmac(algo, key).update(msg).digest('hex') == signature;
+};
+
 // Expose only the init function and email sending.
 exports.init = init;
 exports.send = send;
 exports.sendToUser = sendToUser;
+exports.makeRoute = makeRoute;
+exports.verify = verify;

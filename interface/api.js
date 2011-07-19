@@ -387,8 +387,9 @@ var connection = new EventEmitter();
   };
   AuthUser.prototype = new EventEmitter();
   AuthUser.prototype.destroy = function() {
-    _AuthUserCur.freeze();
-    _AuthUserCur = null;
+    this.freeze();
+    this.removeAllListeners('name');
+    this.removeAllListeners('avatar');
   };
 
   var doAuth = function(email, password, callback) {
@@ -738,7 +739,7 @@ zz.recordError = function(err) {
       var d = data[i];
 
       // Data conversion
-      if (typeof d == 'object' && d.type) {
+      if (d && typeof d == 'object' && d.type) {
         // Date
         if (d.type == 'date')
           d = new Date(d.val + 1307042003319);

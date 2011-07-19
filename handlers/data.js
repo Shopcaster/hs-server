@@ -53,7 +53,6 @@ var validators = {
 var specialHandlers = {
   'listing': require('./data-handling/listing'),
   'offer': require('./data-handling/offer'),
-  'inquiry': require('./data-handling/inquiry'),
   'message': require('./data-handling/message')
 };
 

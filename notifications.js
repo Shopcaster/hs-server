@@ -5,8 +5,6 @@ var presence = require('./presence'),
 
 // Notification types
 var Types = {
-  NewQuestion: 0,
-  NewAnswer: 1,
   NewOffer: 2,
   NewMessage: 3,
 
@@ -14,14 +12,10 @@ var Types = {
 };
 
 var emails = {};
-emails[Types.NewQuestion] = templating['email/new_question'];
-emails[Types.NewAnswer] = templating['email/new_answer'];
 emails[Types.NewOffer] = templating['email/new_offer'];
 emails[Types.NewMessage] = templating['email/new_message'];
 
 var messages = {};
-messages[Types.NewQuestion] = 'New question on your listing';
-messages[Types.NewAnswer] = 'New answer on your question';
 messages[Types.NewOffer] = 'New offer on your listing';
 messages[Types.NewMessage] = 'New message on an offer';
 

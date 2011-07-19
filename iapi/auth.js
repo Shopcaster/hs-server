@@ -9,12 +9,20 @@ var serve = function(req, res) {
     res.writeHead(405, {'Content-Type': 'text/html; charset=utf-8'});
     res.end('Method Not Allowed');
     return;
+  // CORS
+  } else if (req.method == 'OPTIONS') {
+    res.writeHead(200, {'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Method': req.headers['access-control-request-method'],
+                        'Access-Control-Allow-Headers': req.headers['access-control-request-headers']});
+    res.end('');
+    return;
   }
 
   //parse the query
   var q = querystring.parse(req.url.split('?')[1]);
   if (!q || !q.email) {
-    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
+    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8',
+                                        'Access-Control-Allow-Origin': '*'});
     res.end('Bad Request');
     return;
   }
@@ -24,7 +32,8 @@ var serve = function(req, res) {
 
     // If something went wrong with the db just throw an error
     if (err) {
-      res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
+      res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8',
+                                          'Access-Control-Allow-Origin': '*'});
       res.end('Server Error');
       return;
     }
@@ -33,20 +42,23 @@ var serve = function(req, res) {
     // client the record doesn't exist, which will let them know that
     // they don't need to look for a password.
     if (!obj) {
-      res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
+      res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8',
+                                          'Access-Control-Allow-Origin': '*'});
       res.end('Not Found');
       return;
     }
 
     // If passwords match, send success
     if (obj.password == q.password) {
-      res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+      res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8',
+                                          'Access-Control-Allow-Origin': '*'});
       res.end('OK');
       return
     }
 
     // Otherwise, tell them they had an issue
-    res.writeHead(403, {'Content-Type': 'text/html; charset=utf-8'});
+    res.writeHead(403, {'Content-Type': 'text/html; charset=utf-8',
+                                        'Access-Control-Allow-Origin': '*'});
     res.end('Forbidden');
   });
 

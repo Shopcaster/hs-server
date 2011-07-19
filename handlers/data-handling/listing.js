@@ -39,28 +39,35 @@ var create = function(client, data, callback, errback) {
   // Set the creator
   fs.creator = client.state.auth.creator;
 
-  // Resize their image
-  createImg(data.photo, function(err, id) {
+  // Generate an ID for this fieldset *now* so that we can use it
+  // when generating the email autoresponder
+  fs.genId(function() {
 
-    // Handle errors
-    if (err) return errback('Server error');
+    // Resize their image
+    createImg(data.photo, function(err, id) {
 
-    // Update the image field
-    fs.photo = id;
+      // Handle errors
+      if (err) return errback('Server error');
 
-    // Save the listing
-    db.apply(fs, function() {
-      // Return the id to the client
-      callback(fs._id);
+      // Update the image field
+      fs.photo = id;
+      // Set up the email autoresponder
+      fs.email = email.makeRoute(fs._id.replace('/', '-'), '/iapi/email/' + fs._id);
 
-      // Generate the email message
-      var msg = templating['email/listing_created'].render({id: fs._id});
+      // Save the listing
+      db.apply(fs, function() {
+        // Return the id to the client
+        callback(fs._id);
 
-      // Notify the user that their listing was posted
-      email.send(client.state.auth.email, 'We\'ve Listed Your Item', msg);
+        // Generate the email message
+        var msg = templating['email/listing_created'].render({id: fs._id});
 
-      //Notify hipsell that the listing was posted
-      email.send('sold@hipsell.com', 'New Listing', msg);
+        // Notify the user that their listing was posted
+        email.send(client.state.auth.email, 'We\'ve Listed Your Item', msg);
+
+        //Notify hipsell that the listing was posted
+        email.send('sold@hipsell.com', 'New Listing', msg);
+      });
     });
   });
 };
