@@ -1,8 +1,37 @@
-<h1>Crosspost Instructions</h1>
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    textarea{
+      width:500px;
+      height:100px;
+    }
+    input{
+      width:500px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Crosspost Instructions</h1>
 
-<h3>Description</h3>
-<textarea>
-{{ listing.description }}
-</textarea>
+  <h3>Title</h3>
+  <input type="text" value="{{ title }}">
 
-TODO
+  <h3>Price</h3>
+  <input type="text" value="{{listing.price}}">
+
+  <h3>Location</h3>
+  <a href="http://maps.google.com/?q=loc:{{listing.latitude}},{{listing.longitude}}&z=16">
+      Google Maps</a><br>
+  <input type="text" value="{{address}}">
+
+  <h3>Description</h3>
+  <textarea>
+    {{ listing.description }}
+  </textarea>
+
+  <h3>Image</h3>
+  <img src="/static/{{listing.photo}}">
+
+</body>
+<html>
