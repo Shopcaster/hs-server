@@ -32,7 +32,7 @@ config.datatypes = [
 //
 // Node.js style EventEmitter
 //
-var EventEmitter = function() {};
+var EventEmitter = function EventEmitter() {};
 EventEmitter.prototype = {};
 
 
