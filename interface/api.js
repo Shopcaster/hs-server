@@ -1,7 +1,3 @@
-// TODO
-//
-// * Relation sorting
-
 //
 // Expects the following to exist:
 //
@@ -263,7 +259,8 @@ var connection = new EventEmitter();
 (function() {
   var con = new io.Socket(/*$host$*/, {
     secure: /*$secure$*/,
-    port: /*$port$*/
+    port: /*$port$*/,
+    rememberTransport: false
   });
 
   var ready = false;

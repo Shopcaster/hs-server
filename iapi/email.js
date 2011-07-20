@@ -60,4 +60,4 @@ var serve = function(req, res) {
   });
 };
 
-exports.server = serve;
+exports.serve = serve;
