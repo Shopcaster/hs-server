@@ -1025,7 +1025,7 @@ zz.recordError = function(err) {
       // Clone _ids so that we don't shift it into oblivion
       var ids = [];
       for (var i=0; i<_ids.length; i++)
-        ids.push[_ids[i]];
+        ids.push(_ids[i]);
 
       // Sort them so that we can optimize
       ids.sort();
