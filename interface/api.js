@@ -381,6 +381,7 @@ var connection = new EventEmitter();
       this[fields[i]] = user[fields[i]];
       user.on(fields[i], function(val) {
         self[fields[i]] = val;
+        self.emit(fields[i], val);
       });
     }
   };
