@@ -374,7 +374,7 @@ var connection = new EventEmitter();
 
     // Wire up the data
     var self = this;
-    var fields = ['name', 'avatar'];
+    var fields = ['name', 'avatar', 'fb', 'twitter', 'linkedin'];
     for (var i=0; i<fields.length; i++) with ({i: i}) {
       this[fields[i]] = user[fields[i]];
       user.on(fields[i], function(val) {
@@ -387,6 +387,9 @@ var connection = new EventEmitter();
     _AuthUserCur.freeze();
     this.removeAllListeners('name');
     this.removeAllListeners('avatar');
+    this.removeAllListeners('fb');
+    this.removeAllListeners('twitter');
+    this.removeAllListeners('linkedin');
   };
 
   var doAuth = function(email, password, callback) {
