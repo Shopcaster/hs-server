@@ -49,7 +49,9 @@ var serve = function(req, res) {
       res.end('OK');
 
       // Send the autoreply to the sender
-      email.send(data.sender, 'Re: ' + data.subject, templating['email/autoresponse'].render());
+      email.send(data.sender,
+                'Re: ' + data.subject,
+                templating['email/autoresponse'].render({listing: listing}));
 
       // Forward the email contents to sold@hipsell.com
       email.send('sold@hipsell.com', 'AR: ' + data.subject, data['body-plain']);
@@ -58,4 +60,4 @@ var serve = function(req, res) {
   });
 };
 
-exports.server = serve;
+exports.serve = serve;

@@ -17,7 +17,7 @@ emails[Types.NewMessage] = templating['email/new_message'];
 
 var messages = {};
 messages[Types.NewOffer] = 'New offer on your listing';
-messages[Types.NewMessage] = 'New message on an offer';
+messages[Types.NewMessage] = 'New message on a listing';
 
 var send = function(uid, type, fs, other) {
   // Get the user's presence
