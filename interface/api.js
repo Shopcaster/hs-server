@@ -1,3 +1,5 @@
+// newListener on ModelLists and Models is kinda funky
+
 //
 // Expects the following to exist:
 //
@@ -825,12 +827,13 @@ zz.recordError = function(err) {
 
     var self = this;
     this.on('newListener', function(event, listener) {
-      if (event != 'newListeners') self._levents[event] = true;
+      if (event != 'newListener') self._levents[event] = true;
     });
   };
   zz.models.Model.prototype = new EventEmitter();
   zz.models.Model.prototype.heat = function() {
-    if (this.hot) throw new Error('Model is already hot');
+    if (this.hot)
+      throw new Error('Model is already hot');
 
     // This is a helper function that bootstraps all the data.
     var bootstrap = function(data) {
@@ -888,10 +891,8 @@ zz.recordError = function(err) {
     this._sub.release();
     this._sub = null;
     // Unregister all events registered on this model
-    for (var i=0; i<this._levents.length; i++) {
-      var event = this._levents[i];
-      this.removeAllListeners(event)
-    }
+    for (var i in this._levents) if (this._levents.hasOwnProperty(i))
+      this.removeAllListeners(i)
     this._levents = {};
 
     // Finally, mark this model as cold
@@ -916,7 +917,7 @@ zz.recordError = function(err) {
     // can remove them.
     var self = this;
     this.on('newListener', function(event, listener) {
-      if (event != 'newListeners') self._levents[event] = true;
+      if (event != 'newListener') self._levents[event] = true;
     });
 
     // Fetch all models and insert them
@@ -1093,10 +1094,8 @@ zz.recordError = function(err) {
     this._sub.release();
     this._sub = null;
     // Unregister all events registered on this model
-    for (var i=0; i<this._levents.length; i++) {
-      var event = this._levents[i];
-      this.removeAllListeners(event)
-    }
+    for (var i in this._levents) if (this._levents.hasOwnProperty(i))
+      this.removeAllListeners(i)
     this._levents = {};
 
     // Finally, mark this model list as cold
