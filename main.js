@@ -22,7 +22,7 @@ var cli = require('cli'),
 
 cli.parse({
   mode: [false, 'Server mode (development, production, staging, test)', 'string', 'development'],
-  port: ['p', 'Listen on this port', 'number', 8000],
+  port: ['p', 'Listen on this port', 'number', 8080],
   host: ['s', 'Listen on this hostname', 'string', '0.0.0.0'],
   dbhost: [false, 'Database server hostname', 'string', 'localhost'],
   dbport: [false, 'Database server port', 'number', 27017],
