@@ -35,7 +35,7 @@ config.datatypes = [
 var EventEmitter = function EventEmitter() {};
 EventEmitter.prototype = {};
 
-
+var idd = 0;
 EventEmitter.prototype.on = function(event, listener) {
   if (!this._listeners) this._listeners = {};
   if (!this._listeners[event]) this._listeners[event] = [];
@@ -917,9 +917,13 @@ zz.recordError = function(err) {
     // Whenever listeners are registered, we should record them so we
     // can remove them.
     var self = this;
-    this.on('newListener', function(event, listener) {
-      if (event != 'newListener') self._levents[event] = true;
-    });
+    // Slight hack to avoid adding listeners too soon.  In the future
+    // this will be solved by making ModelList more inheritable
+    if (key) {
+      this.on('newListener', function(event, listener) {
+        if (event != 'newListener') self._levents[event] = true;
+      });
+    }
 
     // Fetch all models and insert them
     var toFetch = ids.length;
