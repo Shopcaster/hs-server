@@ -152,7 +152,9 @@ var verify = function(timestamp, token, signature) {
   var key = mgSettings.apiKey;
   var algo = 'sha256';
 
-  return crypto.createHmac(algo, key).update(msg).digest('hex') == signature;
+  console.log(msg, key, signature);
+
+  return crypto.createHmac(algo, key).update(msg+'').digest('hex') == signature;
 };
 
 // Expose only the init function and email sending.
