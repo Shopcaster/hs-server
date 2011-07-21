@@ -24,6 +24,7 @@ if __name__ == '__main__':
     #to handle
     if exif:
         exif = exif.items()
+        exif = dict(exif)
         if orientation in exif:
             if exif[orientation] == 3:
                 img = img.rotate(180, Image.BICUBIC, True)
