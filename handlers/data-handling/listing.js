@@ -66,7 +66,8 @@ var create = function(client, data, callback, errback) {
         email.send(client.state.auth.email, 'We\'ve Listed Your Item', msg);
 
         //Notify hipsell that the listing was posted
-        email.send('sold@hipsell.com', 'New Listing', msg);
+        email.send('sold@hipsell.com', 'New Listing',
+          templating['email/listing_created_cc'].render({id: fs._id}));
       });
     });
   });
