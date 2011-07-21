@@ -209,7 +209,7 @@ var messaging = new EventEmitter();
     var to = setTimeout(function() {
       // Increment the pending responses count.  If it was 0 prior to
       // this, then we need to fire the `waiting` event on zz.
-      if (pendingResponses++ == 0) {
+      if (++pendingResponses > 0) {
         zz.emit('waiting');
         if (zz.logging.waiting) log('Waiting');
       }
@@ -225,7 +225,7 @@ var messaging = new EventEmitter();
       // If the timeout was fired, decrement the pending responses count
       // and fire the `done` message if it's back to 0
       if (to === null) {
-        if (--pendingResponses === 0) {
+        if (--pendingResponses <= 0) {
           zz.emit('done');
           if (zz.logging.waiting) log('Done Waiting');
         }
