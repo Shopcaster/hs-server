@@ -36,7 +36,7 @@ var serve = function(req, res) {
 
       // Parse the data as x-www-form-urlencoded
       data = querystring.parse(data);
-
+      console.log(data);
       // Verify the request
       if (!email.verify(data.timestamp, data.token, data.signature)) {
         res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
