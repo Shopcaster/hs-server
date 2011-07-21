@@ -148,7 +148,7 @@ var makeRoute = function(email, dest) {
 // See http://documentation.mailgun.net/Documentation/DetailedDocsAndAPIReference#HTTP_POST_Authentication
 // for details.
 var verify = function(timestamp, token, signature) {
-  var msg = timestamp + token;
+  var msg = ('' + timestamp) + ('' + token);
   var key = mgSettings.apiKey;
   var algo = 'sha256';
 
