@@ -56,25 +56,6 @@ var makeNiceId = function(collection, callback) {
   });
 };
 
-// Fixes data coming from the database
-var fixOutgoing = function(data) {
-  var fixOne = function(data) {
-    for (var i in data) if (data.hasOwnProperty(i)) {
-      // If there's a `toNumber` function available, it's a Long
-      // and needs to be converted down.
-      if (data[i].toNumber) data[i] = data[i].toNumber();
-    }
-  }
-
-  if (data instanceof Array)
-    for (var i=0; i<data.length; i++)
-      fixOne(data[i]);
-  else
-    fixOne(data);
-
-  return data;
-};
-
 ///////////////////////////////
 // DB Stuff
 ///////////////////////////////
@@ -204,7 +185,7 @@ var get = function(fs, callback) {
         return callback(false, false);
 
       // Fix the fields
-      fs.merge(fixOutgoing(obj));
+      fs.merge(obj);
       callback(false, true);
     });
   });
@@ -218,7 +199,7 @@ var queryOne = function(type, q, callback) {
     if (err) console.log(err.stack) || callback(true);
     else col.find(q).limit(1).nextObject(function(err, obj) {
       if (err) console.log(err.stack) || callback(true);
-      else callback(false, obj && new type().merge(fixOutgoing(obj)));
+      else callback(false, obj && new type().merge(obj));
     });
   });
 };
@@ -253,7 +234,6 @@ var query = function(type, q, callback) {
         return; callback(true);
       }
 
-      fixOutgoing(objs);
       var fss = [];
       for (var i=0; i<objs.length; i++)
         fss.push(genType().merge(objs[i]));
