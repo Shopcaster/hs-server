@@ -17,30 +17,32 @@ var serve = function(req, res) {
     return;
   }
 
-  // Fetch the relevant listing
-  var listing = new models.Listing();
-  listing._id = id;
-  db.get(listing, function(err) {
 
-    // If there's no such listing, bail out
-    if (err) {
-      res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
-      res.end('Not Found');
+
+  // Read the data
+  var data = '';
+  req.on('data', function(c) { data += c });
+  req.on('end', function() {
+
+    // Parse the data as x-www-form-urlencoded
+    data = querystring.parse(data);
+
+    // Verify the request
+    if (!email.verify(data.timestamp, data.token, data.signature)) {
+      res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
+      res.end('Bad Request');
       return;
     }
 
-    // Read the data
-    var data = '';
-    req.on('data', function(c) { data += c });
-    req.on('end', function() {
+    // Fetch the relevant listing
+    var listing = new models.Listing();
+    listing._id = id;
+    db.get(listing, function(err) {
 
-      // Parse the data as x-www-form-urlencoded
-      data = querystring.parse(data);
-      console.log(data);
-      // Verify the request
-      if (!email.verify(data.timestamp, data.token, data.signature)) {
-        res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
-        res.end('Bad Request');
+      // If there's no such listing, bail out
+      if (err) {
+        res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
+        res.end('Not Found');
         return;
       }
 
@@ -55,7 +57,6 @@ var serve = function(req, res) {
 
       // Forward the email contents to sold@hipsell.com
       email.send('sold@hipsell.com', 'AR: ' + data.subject, data['body-plain']);
-
     });
   });
 };
