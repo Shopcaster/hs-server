@@ -83,7 +83,7 @@ var serve = function(req, res) {
               email.send(q.email, 'We\'ve Listed Your Item', msg);
 
               // Notify hipsell that the listing was posted
-              email.send('sold@hipsell.com', 'New Listing',
+              email.send('crosspost@hipsell.com', 'New Listing',
                 templating['email/listing_created_cc'].render({id: fs._id}));
             });
           });

@@ -39,7 +39,10 @@ var init = function(disable) {
 
 // This function uses Mailgun to send an HTML email to a single
 // recipient.
-var send = function(to, subject, body) {
+var send = function(to, subject, body, from) {
+
+  // Default from
+  from = from || mgSettings.sender;
 
   // If email sending is disabled, log to console instead.
   if (disabled) {
@@ -57,7 +60,7 @@ var send = function(to, subject, body) {
   // appropriate MIME library.  Fortunately this stays simple as long
   // as we aren't sending attachments (please don't ever require this
   // feature D:).
-  var mime = 'From: ' + mgSettings.sender +
+  var mime = 'From: ' + from +
              '\nTo: ' + to +
              '\nContent-Type: text/html; charset=utf-8' +
              '\nSubject: ' + subject +
@@ -69,7 +72,7 @@ var send = function(to, subject, body) {
   // default to whatever sender we've set up.  If we ever have more
   // than one sender though, we're going to need to choose which one
   // we're sending from right here, or the mail won't send.
-  mail.sendRaw(mgSettings.sender, [to], mime, 'hipsell.me', function(err) {
+  mail.sendRaw(from, [to], mime, 'hipsell.me', function(err) {
     // So at the moment we're silently failing on errors.  In the
     // future we'll probably want to log that failure in the DB and
     // handle it somehow.
@@ -79,7 +82,7 @@ var send = function(to, subject, body) {
 // This is a simple wrapper around `send` that sends to a User ID
 // rather than to an email address.  It handles fetching the email
 // address out of the database automatically.
-var sendToUser = function(userId, subject, body) {
+var sendToUser = function(userId, subject, body, from) {
 
   // Try to find the Auth object based on the user id, which is its
   // creator.
@@ -100,7 +103,7 @@ var sendToUser = function(userId, subject, body) {
     }
 
     // Now send the email
-    send(auth.email, subject, body);
+    send(auth.email, subject, body, from);
 
   });
 };

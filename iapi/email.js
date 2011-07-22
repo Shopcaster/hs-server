@@ -52,11 +52,14 @@ var serve = function(req, res) {
 
       // Send the autoreply to the sender
       email.send(data.sender,
-                'Re: ' + data.subject,
-                templating['email/autoresponse'].render({listing: listing}));
+                 'Re: ' + data.subject,
+                 templating['email/autoresponse'].render({listing: listing}),
+                 data.recipient);
 
       // Forward the email contents to sold@hipsell.com
-      email.send('sold@hipsell.com', 'AR: ' + data.subject, data['body-plain']);
+      email.send('sold@hipsell.com',
+                 'Autoreply For: ' + data.subject,
+                 '<h4>Original Sender: ' + data.sender + '</h4>' + data['body-plain']);
     });
   });
 };
