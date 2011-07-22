@@ -746,6 +746,14 @@ zz.recordError = function(err) {
         // Date
         if (d.type == 'date')
           d = new Date(d.val + 1307042003319);
+
+        // We have to do a manual comparison
+        if (+this.data[i] == +d) {
+          this.data[i] = d;
+          this.eimt('field', i, d);
+        }
+
+        continue;
       }
 
       // Only update fields if they're different
