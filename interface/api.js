@@ -1286,6 +1286,7 @@ var validate = function(data) {
       case 'string':
       case 'boolean':
       case 'number':
+      case 'object':
         continue;
       default:
         throw new Error("Can't send data of type " + typeof d + " in field " + i);
