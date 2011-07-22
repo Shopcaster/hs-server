@@ -12,7 +12,7 @@ var templates = {};
 //     This is a bunch of text and {{ [javascript expression] }} is a
 //     variable insertion!
 //
-var tre = /{{\s*(.+?)\s*}}/
+var tre = /{{[\s\r\n]*([\s\S]+?)[\s\r\n]*}}/;
 
 var Template = function(f) {
   // Load the template

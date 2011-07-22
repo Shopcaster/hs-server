@@ -205,13 +205,14 @@ var queryOne = function(type, q, callback) {
 };
 
 var query = function(type, q, callback) {
-  q.deleted = false;
+  // Don't query deleted fields
+  q.deleted = {$ne: true};
 
   var typeName = '';
   if (typeof type == 'string') {
     typeName = type;
     var genType = function() { return new FieldSet(typeName); };
-  } else if (type instanceof FieldSet) {
+  } else if (type && type.prototype && type.prototype instanceof FieldSet) {
     typeName = type.prototype.getCollection();
     var genType = function() { return new type(); };
   } else {
@@ -230,7 +231,7 @@ var query = function(type, q, callback) {
 
     col.find(q).toArray(function(err, objs) {
       if (err) {
-        console.log(err.stack)
+        console.log(err)
         return; callback(true);
       }
 

@@ -1,7 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
   <style>
+    .done {background-color: #DFD;}
+    .editing {background-color: #FFD;}
+
+    h2 {color: blue;}
+
     textarea{
       width:500px;
       height:100px;
@@ -11,8 +16,13 @@
     }
   </style>
 </head>
-<body>
+<body
+{{ if (listing.done) 'class="done"';
+   else if (listing.done === false) 'class="editing"'; }}
+>
   <h1>Crosspost Instructions</h1>
+  {{ if (listing.done) '<h2>This listing has been crossposting</h2>'; }}
+  {{ if (listing.done === false) '<h2>This listing is being crossposted by someone else</h2>'; }}
 
   <h3>Title</h3>
   <input type="text" value="{{ title }}">
@@ -33,6 +43,15 @@
 
   <h3>Email</h3>
   <input value="{{ listing.email }}">
+
+  {{
+    if (!listing.done)
+      '<br /><br /><form method="GET">' +
+        '<input type="hidden" name="done" value="true">' +
+        '<input type="submit" value="Mark Done">' +
+      '</form>';
+
+  }}
 
 </body>
 <html>

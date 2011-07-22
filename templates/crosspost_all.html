@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+    li {list-style-type: none;}
+    li.editing {background-color: yellow;}
+    li.done {background-color: green;}
+    </style>
+  </head>
+  <body>
+    <h1>Listings to Crosspost</h1>
+    See the list below.  Green listings have already been crossposted,
+    and yellow listings are in the process of being crossposted by
+    someone else.
+
+    <h3>{{ listings.length}} Listings</h3>
+    <ul>
+    {{
+      var op = '';
+      for (var i=0; i<listings.length; i++) {
+        var l = listings[i];
+        var h = '<a href="/iapi/crosspost/' + l._id + '">' + l._id + '</a>';
+        //h += ' - Modified ' + listings[i].modified;
+
+        if (l.done === false)
+          h = '<li class="editing">' + h + '</li>';
+        else if (l.done)
+          h = '<li class="done">' + h + '</li>';
+        else
+          h = '<li>' + h + '</li>';
+
+        op += h;
+      }
+
+      op;
+    }}
+    </ul>
+  </body>
+</html>
