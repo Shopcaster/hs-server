@@ -53,6 +53,8 @@ var create = function(client, data, callback, errback) {
       fs.photo = id;
       // Set up the email autoresponder
       fs.email = email.makeRoute(fs._id.replace('/', '-'), '/iapi/email/' + fs._id);
+      // Default accepted offer to null
+      fs.accepted = null;
 
       // Save the listing
       db.apply(fs, function() {
