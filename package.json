@@ -18,7 +18,8 @@
     "mongodb": "latest",
     "colors": "latest",
     "websocket-client": "latest",
-    "uglify-js": "latest"
+    "uglify-js": "latest",
+    "formidable": "latest"
   },
 
   "bin": {"hss": "./main.js"}
