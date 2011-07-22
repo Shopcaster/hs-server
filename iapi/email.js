@@ -17,8 +17,6 @@ var serve = function(req, res) {
     return;
   }
 
-
-
   // Read the data
   var data = '';
   req.on('data', function(c) { data += c });
@@ -28,7 +26,12 @@ var serve = function(req, res) {
     data = querystring.parse(data);
 
     // Check if this is from craiglist
-    var fromCraig = !!data.sender.match(/noreply@craigslist.org/);
+    var fromCraig = false;
+    try {
+      fromCraig = !!data.sender.match(/noreply@craigslist.org/);
+    } catch (err) {
+      fromCraig = true; // Meh
+    }
 
     // Verify any requests from non-craiglist
     if (!fromCraig && !email.verify(data.timestamp, data.token, data.signature)) {
@@ -40,7 +43,7 @@ var serve = function(req, res) {
     // Forward the email contents to sold@hipsell.com
     email.send('sold@hipsell.com',
                'Autoreply For: ' + data.subject,
-               '<h4>Original Sender: ' + data.sender + '</h4>' + data['body-plain']);
+               '<h4>Original Sender: ' + data.sender + '</h4>' + data['body-plain'] || data);
 
     // If it's from craigslist bail out now
     if (fromCraig) {
