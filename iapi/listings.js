@@ -63,6 +63,8 @@ var serve = function(req, res) {
             fs.email = email.makeRoute(fs._id.replace('/', '-'), '/iapi/email/' + fs._id);
             // Default accepted offer to null
             fs.accepted = null;
+            // Default sold to false
+            fs.sold = false;
 
             //save the listing
             db.apply(fs, function() {

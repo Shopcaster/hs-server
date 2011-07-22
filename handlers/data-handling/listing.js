@@ -55,6 +55,8 @@ var create = function(client, data, callback, errback) {
       fs.email = email.makeRoute(fs._id.replace('/', '-'), '/iapi/email/' + fs._id);
       // Default accepted offer to null
       fs.accepted = null;
+      // Default sold to false
+      fs.sold = false;
 
       // Save the listing
       db.apply(fs, function() {
