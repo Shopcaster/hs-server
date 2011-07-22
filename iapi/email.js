@@ -27,10 +27,25 @@ var serve = function(req, res) {
     // Parse the data as x-www-form-urlencoded
     data = querystring.parse(data);
 
-    // Verify the request
-    if (!email.verify(data.timestamp, data.token, data.signature)) {
+    // Check if this is from craiglist
+    var fromCraig = !!data.sender.match(/noreply@craigslist.org/);
+
+    // Verify any requests from non-craiglist
+    if (!fromCraig && !email.verify(data.timestamp, data.token, data.signature)) {
       res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
       res.end('Bad Request');
+      return;
+    }
+
+    // Forward the email contents to sold@hipsell.com
+    email.send('sold@hipsell.com',
+               'Autoreply For: ' + data.subject,
+               '<h4>Original Sender: ' + data.sender + '</h4>' + data['body-plain']);
+
+    // If it's from craigslist bail out now
+    if (fromCraig) {
+      res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+      res.end('OK');
       return;
     }
 
@@ -52,17 +67,10 @@ var serve = function(req, res) {
 
       // Send the autoreply to the sender -- skip if it's from craiglist
       // though.
-      if (!data.sender.match(/noreply@craiglist.org/)) {
-        email.send(data.sender,
-                   'Re: ' + data.subject,
-                   templating['email/autoresponse'].render({listing: listing}),
-                   data.recipient);
-      }
-
-      // Forward the email contents to sold@hipsell.com
-      email.send('sold@hipsell.com',
-                 'Autoreply For: ' + data.subject,
-                 '<h4>Original Sender: ' + data.sender + '</h4>' + data['body-plain']);
+      email.send(data.sender,
+                 'Re: ' + data.subject,
+                 templating['email/autoresponse'].render({listing: listing}),
+                 data.recipient);
     });
   });
 };
