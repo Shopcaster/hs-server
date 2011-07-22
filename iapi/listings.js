@@ -46,7 +46,7 @@ var serve = function(req, res) {
         fs.creator = obj.creator;
 
         //generate an id for the fieldset so that we can use it now
-        fs.genId(function() {
+        fs.bootstrap().genId(function() {
 
           //resize the image
           listings.createImg(q.photo, function(err, id) {

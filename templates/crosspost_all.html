@@ -20,7 +20,7 @@
       for (var i=0; i<listings.length; i++) {
         var l = listings[i];
         var h = '<a href="/iapi/crosspost/' + l._id + '">' + l._id + '</a>';
-        //h += ' - Modified ' + listings[i].modified;
+        h += ' - Created ' + listings[i].created;
 
         if (l.done === false)
           h = '<li class="editing">' + h + '</li>';

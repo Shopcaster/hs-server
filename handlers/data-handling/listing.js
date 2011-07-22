@@ -41,7 +41,7 @@ var create = function(client, data, callback, errback) {
 
   // Generate an ID for this fieldset *now* so that we can use it
   // when generating the email autoresponder
-  fs.genId(function() {
+  fs.bootstrap().genId(function() {
 
     // Resize their image
     createImg(data.photo, function(err, id) {

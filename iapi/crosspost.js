@@ -25,15 +25,7 @@ var showAll = function(req, res) {
 
     // Sort by created
     listings.sort(function(a, b) {
-      if (a.created === undefined)
-        return -1;
-
-      if (a.created > b.created)
-        return 1;
-      else if (a.created < b.created)
-        return -1;
-      else
-        return 0;
+      return parseInt(a._id.substr(8)) - parseInt(b._id.substr(8));
     });
 
     // Walk through all the listings, and if they were modified more
