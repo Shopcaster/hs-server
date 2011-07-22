@@ -50,11 +50,14 @@ var serve = function(req, res) {
       res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
       res.end('OK');
 
-      // Send the autoreply to the sender
-      email.send(data.sender,
-                 'Re: ' + data.subject,
-                 templating['email/autoresponse'].render({listing: listing}),
-                 data.recipient);
+      // Send the autoreply to the sender -- skip if it's from craiglist
+      // though.
+      if (!data.sender.match(/noreply@craiglist.org/)) {
+        email.send(data.sender,
+                   'Re: ' + data.subject,
+                   templating['email/autoresponse'].render({listing: listing}),
+                   data.recipient);
+      }
 
       // Forward the email contents to sold@hipsell.com
       email.send('sold@hipsell.com',
