@@ -748,9 +748,9 @@ zz.recordError = function(err) {
           d = new Date(d.val + 1307042003319);
 
         // We have to do a manual comparison
-        if (+this.data[i] == +d) {
+        if (+this.data[i] != +d) {
           this.data[i] = d;
-          this.eimt('field', i, d);
+          this.emit('field', i, d);
         }
 
         continue;
