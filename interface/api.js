@@ -757,7 +757,7 @@ zz.recordError = function(err) {
       }
 
       // Only update fields if they're different
-      if (this.data[i] != d) {
+      if (this.data[i] !== d) {
         // Update the field in our internal data storage
         this.data[i] = d;
         // Fire the relevant callback
