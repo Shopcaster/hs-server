@@ -92,7 +92,7 @@ var showCrosspost = function(req, res) {
         if (result && result.results && result.results[0])
           context.address = result.results[0].formatted_address;
 
-        var title = listing.description
+        var title = (listing.description || '')
           .replace(/^\s*/, '')
           .replace(/\s*$/, '')
           .substr(0, 67)
