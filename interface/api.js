@@ -621,7 +621,7 @@ zz.recordError = function(err) {
     // no listener prior to this one being added, and we need to
     // sub.
     if (zz.presence.listeners(event).length == 1)
-      messaging.send('sub-presence', {user: data.user});
+      messaging.send('sub-presence', {user: event});
 
   });
 })();
