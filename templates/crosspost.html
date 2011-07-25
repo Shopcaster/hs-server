@@ -8,46 +8,29 @@
     h2 {color: blue;}
 
     textarea{
-      width:500px;
-      height:100px;
+      width: 450px;
+      height: 100px;
     }
     input{
-      width:500px;
+      width: 450px;
     }
 
     #submit {background-color: green; font-weight: bold; font-color: white;}
 
 
-    body {margin: 20px 10px 50px 10px;}
+    body {width: 900px; margin: auto;}
+    body > div {display: table-cell; padding-right: 10px;}
+    body > div:last-child {border-left: 1px solid black; padding-left: 10px;}
+
+    form input {width: 100%; margin-bottom: 50px;}
   </style>
 </head>
 <body
 {{ if (listing.done) 'class="done"';
    else if (listing.done === false) 'class="editing"'; }}
 >
-  <h1>Crosspost Instructions</h1>
-  {{ if (listing.done) '<h2>This listing has been crossposting</h2>'; }}
+  {{ if (listing.done) '<h2>This listing has already been crossposting</h2>'; }}
   {{ if (listing.done === false) '<h2>This listing is being crossposted by someone else</h2>'; }}
-
-  <h3>Title</h3>
-  <input type="text" value="{{ title }}">
-
-  <h3>Price</h3>
-  <input type="text" value="{{listing.price}}">
-
-  <h3>Location</h3>
-  <a href="http://maps.google.com/?q=loc:{{listing.latitude}},{{listing.longitude}}&z=16">
-      Google Maps</a><br>
-  <input type="text" value="{{address}}">
-
-  <h3>Description</h3>
-  <textarea>{{ listing.description }}</textarea>
-
-  <h3>Email</h3>
-  <input value="{{ listing.email }}">
-
-  <h3>Image</h3>
-  <img src="/static/{{listing.photo}}">
 
   {{
     if (!listing.done)
@@ -57,6 +40,61 @@
       '</form>';
 
   }}
+
+  <!-- Craigslist -->
+
+  <div id="cl">
+    <h1>Craigslist Instructions</h1>
+
+    <h3>Title</h3>
+    <input value="{{ title }}">
+
+    <h3>Price</h3>
+    <input value="{{ listing.price }}">
+
+    <h3>Location</h3>
+    <a href="http://maps.google.com?q=loc:{{ listing.latitude }},{{ listing.longitude }}&z=16">Google Maps</a>
+    <br>
+    <input value="{{ address }}">
+
+    <h3>Description</h3>
+    <textarea><p>{{ listing.description }}</p>
+
+<p>To make an offer or ask a question about this item, go here:
+<a href="{{ settings.clientUri }}/{{ listing._id }}">{{ settings.clientUri }}/{{ listing._id }}</a>
+</p>
+
+<p><img src="{{ settings.serverUri }}/static/{{ listing.photo }}" /></p>
+    </textarea>
+
+  </div>
+
+  <!-- Kijiji -->
+
+  <div id="kj">
+    <h1>Kijiji Instructions</h1>
+
+    <h3>Title</h3>
+    <input type="text" value="{{ title }}">
+
+    <h3>Price</h3>
+    <input type="text" value="{{listing.price}}">
+
+    <h3>Location</h3>
+    <a href="http://maps.google.com/?q=loc:{{listing.latitude}},{{listing.longitude}}&z=16">
+        Google Maps</a><br>
+    <input type="text" value="{{ address }}">
+
+    <h3>Description</h3>
+    <textarea>{{ listing.description }}</textarea>
+
+    <h3>Email</h3>
+    <input value="{{ listing.email }}">
+
+    <h3>Image</h3>
+    <img src="/static/{{listing.photo}}">
+
+  </div>
 
 </body>
 <html>
