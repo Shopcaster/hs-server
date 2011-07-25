@@ -18,7 +18,7 @@
     #submit {background-color: green; font-weight: bold; font-color: white;}
 
 
-    body {width: 900px; margin: auto;}
+    body {width: 900px; margin: auto; margin-bottom: 100px;}
     body > div {display: table-cell; padding-right: 10px;}
     body > div:last-child {border-left: 1px solid black; padding-left: 10px;}
 
@@ -55,7 +55,7 @@
     <h3>Location</h3>
     <a href="http://maps.google.com?q=loc:{{ listing.latitude }},{{ listing.longitude }}&z=16">Google Maps</a>
     <br>
-    <input value="{{ address }}">
+    City: <input value="{{ city }}, {{ state }}, {{ country }}">
 
     <h3>Description</h3>
     <textarea><p>{{ listing.description }}</p>
@@ -74,25 +74,30 @@
   <div id="kj">
     <h1>Kijiji Instructions</h1>
 
-    <h3>Title</h3>
-    <input type="text" value="{{ title }}">
-
     <h3>Price</h3>
-    <input type="text" value="{{listing.price}}">
+    <input value="{{listing.price}}">
 
-    <h3>Location</h3>
-    <a href="http://maps.google.com/?q=loc:{{listing.latitude}},{{listing.longitude}}&z=16">
-        Google Maps</a><br>
-    <input type="text" value="{{ address }}">
+    <h3>Title</h3>
+    <input value="{{ title }}">
 
     <h3>Description</h3>
     <textarea>{{ listing.description }}</textarea>
 
+    <h3>Image</h3>
+    <img src="/static/{{listing.photo}}">
+
     <h3>Email</h3>
     <input value="{{ listing.email }}">
 
-    <h3>Image</h3>
-    <img src="/static/{{listing.photo}}">
+    <h3>Location</h3>
+    <a href="http://maps.google.com/?q=loc:{{listing.latitude}},{{listing.longitude}}&z=16">
+        Google Maps</a><br>
+    City: <input value="{{ city }}, {{ state }}, {{ country }}">
+    Postal: <input value="{{ postal }}">
+
+
+
+
 
   </div>
 

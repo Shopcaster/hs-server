@@ -87,10 +87,43 @@ var showCrosspost = function(req, res) {
           return;
         }
 
+        // Fetch data from the google results
+        var city = '';
+        var state = '';
+        var postal = '';
+        var country = '';
+
+        if (result.status == 'OK') {
+          for (var i=0; i<result.results[0].address_components.length; i++) {
+            var comp = result.results[0].address_components[i];
+
+            for (var j=0; j<comp.types.length; j++) {
+              var t = comp.types[j];
+
+              switch(t) {
+                case 'locality':
+                  city = comp.long_name;
+                  break;
+                case 'administrative_area_level_1':
+                  state = comp.long_name;
+                  break;
+                case 'postal_code':
+                  postal = comp.long_name;
+                  break;
+                case 'country':
+                  country = comp.long_name;
+                  break;
+              }
+            }
+          }
+        }
+
         // Set up the template context
         var context = {listing: listing};
-        if (result && result.results && result.results[0])
-          context.address = result.results[0].formatted_address;
+        context.city = city;
+        context.postal = postal;
+        context.state = state;
+        context.country = country;
 
         var title = (listing.description || '')
           .replace(/^\s*/, '')
