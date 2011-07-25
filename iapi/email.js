@@ -30,14 +30,16 @@ var serve = function(req, res) {
 
     // check to see if this is from craigslist
     var fromCraig = !!fields.sender.match(/noreply@craigslist.org/);
+    var fromKijiji = !!fields.sender.match(/donotreply@kijiji.ca/);
 
     // Forward the email contents to sold@hipsell.com
     email.send('sold@hipsell.com',
                'Autoreply For: ' + fields.subject,
-               '<h4>Original Sender: ' + fields.sender + '</h4><p>' + fields['body-plain'] + '</p>');
+               '<h4>Original Sender: ' + fields.from +
+               '</h4><p>' + (fields['body-html'] || fields['body-html']) + '</p>');
 
     // If it's from craig, finish early
-    if (fromCraig) return doResp(res, 200, 'OK');
+    if (fromCraig || fromKijiji) return doResp(res, 200, 'OK');
 
     // Otherwise, fetch the relevant listing
     var listing = new models.Listing();
@@ -51,7 +53,7 @@ var serve = function(req, res) {
       doResp(res, 200, 'OK');
 
       // Send the autoreply to the sender
-      email.send(fields.sender,
+      email.send(fields.from,
                  'Re: ' + fields.subject,
                  templating['email/autoresponse'].render({listing: listing}),
                  fields.recipient);
