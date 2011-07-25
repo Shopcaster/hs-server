@@ -604,7 +604,7 @@ zz.recordError = function(err) {
     }; // Do we need a semicolon here?  Who knows!
 
     // Fire ze message
-    zz.presence.emit(data.user, state);
+    zz.presence.emit(data.user, status);
   });
 
   // And here comes the magic.  When a user adds a presence listener,
