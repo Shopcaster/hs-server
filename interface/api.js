@@ -1126,7 +1126,8 @@ zz.recordError = function(err) {
     this._cmp = cmp;
 
     // Do the initial sort
-    Array.prototype.sort.call(this, cmp);
+    if (this.length > 1) // Slight optimization
+      Array.prototype.sort.call(this, cmp);
 
     return this;
   };
