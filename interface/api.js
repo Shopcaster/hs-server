@@ -486,6 +486,9 @@ var connection = new EventEmitter();
       // Save the new password to local storage
       localStorage['zz.auth.password'] = value;
 
+      // Update the current user object's password
+      _AuthCurUser.password = value;
+
       // Return success to the callback
       callback && callback(undefined);
     });
