@@ -39,7 +39,7 @@ var validators = {
 
   'message': {message: 'string?',
               convo: 'ref?',
-              offer: 'ref?'}
+              offer: 'ref?'},
 
   'inquiry': {question: 'string?',
               answer: 'string?',
