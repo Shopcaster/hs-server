@@ -645,6 +645,17 @@ zz.recordError = function(err) {
     for (var i in subs) if (subs.hasOwnProperty(i))
       messaging.send('sub-presence', {user: i});
   });
+
+  // On disconnect, fire the `offline` state on the current user
+  connection.on('disconnect', function() {
+    var user = zz.auth.curUser();
+
+    // Nothing to do if we're not logged in
+    if (!user) return;
+
+    // Fire offline on the current user
+    zz.presence.emit(user._id, 'offline');
+  });
 })();
 
 //
