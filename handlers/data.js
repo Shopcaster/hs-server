@@ -38,7 +38,8 @@ var validators = {
             listing: 'ref?'},
 
   'message': {message: 'string?',
-              convo: 'ref?'},
+              convo: 'ref?',
+              offer: 'ref?'}
 
   'inquiry': {question: 'string?',
               answer: 'string?',
