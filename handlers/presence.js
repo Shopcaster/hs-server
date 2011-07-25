@@ -18,10 +18,10 @@ var sub = function(client, data, callback, errback) {
   if (client.state.presenceSubs[data.user]) return callback(true);
 
   //subscribe to this user's presence notifications
-  var handler = function() {
+  var handler = function(state) {
     client.send('presence', {user: data.user, state: state});
   };
-  presence.events.on('data.user', handler);
+  presence.events.on(data.user, handler);
   client.state.presenceSubs[data.user] = handler;
 
   //send the response
@@ -33,7 +33,7 @@ var sub = function(client, data, callback, errback) {
 
 var unsub = function(client, data, callback, errback) {
 
-  presence.events.removeListener(client.state.presenceSubs[data.user]);
+  presence.events.removeListener(data.user, client.state.presenceSubs[data.user]);
   delete client.state.presenceSubs[data.user];
 
   callback(true);

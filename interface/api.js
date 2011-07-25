@@ -12,7 +12,6 @@
 //   setTimeout :: Function -> Number -> Object
 //
 
-
 // Global closure
 (function() {
 
@@ -546,6 +545,9 @@ zz.recordError = function(err) {
 // Presence
 //
 (function() {
+  var subs = {};
+  var status = {};
+
   zz.presence = new EventEmitter();
   zz.presence.status = 'offline';
 
@@ -589,6 +591,7 @@ zz.recordError = function(err) {
     // has a benign failure mode, so we don't need to worry about it.
     if (zz.presence.listeners(data.user).length == 0) {
       messaging.send('unsub-presence', {user: data.user});
+      delete subs[data.user];
       return;
     }
 
@@ -606,6 +609,10 @@ zz.recordError = function(err) {
         break;
     }; // Do we need a semicolon here?  Who knows!
 
+    // Update the status for the sub
+    if (data.user in subs)
+      subs[data.user] = status;
+
     // Fire ze message
     zz.presence.emit(data.user, status);
   });
@@ -620,12 +627,23 @@ zz.recordError = function(err) {
     if (event == 'newListener') return;
 
     // For anything else, we need to ensure that there's a sub for
-    // their presence.  If the listener count is one, then there was
-    // no listener prior to this one being added, and we need to
-    // sub.
-    if (zz.presence.listeners(event).length == 1)
+    // their presence.
+    if (!subs[event]) {
       messaging.send('sub-presence', {user: event});
+      subs[event] = 'offline';
 
+    // If we're already subscribed for this presence, fire the event
+    // automatically
+    } else {
+      listener(subs[event]);
+    }
+
+  });
+
+  // When we reconnect, resub for presence
+  connection.on('connect', function() {
+    for (var i in subs) if (subs.hasOwnProperty(i))
+      messaging.send('sub-presence', {user: i});
   });
 })();
 
