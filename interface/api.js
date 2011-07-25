@@ -1,5 +1,3 @@
-// newListener on ModelLists and Models is kinda funky
-
 //
 // Expects the following to exist:
 //
@@ -124,7 +122,7 @@ zz.logging.waiting = true;
 zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
-  pub: false,
+  pub: true,
   presence: false,
   not: false
 };
@@ -362,12 +360,10 @@ var connection = new EventEmitter();
   //
   // Auth stuff
   //
-  var _AuthUserCur = null;
   var AuthUser = function(user, email, password) {
     var self = this;
 
-    _AuthUserCur = user;
-    _AuthUserCur.heat();
+    user.heat();
 
     this.email = email;
     this.password = password;
@@ -383,16 +379,15 @@ var connection = new EventEmitter();
         self.emit(fields[i], val);
       });
     }
+
+    // Create the destroy function
+    this.destroy = function() {
+      user.freeze();
+      for (var i=0; i<fields.lenth; i++)
+        this.removeAllListeners(fields[i]);
+    };
   };
   AuthUser.prototype = new EventEmitter();
-  AuthUser.prototype.destroy = function() {
-    _AuthUserCur.freeze();
-    this.removeAllListeners('name');
-    this.removeAllListeners('avatar');
-    this.removeAllListeners('fb');
-    this.removeAllListeners('twitter');
-    this.removeAllListeners('linkedin');
-  };
 
   var doAuth = function(email, password, callback) {
     // If both email and password are undefined, try to use the
@@ -440,6 +435,7 @@ var connection = new EventEmitter();
       if (user === null) throw new Error('Null user from auth');
 
       // Save the new current user
+      if (curUser) curUser.destroy();
       curUser = new AuthUser(user, email, password);
 
       // Fire the success callback
@@ -486,7 +482,7 @@ var connection = new EventEmitter();
       localStorage['zz.auth.password'] = value;
 
       // Update the current user object's password
-      _AuthCurUser.password = value;
+      curUser.password = value;
 
       // Return success to the callback
       callback && callback(undefined);
@@ -858,8 +854,11 @@ zz.recordError = function(err) {
     }
   });
 
-  // The model class
-  zz.models.Model = function(type) {
+  // The Model class.  Note the separate `init` function; we need to
+  // have constructor-style functionality, but can't do so in the
+  // actual constructor because we use inheritance.  The `init` function
+  // gets around this.
+  var initModel = function(type) {
     this._type = type;  // Model type (e.g. 'listing')
     this._slis = [];    // Listeners we've registered on the sub
     this._sub = null;   // The current subscription.  Only set if hot.
@@ -871,6 +870,7 @@ zz.recordError = function(err) {
       if (event != 'newListener') self._levents[event] = true;
     });
   };
+  zz.models.Model = function() {};
   zz.models.Model.prototype = new EventEmitter();
   zz.models.Model.prototype.heat = function() {
     if (this.hot)
@@ -941,8 +941,10 @@ zz.recordError = function(err) {
     return this;
   };
 
-  // The ModelList class
-  zz.models.ModelList = function(type, ids, key, callback) {
+  // The ModelList class.  Note the separate `init` method; we need
+  // a central place to initialize this beast, but use a constructor
+  // due to the intheritance.
+  var initModelList = function(type, ids, key, callback) {
     this._type = type;  // Model type (e.g. 'listing')
     this._slis = [];    // Listeners we've registered on the sub
     this._sub = null;   // The current subscription.  Only set if hot.
@@ -957,13 +959,9 @@ zz.recordError = function(err) {
     // Whenever listeners are registered, we should record them so we
     // can remove them.
     var self = this;
-    // Slight hack to avoid adding listeners too soon.  In the future
-    // this will be solved by making ModelList more inheritable
-    if (key) {
-      this.on('newListener', function(event, listener) {
-        if (event != 'newListener') self._levents[event] = true;
-      });
-    }
+    this.on('newListener', function(event, listener) {
+      if (event != 'newListener') self._levents[event] = true;
+    });
 
     // Fetch all models and insert them
     var toFetch = ids.length;
@@ -982,6 +980,8 @@ zz.recordError = function(err) {
     // callback would thusly never fire.  We handle that case here.
     if (!ids.length) callback && callback(this);
   };
+
+  zz.models.ModelList = function() {};
   zz.models.ModelList.prototype = [];
   zz.models.ModelList.prototype.related = {};
   zz.models.ModelList.prototype.heat = function() {
@@ -1189,16 +1189,16 @@ zz.recordError = function(err) {
     var ptype = config.datatypes[i+1];
 
     // Create and register the model for this type
-    var M = function() { zz.models.Model.apply(this, Array.prototype.slice.call(arguments)) };
+    var M = function() {};
     M.fname = type[0].toUpperCase() + type.substr(1);
     zz.models[M.fname] = M;
-    M.prototype = new zz.models.Model(type);
+    M.prototype = new zz.models.Model();
 
     // Create and register the related list for this type
-    var ML = function() { zz.models.ModelList.apply(this, Array.prototype.slice.call(arguments)) };
+    var ML = function() {};
     ML.fname = type[0].toUpperCase() + type.substr(1) + 'List';
     zz.models[ML.fname] = ML;
-    ML.prototype = new zz.models.ModelList(type, [], null);
+    ML.prototype = new zz.models.ModelList();
 
     // Add the relation
     with ({type: type, ptype: ptype, M: M, ML: ML}) {
@@ -1233,7 +1233,8 @@ zz.recordError = function(err) {
 
           // Create the model list, and when it's initialized return
           // it via the callback;
-          var ml = new ML(type, data, key, function(ml) {
+          var ml = new ML();
+          initModelList.call(ml, type, data, key, function(ml) {
             callback(ml);
           });
         });
@@ -1294,7 +1295,8 @@ zz.recordError = function(err) {
           if (data === null) return callback(null);
 
           // Clone the data into the appropriate model
-          var m = new M(type);
+          var m = new M();
+          initModel.call(m, type);
           for (var i in data) if (data.hasOwnProperty(i))
             m[i] = data[i];
 
