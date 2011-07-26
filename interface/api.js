@@ -147,6 +147,14 @@ var log = function() {
 };
 
 //
+// Analytics
+//
+var anl = function() {
+  var args = Array.prototype.slice.call(arguments);
+  if (this.mpq) mpq.push(args);
+};
+
+//
 // Messaging util
 //
 var messaging = new EventEmitter();
@@ -437,6 +445,9 @@ var connection = new EventEmitter();
       // Save the new current user
       if (curUser) curUser.destroy();
       curUser = new AuthUser(user, email, password);
+
+      // Track this in mixpanel
+      anl('identify', userid);
 
       // Fire the success callback
       callback && callback(undefined);
@@ -1351,6 +1362,9 @@ for (var i=0; i<config.datatypes.length; i+=2) {
           throw new Error('Failed to create ' + type + ': ' + err.message);
         else if (!ret)
           throw new Error('Validation error when creating ' + type);
+
+        // Track all creates
+        anl('track', {create: type});
 
         callback && callback(ret);
       });
