@@ -16,6 +16,7 @@ var validators = {
   'create': {type: 'string', data: 'object'},
   'update': {key: 'string', diff: 'object'},
   'delete': {key: 'string'},
+  'query':  {key: 'string'},
   'sub-presence': {user: 'string'},
   'unsub-presence': {user: 'string'}
 };
@@ -32,6 +33,7 @@ var handlers = {
   'create': data.create,
   'update': data.update,
   'delete': data.del,
+  'query': data.query,
 
   'sub-presence': presence.sub,
   'unsub-presence': presence.unsub,

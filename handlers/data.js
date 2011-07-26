@@ -167,6 +167,12 @@ var del = function(client, data, callback, errback) {
   }
 };
 
+var query = function(client, data, callback, errback) {
+
+  // Try to parse the key
+};
+
 exports.create = create;
 exports.update = update;
 exports.del = del;
+exports.query = query;
