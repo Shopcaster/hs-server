@@ -14,7 +14,9 @@ var emailDelayIntervals = {};
 // Utility functions
 
 var hashPassword = function(password, email) {
-  return crypto.createHash('sha256').update(password + email).digest('hex').toUpperCase();
+  return crypto.createHash('sha256')
+           .update(password + email.toLowerCase())
+           .digest('hex').toUpperCase();
 };
 
 var createPassword = function(email) {
@@ -32,7 +34,7 @@ var createPassword = function(email) {
 
 // TODO - document
 var authUser = function(email, password, callback) {
-  db.queryOne(models.Auth, {email: email}, function(err, obj) {
+  db.queryOne(models.Auth, {email: email.toLowerCase()}, function(err, obj) {
 
     // Handle failure gracefully
     if (err) return callback('Database Error');
@@ -49,6 +51,9 @@ var authUser = function(email, password, callback) {
 };
 
 var signup = function(email, callback) {
+  // Email addresses must be lower case
+  email = email.toLowerCase();
+
   var auth = new models.Auth();
   auth.email = email;
   auth.password = createPassword(email);
