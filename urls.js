@@ -2,9 +2,6 @@ var staticServing = require('./static-serving'),
     interfaceServing = require('./interface/serve');
     iapi = require('./iapi/urls'),
     crosspost = require('./crosspost/handlers'),
-    facebook = require('./third-party/facebook'),
-    twitter = require('./third-party/twitter'),
-    linkedin = require('./third-party/linkedin'),
     fs = require('fs');
 
 // Serves an individual file
@@ -30,7 +27,7 @@ var urls = {
   //dummy handler that keeps us from clobbering socket.io's urls
   '^/socket.io/': function() {},
   //serve File objects from the db
-  '^/static/': staticServing.serve,
+  '^/staticfile/': staticServing.serve,
 
   //serve the api library
   '^/api-library.js': interfaceServing.serve,
@@ -40,11 +37,6 @@ var urls = {
 
   //crossposting urls
   '^/crosspost': crosspost.serve,
-
-  //oauth callbacks
-  '^/fb/': facebook.serve,
-  '^/twitter/': twitter.serve,
-  '^/linkedin/': linkedin.serve
 };
 
 var dispatch = function(req, res) {

@@ -58,6 +58,7 @@ var createPassword = function(email) {
   return hashPassword(pwRaw, email);
 };
 
+// TODO - document
 var authUser = function(email, password, callback) {
   db.queryOne(models.Auth, {email: email}, function(err, obj) {
 
@@ -104,7 +105,7 @@ var auth = function(client, data, callback, errback, force) {
   // stalling responses to messages if the client tries to auth
   // too many times.
   //
-  // We also do per-email auth rate limiting.  We being stalling
+  // We also do per-email auth rate limiting.  We begin stalling
   // responses to auth messages for a particular email if clients
   // try to auth against it too many times.
   //

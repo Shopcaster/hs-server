@@ -75,10 +75,6 @@ var baseString = function(method, url, params) {
   }
   res += parts.join('%26');
 
-  console.log('base string');
-  console.log(res);
-  console.log('');
-
   return res;
 };
 
@@ -180,8 +176,6 @@ OAuth.prototype.request = function(options, callback) {
 
   // Set the auth header
   options.headers.Authorization = authHeader;
-
-  console.log(options.headers.Authorization);
 
   // Pass on through to node's built in behavior
   return (this.secure ? https : http).request(options, callback);
