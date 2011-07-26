@@ -41,6 +41,13 @@ var urls = {
 
 var dispatch = function(req, res) {
 
+  // Special case for / for pingdom
+  if (req.url == '/') {
+    res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+    res.end('Hi');
+    return;
+  }
+
   //try to dispatch
   for (var r in urls) if (urls.hasOwnProperty(r)) {
     if (req.url.match(r)) {
