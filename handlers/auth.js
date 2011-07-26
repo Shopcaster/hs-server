@@ -6,33 +6,7 @@ var db = require('./../db'),
     templating = require('./../templating'),
     crypto = require('crypto');
 
-var pwAdjectives = [
-  'Happy',
-  'Conservative',
-  'Smarmy',
-  'Underhanded',
-  'Incredible',
-  'Horrified',
-  'Cranky',
-  'Marvelous',
-  'Suplexed',
-  'Rampaging',
-  'Virulent'
-];
-var pwNouns = [
-  'SkyScraper',
-  'Seaweed',
-  'Rhinos',
-  'Facebooks',
-  'WaterCooler',
-  'Zamboni',
-  'Coconut',
-  'NewtonianPhysics',
-  'Catfish',
-  'DrumSolo',
-  'Engineer',
-  'Rainbow'
-];
+var pwCharacters = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 var emailDelays = {};
 var emailDelayIntervals = {};
@@ -44,11 +18,9 @@ var hashPassword = function(password, email) {
 };
 
 var createPassword = function(email) {
-  var adjective = pwAdjectives[Math.floor(Math.random() * pwAdjectives.length)];
-  var noun = pwNouns[Math.floor(Math.random() * pwNouns.length)];
-  var n = Math.floor(Math.random() * 100 + 1);
-
-  var pwRaw = adjective + '_' + noun + n;
+  var pwRaw = '';
+  for (var i=0; i<6; i++)
+    pwRaw += pwCharacters[Math.floor(Math.random() * pwCharacters.length)];
 
   // Send an email to the user
   _email.send(email, 'Welcome to Hipsell',
