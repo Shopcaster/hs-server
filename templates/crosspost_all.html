@@ -19,7 +19,7 @@
       var op = '';
       for (var i=0; i<listings.length; i++) {
         var l = listings[i];
-        var h = '<a href="/iapi/crosspost/' + l._id + '">' + l._id + '</a>';
+        var h = '<a href="/crosspost/' + l._id + '">' + l._id + '</a>';
         h += ' - Created ' + listings[i].created;
 
         if (l.done === false)

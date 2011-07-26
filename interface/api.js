@@ -345,10 +345,12 @@ var connection = new EventEmitter();
     else delayedMessages.push(msg);
   };
   connection.connect = function() {
+    console.log('-  connection.connect');
     holdDisconnect = false;
     con.connect();
   };
   connection.disconnect = function() {
+    console.log('-  connection.disconnect');
     holdDisconnect = true;
     con.disconnect();
   };

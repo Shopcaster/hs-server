@@ -1,6 +1,7 @@
 var staticServing = require('./static-serving'),
     interfaceServing = require('./interface/serve');
     iapi = require('./iapi/urls'),
+    crosspost = require('./crosspost/handlers'),
     facebook = require('./third-party/facebook'),
     twitter = require('./third-party/twitter'),
     linkedin = require('./third-party/linkedin'),
@@ -36,6 +37,9 @@ var urls = {
 
   //delegate to the internal api
   '^/iapi/': iapi.serve,
+
+  //crossposting urls
+  '^/crosspost': crosspost.serve,
 
   //oauth callbacks
   '^/fb/': facebook.serve,

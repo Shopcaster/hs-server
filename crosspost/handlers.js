@@ -82,7 +82,7 @@ var showCrosspost = function(req, res) {
           db.apply(listing);
 
           // Redirect the user to the base crosspost page
-          res.writeHead(303, {'Location': settings.serverUri + '/iapi/crosspost'});
+          res.writeHead(303, {'Location': settings.serverUri + '/crosspost'});
           res.end();
           return;
         }
