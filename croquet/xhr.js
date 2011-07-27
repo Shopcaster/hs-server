@@ -22,9 +22,7 @@ message = [type]|[data...]
 
 */
 
-// TODO - possible race condition when sending to a long polling
-//        connection
-
+// TODO - if there's a waiting poller, notify it on disconnect
 
 var querystring = require('querystring'),
     _url = require('url'),
@@ -259,6 +257,10 @@ XHRTransport.prototype.doPoll = function(req, res) {
     return;
   }
 
+  // Wipe out the disconnect timeout
+  clearTimeout(this.dcTimeouts[con.cid]);
+  delete this.dcTimeouts[con.cid];
+
   // The sending function
   var send = function() {
 
@@ -282,11 +284,18 @@ XHRTransport.prototype.doPoll = function(req, res) {
 
     // End the request
     req.end();
+
+    // Add a new DC timeout
+    self.dcTimeouts[con.cid] = setTimeout(function() {
+      self.disconnect(con);
+    }, 1000 * 60 * 10); // 10 m
   };
 
   // If the connection has pending messages to send, do it
   if (con.pending.length) {
-    send.apply(this, con.pending);
+    var msgs = con.pending;
+    con.pending = [];
+    send.apply(this, msgs);
 
   // Otherwise, wait for messages
   } else {
@@ -320,8 +329,10 @@ XHRTransport.prototype.doDisconnect = function(req, res) {
 XHRTransport.prototype.requestSend = function(con) {
 
   // If there's an active long poll, fill it up.
-  if (this.pollers[con.cid])
+  if (this.pollers[con.cid]) {
     this.pollers[con.cid].apply(this, con.pending);
+    delete this.pollers[con.cid];
+  }
 
   // Otherwise, we just kick back and wait for the next connection.
 
