@@ -1,5 +1,5 @@
 var querystring = require('querystring'),
-    cors = require('./cors'),
+    cors = require('../util/cors'),
     auth = require('../handlers/auth');
 
 

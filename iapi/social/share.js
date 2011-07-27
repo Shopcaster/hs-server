@@ -1,7 +1,7 @@
 var _url = require('url'),
     querystring = require('querystring'),
     common = require('./common'),
-    cors = require('../cors'),
+    cors = require('../../util/cors'),
     models = require('../../models'),
     db = require('../../db'),
     settings = require('../../settings'),

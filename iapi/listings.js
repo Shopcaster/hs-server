@@ -1,5 +1,5 @@
 var querystring = require('querystring'),
-    cors = require('./cors'),
+    cors = require('../util/cors'),
     models = require('../models'),
     listings = require('../handlers/data-handling/listing'),
     db = require('../db'),

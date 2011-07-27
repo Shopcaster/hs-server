@@ -17,6 +17,8 @@ var wrap = function(f) {
     // responses.
     var owh = res.writeHead;
     res.writeHead = function(status, headers) {
+      headers = headers || {};
+
       // Add Access-Control-Allow-Origin and allow everything through
       // if it wasn't set explicitly.
       if (!headers['Access-Control-Allow-Origin'])
@@ -27,7 +29,7 @@ var wrap = function(f) {
     };
 
     // Pass the request down to the handler
-    return f(req, res);
+    return f.call(this, req, res);
   };
 };
 

@@ -29,7 +29,8 @@ message = [type]|[data...]
 var querystring = require('querystring'),
     _url = require('url'),
     Connection = require('./connection').Connection,
-    Message = require('./connection').Message;
+    Message = require('./connection').Message,
+    cors = require('../util/cors');
 
 var convertData = function(type, data) {
   switch(type) {
@@ -128,7 +129,7 @@ var XHRTransport = function(server, url) {
   server.on('close', function() { self.connections = {} });
 };
 XHRTransport.prototype = {};
-XHRTransport.prototype.request = function(req, res) {
+XHRTransport.prototype.request = cors.wrap(function(req, res) {
 
   // The polling endpoint is a bit of a special case, as it /must/ be
   // accessible via GET, and therefore requires info to be sent in
@@ -158,7 +159,7 @@ XHRTransport.prototype.request = function(req, res) {
       res.end('');
       break;
   }
-};
+});
 
 XHRTransport.doConnect = function(req, res) {
   var self = this;
