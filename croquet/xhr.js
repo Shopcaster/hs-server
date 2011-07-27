@@ -25,6 +25,7 @@ message = [type]|[data...]
 // TODO - if there's a waiting poller, notify it on disconnect
 
 var querystring = require('querystring'),
+    EventEmitter = require('events').EventEmitter,
     _url = require('url'),
     Connection = require('./connection').Connection,
     Message = require('./connection').Message,
@@ -77,7 +78,7 @@ var parseMessage = function(message) {
   // Handle data formats
   for (var i in parsed.data) if (parsed.data.hasOwnProperty(i)) {
     var d = parsed.data[i];
-    parsed.data[i.substr(1)] = convertData(i.substring(0, 1), d);
+    parsed.data[i.substr(1)] = convertData(i.substr(0, 1), d);
     delete parsed.data[i];
   }
 
@@ -126,7 +127,7 @@ var XHRTransport = function(server, url) {
   // If the server goes down, wipe out all connections
   server.on('close', function() { self.connections = {} });
 };
-XHRTransport.prototype = {};
+XHRTransport.prototype = new EventEmitter();
 XHRTransport.prototype.request = cors.wrap(function(req, res) {
 
   // The polling endpoint is a bit of a special case, as it /must/ be

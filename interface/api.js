@@ -32,7 +32,6 @@ config.datatypes = [
 var EventEmitter = function EventEmitter() {};
 EventEmitter.prototype = {};
 
-var idd = 0;
 EventEmitter.prototype.on = function(event, listener) {
   if (!this._listeners) this._listeners = {};
   if (!this._listeners[event]) this._listeners[event] = [];
