@@ -1,13 +1,13 @@
 //
 // Expects the following to exist:
 //
-//   JSON.stringify :: Object -> String
-//   JSON.parse :: String -> Object
-//   sha256 :: String -> String
-//   io.Socket :: [Constructor] String -> Object -> unit
-//   console.log :: (Variable args) -> unit
-//   localStorage :: Object
-//   setTimeout :: Function -> Number -> Object
+//   JSON
+//   sha256
+//   console.log
+//   localStorage
+//   setTimeout
+//   EventEmitter
+//   croquet
 //
 
 // Global closure
@@ -25,79 +25,6 @@ config.datatypes = [
   'message', 'messages',
   'inquiry', 'inquiries'
 ];
-
-//
-// Node.js style EventEmitter
-//
-var EventEmitter = function EventEmitter() {};
-EventEmitter.prototype = {};
-
-EventEmitter.prototype.on = function(event, listener) {
-  if (!this._listeners) this._listeners = {};
-  if (!this._listeners[event]) this._listeners[event] = [];
-  this._listeners[event].push(listener);
-
-  this.emit('newListener', event, listener);
-
-  return this;
-};
-EventEmitter.prototype.once = function(event, listener) {
-  if (!this._onceListeners) this._onceListeners = {};
-  if (!this._onceListeners[event]) this._onceListeners[event] = [];
-  this._onceListeners[event].push(listener);
-
-  this.emit('newListener', event, listener);
-
-  return this;
-};
-EventEmitter.prototype.removeListener = function(event, listener) {
-  if (this._listeners && this._listeners[event]) {
-    var n = this._listeners[event].indexOf(listener);
-    if (n >= 0) this._listeners[event].splice(n, 1);
-
-  } else if (this._onceListeners && this._onceListeners[event]) {
-    var n = this._onceListeners[event].indexOf(listener);
-    if (n >= 0) this._onceListeners[event].splice(n, 1);
-  }
-
-  return this;
-};
-EventEmitter.prototype.removeAllListeners = function(event) {
-  if (this._listeners) delete this._listeners[event];
-  if (this._onceListeners) delete this._onceListeners[event];
-
-  return this;
-};
-EventEmitter.prototype.emit = function() {
-  var args = Array.prototype.slice.call(arguments);
-  var event = args.shift();
-
-  // Call regular listeners
-  if (this._listeners && this._listeners[event]) {
-    for (var i=0; i<this._listeners[event].length; i++)
-      this._listeners[event][i].apply(null, args);
-  }
-
-  // Call once listeners
-  if (this._onceListeners && this._onceListeners[event]) {
-    for (var i=0; i<this._onceListeners[event].length; i++)
-      this._onceListeners[event][i].call(null, args);
-
-    // Clean up
-    delete this._onceListeners[event];
-  }
-
-  return this;
-};
-// We have no concept of max listeners...
-EventEmitter.prototype.setMaxListeners = function() {};
-// This is slightly broken in that it doesn't return once listeners
-EventEmitter.prototype.listeners = function(event) {
-  if (!this._listeners) this._listeners = {};
-  if (!this._listeners[event]) this._listeners[event] = [];
-
-  return this._listeners[event];
-};
 
 //
 // Initialize the zz object

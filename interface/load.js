@@ -22,14 +22,6 @@ var vm = require('vm'),
 
 // The interface expects a certain environment; this sets it up.
 var context = {};
-// Add sha256
-context.sha256 = function(input) {
-  var sha = crypto.createHash('sha256');
-  sha.update(input);
-  return sha.digest('hex');
-};
-// Add socket IO
-context.io = require('./_node-socketio-client').io;
 // JSON support is baked in, so we don't need to add it
 // Add console
 context.console = console;
