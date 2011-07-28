@@ -23,6 +23,7 @@ message = [type]|[data...]
 */
 
 // TODO - if there's a waiting poller, notify it on disconnect
+//      - revamp the polling stuff in general
 
 var querystring = require('querystring'),
     EventEmitter = require('events').EventEmitter,

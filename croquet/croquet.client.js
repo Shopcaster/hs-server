@@ -1,4 +1,4 @@
-// TODO  - exponential backup on connection or poll failure
+// TODO  - exponential backoff on connection or poll failure
 
 var croquet = {};
 (function() {
