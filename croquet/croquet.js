@@ -19,7 +19,6 @@ var Croquet = function(server, url) {
       self.emit('connection', con);
     });
   }
-
 };
 Croquet.prototype = new EventEmitter();
 Croquet.prototype.kill = function() {
