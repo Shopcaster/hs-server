@@ -101,22 +101,8 @@ var messaging = new EventEmitter();
   // Actively pending responses
   var pendingResponses = 0;
 
-  messaging.serialize = function(type, data) {
-    return type + ':' + JSON.stringify(data);
-  };
-  messaging.deserialize = function(str) {
-    var i = str.indexOf(':');
-    if (i < 1)
-      throw 'Invalid message: ' + str;
-    var type = str.substr(0, i);
-    var data = JSON.parse(str.substr(i + 1) || null);
-
-    return {type: type, data: data};
-  };
-
   // Handles incoming messages
   messaging.handleMessage = function(msg) {
-    msg = messaging.deserialize(msg);
 
     // Log the message if we're configured to do so
     if (zz.logging.incoming[msg.type]) log(msg.type, msg.data);
@@ -133,17 +119,9 @@ var messaging = new EventEmitter();
   };
   // Sends a message
   messaging.send = function(msg, data, callback) {
-    // Create this message's ID
-    var id = messaging.id++;
-
-    // Log if we're asked to
-    if (zz.logging.outgoing[msg]) log(msg, id, data);
 
     // Default data
     data = data || {};
-
-    // Update the data with the message ID
-    data.id = id;
 
     // Set up a timeout to fire if this response takes too long
     var to = setTimeout(function() {
@@ -158,6 +136,12 @@ var messaging = new EventEmitter();
       // it was fired.
       to = null;
     }, zz.waitThreshold);
+
+    // Fire the message and generate the id
+    var id = connection.send(messaging.serialize(msg, data));
+
+    // Log if we're asked to
+    if (zz.logging.outgoing[msg]) log(msg, id, data);
 
     // Register the callback for this message's response
     messaging.callbacks[id] = function(data) {
@@ -185,10 +169,6 @@ var messaging = new EventEmitter();
       if (data.error) callback(new Error(data.error));
       else callback(undefined, data.value);
     };
-
-
-    // Fire the message
-    connection.send(messaging.serialize(msg, data));
   };
 })();
 
