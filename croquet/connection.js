@@ -1,9 +1,9 @@
 var EventEmitter = require('events').EventEmitter;
 
-var Message = function(connection, id, message, data) {
+var Message = function(connection, id, type, data) {
   this.connection = connection;
   this.id = id;
-  this.message = message;
+  this.type = type;
   this.data = data;
   this.responded = false;
 };

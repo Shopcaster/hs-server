@@ -1,18 +1,24 @@
+// TODO  - exponential backup on connection or poll failure
+
 var croquet = {};
 (function() {
 
-  // Bomb out because Opera doesn't support CORS.
-  if (navigator && navigator.userAgent.indexOf('opera') > -1) {
-    alert('Sorry, but Hipsell uses browser features that Opera does not ' +
-          'support.  Please use a different browser (IE, Chrome, and ' +
-          'Firefox all work just fine).');
-    throw "Opera has no CORS operation, so Croquet won't function :(";
+  // Canonicalize XHR, using IE's CORS version if available.  Otherwise,
+  // check that XMLHttpRequest is available with CORS and use that.  If
+  // neither of those are true, bail.
+  var XHR = null;
+  if (typeof XDomainRequest != 'undefined') {
+    XHR = XDomainRequest;
+  } else if (typeof(new XMLHttpRequest().withCredentials) !== 'undefined') {
+    XHR = XMLHttpRequest;
+  } else {
+    alert("Sorry, but your browser doesn't support security features " +
+          "(specifically, CORS) required by Hipsell to operate.  Please " +
+          "use a different browser; modern versions of Internet Explorer, " +
+          "Chrome, Firefox, and Safari all work just fine.");
+    throw "CORS is not supported, which means Croquet won't function :(";
   }
 
-  // Canonicalize XHR, using IE's CORS version if available.  Using
-  // this approach, we have CORS across every browser except opera.
-  var XHR = (typeof XDomainRequest != undefined) ? XDomainRequest
-                                                 : XMLHttpRequest;
 
   var Message = function(type, data) {
     this.type = type;
@@ -43,7 +49,7 @@ var croquet = {};
 
           // Basic connection init
           self.cid = xhr.responseText;
-          self.emit('connected');
+          self.emit('connect');
 
           // Start sending all pending messages every 20ms
           self.startSendLoop();
@@ -52,10 +58,10 @@ var croquet = {};
           self.startReceiveLoop();
 
         } else {
-          console.log('Error when connecting to server: ' + xhr.status + '.  Retrying in 500ms');
+          console.log('Error when connecting to server: ' + xhr.status + '.  Retrying in 1s');
           setTimeout(function() {
             self.connect();
-          }, 500); //100 ms
+          }, 1000 * 1); // 1s
         }
 
       }
@@ -90,17 +96,17 @@ var croquet = {};
         delete self.cid;
         self.stopSendLoop();
         self.stopReceiveLoop();
+
+        // Fire the event
+        self.emit('disconnect');
       }
     };
   };
-  Connection.prototype.send = function(type, data) {
+  Connection.prototype.send = function(id, type, data) {
     if (!this.connected)
       throw new Error('Cannot send messages on a disconnected connection');
 
-    this.pending.push([++this.mid, type, data]);
-
-    // Return the message ID so the user can wait for responses.
-    return this.mid;
+    this.pending.push([this.cid, id, type, data]);
   };
 
   Connection.prototype.startReceiveLoop = function() {
@@ -118,11 +124,13 @@ var croquet = {};
 
           // Parse messages and raise the events
           var messages = deserializeMessages(xhr.responseText);
-          for (var i=0; i<messages.lenth; i++) {
+          for (var i=0; i<messages.length; i++) {
             try {
               self.emit('message', messages[i]);
             // Eat errors to keep the processing going
-            } catch (err) {}
+            } catch (err) {
+              console.log(err.stack);
+            }
           }
 
           // Continue running the receive loop
@@ -132,10 +140,11 @@ var croquet = {};
         } else if (xhr.status == 410) {
           self.disconnect();
 
-        // Any other sort of error is wonky, and we should
-        // handle it by failing with a disconnect.
+        // Any other sort of error is wonky, but we don't need to do
+        // a full disconnect.  Instead, we just need to restart the
+        // poll.
         } else {
-          self.disconnect();
+          self.startReceiveLoop();
         }
       }
     };
@@ -157,8 +166,8 @@ var croquet = {};
         self.pending = [];
 
         var xhr = self.send = new XHR();
-        xhr.open('POST', this.url + '/xhr/send');
-        xhr.send(serializeMessages(messages));
+        xhr.open('POST', self.url + '/xhr/send');
+        xhr.send(serializeMessages.apply(this, messages));
         xhr.onreadystatechange = function() {
           if (xhr.readyState == 4) {
             delete self.send;
@@ -208,6 +217,8 @@ var croquet = {};
         t = 's';
       } else if (typeof d == 'number') {
         t = 'f';
+      } else if (typeof d == 'object') {
+        t = 'o';
       }
 
       ndata[t + i] = d;
@@ -222,7 +233,7 @@ var croquet = {};
     var output = '';
 
     for (var i=0; i<arguments.length; i++) {
-      var message = serializeMessage(arguments[i]);
+      var message = serializeMessage.apply(this, arguments[i]);
       output += message.length + '|' + message;
     }
 
@@ -241,6 +252,8 @@ var croquet = {};
         return parseFloat(data);
       case 'n':
         return null;
+      case 'o':
+        return data;
       case 'u':
       default:
         return undefined;
@@ -261,6 +274,8 @@ var croquet = {};
       msg.data[i.substr(1)] = convertData(i.substr(0, 1), d);
       delete msg.data[i];
     }
+
+    return msg;
   };
   var deserializeMessages = function(data) {
 
@@ -276,15 +291,19 @@ var croquet = {};
         var message = data.substr(i + 1, length);
 
         // Parse the message itself
-        todo
+        var msg = deserializeMessage(message);
 
         // Queue the message
-        var con = self.connections[msg.cid];
-        messages.push(new Message(msg.type, msg.data);
+        messages.push(new Message(msg.type, msg.data));
+
+        // Chopchop
+        data = data.substr(i + 1 + length);
       }
     // We don't actually handle errors, unfortunately.  We just parse
     // until a failure, and then ignore the rest.
-    } catch (err) {};
+    } catch (err) {
+      console.log(err.stack);
+    };
 
     return messages;
   };

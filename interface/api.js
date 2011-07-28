@@ -58,22 +58,22 @@ zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
   pub: true,
-  presence: false,
-  not: false
+  presence: true,
+  not: true
 };
 zz.logging.outgoing = {
-  ping: false,
-  error: false,
-  auth: false,
-  deauth: false,
-  passwd: false,
-  sub: false,
-  unsub: false,
-  create: false,
-  update: false,
-  'delete': false,
-  'sub-presence': false,
-  'unsub-presence': false
+  ping: true,
+  error: true,
+  auth: true,
+  deauth: true,
+  passwd: true,
+  sub: true,
+  unsub: true,
+  create: true,
+  update: true,
+  'delete': true,
+  'sub-presence': true,
+  'unsub-presence': true
 };
 
 // Friendly log
@@ -120,6 +120,12 @@ var messaging = new EventEmitter();
   // Sends a message
   messaging.send = function(msg, data, callback) {
 
+    // Grab an id and increment global id
+    var id = messaging.id++;
+
+    // Log if we're asked to
+    if (zz.logging.outgoing[msg]) log(msg, id, data);
+
     // Default data
     data = data || {};
 
@@ -137,11 +143,8 @@ var messaging = new EventEmitter();
       to = null;
     }, zz.waitThreshold);
 
-    // Fire the message and generate the id
-    var id = connection.send(messaging.serialize(msg, data));
-
-    // Log if we're asked to
-    if (zz.logging.outgoing[msg]) log(msg, id, data);
+    // Fire the message
+    connection.send(id, msg, data);
 
     // Register the callback for this message's response
     messaging.callbacks[id] = function(data) {
@@ -179,9 +182,9 @@ var messaging = new EventEmitter();
 //
 var connection = new EventEmitter();
 (function() {
-  var con = new croquet.Croquet(
-    (/*$secure$*/ ? 'https://' : 'http') +
-    /*$host$*/ + /*$port$*/
+  var con = new croquet.Connection(
+    (/*$secure$*/ ? 'https://' : 'http://') +
+    /*$host$*/ + ':' + /*$port$*/ + '/croquet'
   );
 
   var ready = false;
@@ -202,7 +205,7 @@ var connection = new EventEmitter();
 
     // Send all the delayed messages
     for (var i=0; i<delayedMessages.length; i++)
-      try { con.send.call(con, delayedMessages[i]) }
+      try { con.send.apply(con, delayedMessages[i]) }
       catch(err) { log(err) }
 
     // Fire the inits if we need to
@@ -252,11 +255,11 @@ var connection = new EventEmitter();
     if (!holdDisconnect) con.connect();
   });
 
-  connection.send = function(msg) {
+  connection.send = function(id, type, data) {
     // Send messages if they're allowed through
-    if (allowThrough) con.send.call(con, msg);
+    if (allowThrough) con.send.call(con, id, type, data);
     // Otherwise, delay the messages
-    else delayedMessages.push(msg);
+    else delayedMessages.push([id, type, data]);
   };
   connection.connect = function() {
     console.log('-  connection.connect');

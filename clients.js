@@ -26,7 +26,7 @@ init = function(server, handler) {
     var client = new Client(con);
 
     //listen for messages
-    c.on('message', function(msg) {
+    con.on('message', function(msg) {
 
       try {
         //dispatch the message
@@ -45,7 +45,7 @@ init = function(server, handler) {
       }
     });
     //listen for disconnect
-    c.on('disconnect', function() {
+    con.on('disconnect', function() {
       client.emit('disconnect');
     });
   });

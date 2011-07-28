@@ -24,8 +24,9 @@ var file = function(file, type) {
 };
 
 var urls = {
-  //dummy handler that keeps us from clobbering socket.io's urls
-  '^/socket.io/': function() {},
+  //dummy handler that keeps us from clobbering croquet's urls
+  '^/croquet/': function() {},
+
   //serve File objects from the db
   '^/staticfile/': staticServing.serve,
 

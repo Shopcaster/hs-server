@@ -68,8 +68,20 @@ var getCode = function() {
 // Watch the api file for changes
 fs.watchFile(filePath, function(cur, prev) {
   // If it's changed
-  if (cur.mtime > prev.mtime)
+  if (cur.mtime > prev.mtime) {
+    console.log('API library file has changed, marking for reload');
+    console.log('');
     cached = null;
+  }
+});
+// Watch croquet for changes
+fs.watchFile(__dirname + '/../croquet/croquet.client.js', function(cur, prev) {
+  // If it's changed
+  if (cur.mtime > prev.mtime) {
+    console.log('Croquet client file has changed, marking for reload');
+    console.log('');
+    cached = null;
+  };
 });
 
 exports.getCode = getCode;

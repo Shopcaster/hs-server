@@ -43,6 +43,8 @@ var convertData = function(type, data) {
       return parseFloat(data);
     case 'n':
       return null;
+    case 'o':
+      return d;
     case 'u':
     default:
       return undefined;
@@ -56,10 +58,10 @@ var parseMessage = function(message) {
   var parsed = {};
 
   var get = function(field) {
-    b = message.indexOf('|');
-    if (b < 0) throw new Error('Invalid message');
-    parsed[field] = message.substring(a, b);
-    a = b;
+    var i = message.indexOf('|');
+    if (i < 0) throw new Error('Invalid message');
+    parsed[field] = message.substr(0, i);
+    message = message.substr(i+1);
   };
 
   // Parse out the segments
@@ -67,7 +69,7 @@ var parseMessage = function(message) {
     get('cid');
     get('mid');
     get('type');
-    get('data');
+    parsed.data = message;
   } catch (err) {
     return null;
   }
@@ -103,6 +105,8 @@ var serializeMessage = function(type, data) {
       t = 's';
     } else if (typeof d == 'number') {
       t = 'f';
+    } else if (typeof d == 'object') {
+      t = 'o';
     }
 
     ndata[t + i] = d;
@@ -151,16 +155,10 @@ XHRTransport.prototype.request = cors.wrap(function(req, res) {
     case this.url + '/xhr/disconnect':
       this.doDisconnect(req, res);
       break;
-
-    // 404 on anything else
-    default:
-      res.writeHead(404, {});
-      res.end('');
-      break;
   }
 });
 
-XHRTransport.doConnect = function(req, res) {
+XHRTransport.prototype.doConnect = function(req, res) {
   var self = this;
 
   // Generate a unique clientid.  We add a timestamp so that we can
@@ -170,7 +168,7 @@ XHRTransport.doConnect = function(req, res) {
   // runs (but not necessarily across the server's lifetime).
   //
   // Together, they're unique.
-  cid = ++this.curId + '|' + (+new Date());
+  cid = ++this.curId + ':' + (+new Date());
 
   // Create a new connection
   var con = new Connection(this, cid)
@@ -225,7 +223,7 @@ XHRTransport.prototype.doSend = function(req, res) {
     // Send the messages on to the connections
     for (var i=0; i<messages.length; i++) {
       try {
-        messages[i].con.emit('message', messages[i]);
+        messages[i].connection.emit('message', messages[i]);
 
       // If there was an error while handling the message, ignore it
       // and keep on sending.
@@ -251,7 +249,7 @@ XHRTransport.prototype.doPoll = function(req, res) {
   }
 
   // Get the connection
-  var con = connections[params.cid];
+  var con = this.connections[params.cid];
   if (!con) {
     res.writeHead(410, {}); // `Gone`
     res.end('');
@@ -283,8 +281,8 @@ XHRTransport.prototype.doPoll = function(req, res) {
       res.write(msg.length + '|' + msg);
     }
 
-    // End the request
-    req.end();
+    // End the response
+    res.end();
 
     // Add a new DC timeout
     self.dcTimeouts[con.cid] = setTimeout(function() {
@@ -328,12 +326,15 @@ XHRTransport.prototype.doDisconnect = function(req, res) {
 
 // Notifies the transport that the specified client has data to send.
 XHRTransport.prototype.requestSend = function(con) {
+  var self = this;
 
   // If there's an active long poll, fill it up.
-  if (this.pollers[con.cid]) {
-    this.pollers[con.cid].apply(this, con.pending);
-    delete this.pollers[con.cid];
-  }
+  process.nextTick(function() {
+    if (self.pollers[con.cid]) {
+      self.pollers[con.cid].apply(self, con.pending);
+      delete self.pollers[con.cid];
+    }
+  });
 
   // Otherwise, we just kick back and wait for the next connection.
 
@@ -342,8 +343,8 @@ XHRTransport.prototype.requestSend = function(con) {
 XHRTransport.prototype.disconnect = function(con) {
 
   // Delete the connection from the list
-  delete self.connections[con.cid];
-  delete self.pollers[con.cid];
+  delete this.connections[con.cid];
+  delete this.pollers[con.cid];
 
   // Fire the relevant events
   con.emit('disconnect');
