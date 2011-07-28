@@ -22,8 +22,7 @@ message = [type]|[data...]
 
 */
 
-// TODO - if there's a waiting poller, notify it on disconnect
-//      - revamp the polling stuff in general
+// TODO - do type handling on nested objects?
 
 var querystring = require('querystring'),
     EventEmitter = require('events').EventEmitter,
@@ -44,12 +43,23 @@ var convertData = function(type, data) {
       return parseFloat(data);
     case 'n':
       return null;
+    case 'a':
+      return data;
     case 'o':
-      return d;
+      return convertObj(data);
     case 'u':
     default:
       return undefined;
   }
+};
+var convertObj = function(obj) {
+  for (var i in obj) if (obj.hasOwnProperty(i)) {
+    var d = obj[i];
+    obj[i.substr(1)] = convertData(i.substr(0, 1), d);
+    delete obj[i];
+  }
+
+  return obj;
 };
 
 var parseMessage = function(message) {
@@ -79,18 +89,14 @@ var parseMessage = function(message) {
   parsed.data = JSON.parse(parsed.data);
 
   // Handle data formats
-  for (var i in parsed.data) if (parsed.data.hasOwnProperty(i)) {
-    var d = parsed.data[i];
-    parsed.data[i.substr(1)] = convertData(i.substr(0, 1), d);
-    delete parsed.data[i];
-  }
+  convertObj(parsed.data);
 
   return parsed;
 };
 
-var serializeMessage = function(type, data) {
-  // Build the new data
+var convertDataDown = function(data) {
   var ndata = {};
+
   for (var i in data) if (data.hasOwnProperty(i)) {
     var d = data[i];
     var t = 'u';
@@ -106,15 +112,25 @@ var serializeMessage = function(type, data) {
       t = 's';
     } else if (typeof d == 'number') {
       t = 'f';
+    } else if (d instanceof Array) {
+      t = 'a';
     } else if (typeof d == 'object') {
       t = 'o';
+      d = convertDataDown(d);
     }
 
     ndata[t + i] = d;
   }
 
+  return ndata;
+};
+var serializeData = function(data) {
+  data = convertDataDown(data);
+  return JSON.stringify(data);
+};
+var serializeMessage = function(type, data) {
   // Serialize it
-  return type.replace(/[^\w-]/, '') + '|' + JSON.stringify(ndata);
+  return type.replace(/[^\w-]/, '') + '|' + serializeData(data);
 };
 
 var XHRTransport = function(server, url) {
@@ -241,25 +257,11 @@ XHRTransport.prototype.doSend = function(req, res) {
 XHRTransport.prototype.doPoll = function(req, res) {
   var self = this;
 
-  // Fetch the query params
-  var params = querystring.parse(_url.parse(req.url).query);
-  if (!params || !params.cid) {
-    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
-    res.end('Missing cid query param');
-    return;
-  }
-
-  // Get the connection
-  var con = this.connections[params.cid];
-  if (!con) {
+  // The DC functions
+  var wipeout = function() {
     res.writeHead(410, {}); // `Gone`
     res.end('');
-    return;
-  }
-
-  // Wipe out the disconnect timeout
-  clearTimeout(this.dcTimeouts[con.cid]);
-  delete this.dcTimeouts[con.cid];
+  };
 
   // The sending function
   var send = function() {
@@ -291,6 +293,23 @@ XHRTransport.prototype.doPoll = function(req, res) {
     }, 1000 * 60 * 10); // 10 m
   };
 
+
+  // Fetch the query params
+  var params = querystring.parse(_url.parse(req.url).query);
+  if (!params || !params.cid) {
+    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
+    res.end('Missing cid query param');
+    return;
+  }
+
+  // Get the connection
+  var con = this.connections[params.cid];
+  if (!con) return wipeout;
+
+  // Wipe out the disconnect timeout
+  clearTimeout(this.dcTimeouts[con.cid]);
+  delete this.dcTimeouts[con.cid];
+
   // If the connection has pending messages to send, do it
   if (con.pending.length) {
     var msgs = con.pending;
@@ -299,7 +318,7 @@ XHRTransport.prototype.doPoll = function(req, res) {
 
   // Otherwise, wait for messages
   } else {
-    this.pollers[con.cid] = send;
+    this.pollers[con.cid] = [send, wipeout];
     // If the request gets closed, nuke the poller
     req.on('close', function() {
       delete self.pollers[con.cid];
@@ -332,7 +351,9 @@ XHRTransport.prototype.requestSend = function(con) {
   // If there's an active long poll, fill it up.
   process.nextTick(function() {
     if (self.pollers[con.cid]) {
-      self.pollers[con.cid].apply(self, con.pending);
+      var msgs = con.pending;
+      con.pending = [];
+      self.pollers[con.cid][0].apply(self, msgs);
       delete self.pollers[con.cid];
     }
   });
@@ -343,13 +364,17 @@ XHRTransport.prototype.requestSend = function(con) {
 // Disconnects a connection
 XHRTransport.prototype.disconnect = function(con) {
 
+  // Disconnect a waiting poller
+  if (this.pollers[con.cid])
+    this.pollers[con.cid][1]();
+
   // Delete the connection from the list
   delete this.connections[con.cid];
   delete this.pollers[con.cid];
 
   // Fire the relevant events
   con.emit('disconnect');
-  self.emit('disconnect', con);
+  this.emit('disconnect', con);
 };
 
 exports.Transport = XHRTransport;

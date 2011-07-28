@@ -274,14 +274,16 @@ var connection = new EventEmitter();
 
   // Register the message handler
   con.on('message', messaging.handleMessage);
-  // Bootstrap it
-  con.connect();
 
-  // Set the `init` function here.  It doesn't actually trigger the
-  // init, but doesn't fire until init is over.
+  // Our initialization/bootstrap function.
   zz.init = function(callback) {
-    if (ready) callback();
-    else inits.push(callback);
+
+    if (ready) {
+      callback();
+    } else {
+      if (!con.connected) con.connect();
+      inits.push(callback);
+    }
   };
 
   //

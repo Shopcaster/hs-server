@@ -1,5 +1,6 @@
 var events = require('events'),
     mongo = require('mongodb'),
+    ConnectionState = require('./croquet/connection').ConnectionState,
     croquet = require('./croquet/croquet');
 
 var socket;
@@ -13,7 +14,7 @@ var Client = function(connection) {
 };
 Client.prototype = new events.EventEmitter();
 Client.prototype.send = function(type, data) {
-  if (this.connection.connected)
+  if (this.connection.state === ConnectionState.connected)
     this.connection.send(type, data);
 };
 

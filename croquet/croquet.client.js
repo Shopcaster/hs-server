@@ -1,4 +1,6 @@
 // TODO  - exponential backoff on connection or poll failure
+//       - more robust connection handling
+//       - handle repeated connect/disconnect calls
 
 var croquet = {};
 (function() {
@@ -112,12 +114,12 @@ var croquet = {};
   Connection.prototype.startReceiveLoop = function() {
     var self = this;
 
-    var xhr = this.recv = new XHR();
+    var xhr = this._recv = new XHR();
     xhr.open('GET', this.url + '/xhr/poll?cid=' + this.cid);
     xhr.send();
     xhr.onreadystatechange = function() {
       if (xhr.readyState == 4) {
-        delete self.recv;
+        delete self._recv;
 
         // A 200 indicates that we successfully received messages
         if (xhr.status == 200) {
@@ -150,7 +152,7 @@ var croquet = {};
     };
   };
   Connection.prototype.stopReceiveLoop = function() {
-    if (this.recv) this.recv.abort();
+    if (this.recv) this._recv.abort();
   };
 
   // TODO - the send loop functionality could optimize latency a bit
@@ -165,15 +167,18 @@ var croquet = {};
         var messages = self.pending;
         self.pending = [];
 
-        var xhr = self.send = new XHR();
+        var xhr = self._send = new XHR();
         xhr.open('POST', self.url + '/xhr/send');
         xhr.send(serializeMessages.apply(this, messages));
         xhr.onreadystatechange = function() {
           if (xhr.readyState == 4) {
-            delete self.send;
+            delete self._send;
 
             // 201 indicates success
             if (xhr.status == 201) {
+
+              // Continue sending
+              self.startSendLoop();
 
             // Anything else is some sort of weird error.  We should
             // recover by restoring the message queue and disconnecting.
@@ -195,11 +200,11 @@ var croquet = {};
   };
   Connection.prototype.stopSendLoop = function() {
     if (this.sendTimeout) clearTimeout(this.sendTimeout);
-    if (this.send) this.send.abort();
+    if (this._send) this._send.abort();
   };
 
   // De/serialization utilities
-  var serializeData = function(data) {
+  var convertDataDown = function(data) {
     var ndata = {};
 
     for (var i in data) if (data.hasOwnProperty(i)) {
@@ -217,14 +222,21 @@ var croquet = {};
         t = 's';
       } else if (typeof d == 'number') {
         t = 'f';
+      } else if (d instanceof Array) {
+        t = 'a';
       } else if (typeof d == 'object') {
         t = 'o';
+        d = convertDataDown(d);
       }
 
       ndata[t + i] = d;
     }
 
-    return JSON.stringify(ndata);
+    return ndata;
+  };
+  var serializeData = function(data) {
+    data = convertDataDown(data);
+    return JSON.stringify(data);
   };
   var serializeMessage = function(cid, mid, type, data) {
     return cid + '|' + mid + '|' + type.replace(/[^\w-]/, '') + '|' + serializeData(data);
@@ -252,12 +264,23 @@ var croquet = {};
         return parseFloat(data);
       case 'n':
         return null;
-      case 'o':
+      case 'a':
         return data;
+      case 'o':
+        return convertObj(data);
       case 'u':
       default:
         return undefined;
     }
+  };
+  var convertObj = function(obj) {
+    for (var i in obj) if (obj.hasOwnProperty(i)) {
+      var d = obj[i];
+      obj[i.substr(1)] = convertData(i.substr(0, 1), d);
+      delete obj[i];
+    }
+
+    return obj;
   };
   var deserializeMessage = function(data) {
     var msg = {};
@@ -269,11 +292,7 @@ var croquet = {};
 
     // Convert the data to an object
     msg.data = JSON.parse(msg.data);
-    for (var i in msg.data) if (msg.data.hasOwnProperty(i)) {
-      var d = msg.data[i];
-      msg.data[i.substr(1)] = convertData(i.substr(0, 1), d);
-      delete msg.data[i];
-    }
+    convertObj(msg.data);
 
     return msg;
   };
