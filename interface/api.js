@@ -1,3 +1,12 @@
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
 //
 // Expects the following to exist:
 //
@@ -190,11 +199,10 @@ var messaging = new EventEmitter();
 //
 var connection = new EventEmitter();
 (function() {
-  var con = new io.Socket(/*$host$*/, {
-    secure: /*$secure$*/,
-    port: /*$port$*/,
-    rememberTransport: false
-  });
+  var con = new croquet.Croquet(
+    (/*$secure$*/ ? 'https://' : 'http') +
+    /*$host$*/ + /*$port$*/
+  );
 
   var ready = false;
   var delayedMessages = [];
@@ -708,23 +716,10 @@ zz.recordError = function(err) {
     for (var i in data) if (data.hasOwnProperty(i)) {
       var d = data[i];
 
-      // Data conversion
-      if (d && typeof d == 'object' && d.type) {
-        // Date
-        if (d.type == 'date')
-          d = new Date(d.val + 1307042003319);
-
-        // We have to do a manual comparison
-        if (+this.data[i] != +d) {
-          this.data[i] = d;
-          this.emit('field', i, d);
-        }
-
-        continue;
-      }
-
       // Only update fields if they're different
-      if (this.data[i] !== d) {
+      if (this.data[i] !== d
+      // Dates are a little weird
+      || (d instanceof Date && (+d) == (+this.data[i])) ) {
         // Update the field in our internal data storage
         this.data[i] = d;
         // Fire the relevant callback
@@ -1260,8 +1255,6 @@ var validate = function(data) {
 
     // Auto convert id
     if (d instanceof zz.models.Model) data[i] = d._id;
-    // Auto convert date
-    else if (d instanceof Date) data[i] = {type: 'date', val: +d - 1307042003319};
 
     // Check data types
     else switch (typeof d) {
