@@ -1,29 +1,24 @@
 var EventEmitter = require('events').EventEmitter,
     fs = require('fs');
 
-// Available transports
-var transports = [];
-
-// Find all available transports
-with ({dir: fs.readdirSync(__dirname + '/' + 'transports')}) {
-  for (var i=0; i<dir.length; i++) {
-    var file = __dirname + '/' + dir[i];
-    var stats = fs.statSync(file);
-    if (stats.isFile() && dir[i].match(/\.js$/))
-      transports.push(require(file).Transport);
-  }
-}
+// Transports
+var xhr = require('./xhr');
 
 var Croquet = function(server, url) {
   this.server = server;
   this.url = url;
   this.transports = [];
 
-  // Initialize the transports
-  for (var i=0; i<transports.length; i++)
-    this.transports.push(new transports[i](server, url));
+  // Initialize xhr transport
+  this.transports.push(new xhr.Transport(server, url));
 
-  // Generate the client code
+  // Listen for connections
+  var self = this;
+  for (var i=0; i<this.transports.length; i++) {
+    this.transports[i].on('connection', function(con) {
+      self.emit('connection', con);
+    });
+  }
 };
 Croquet.prototype = new EventEmitter();
 Croquet.prototype.kill = function() {

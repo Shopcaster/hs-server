@@ -24,8 +24,15 @@ var getCode = function() {
   // If we've cached the file in memory, return it.
   if (cached) return cached;
 
-  // Fetch the file
-  var code = fs.readFileSync(filePath, 'utf8');
+  // Initialize the code
+  var code = '';
+
+  // Get the deps
+  code += fs.readFileSync(__dirname + '/deps.js');
+  // Add the croquet library
+  code += fs.readFileSync(__dirname + '/../croquet/croquet.client.js');
+  // Fetch the library
+  code += fs.readFileSync(filePath, 'utf8');
 
   // Set the settings
   with({u: url.parse(settings.serverUri)}) {
@@ -35,7 +42,7 @@ var getCode = function() {
   }
 
   // If we have uglify, and compression is enabled, do it.
-  if (settings.compressApiInterface) {
+  if (settings.compressApiLibrary) {
     try {
       var uglify = require('uglify-js');
       var ast = uglify.parser.parse(code);
@@ -61,8 +68,20 @@ var getCode = function() {
 // Watch the api file for changes
 fs.watchFile(filePath, function(cur, prev) {
   // If it's changed
-  if (cur.mtime > prev.mtime)
+  if (cur.mtime > prev.mtime) {
+    console.log('API library file has changed, marking for reload');
+    console.log('');
     cached = null;
+  }
+});
+// Watch croquet for changes
+fs.watchFile(__dirname + '/../croquet/croquet.client.js', function(cur, prev) {
+  // If it's changed
+  if (cur.mtime > prev.mtime) {
+    console.log('Croquet client file has changed, marking for reload');
+    console.log('');
+    cached = null;
+  };
 });
 
 exports.getCode = getCode;

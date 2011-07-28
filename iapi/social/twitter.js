@@ -1,10 +1,10 @@
 var url = require('url'),
     querystring = require('querystring'),
-    auth = require('./../handlers/auth'),
-    oauth = require('./../util/oauth'),
-    settings = require('./../settings'),
-    db = require('./../db'),
-    models = require('./../models'),
+    auth = require('../../handlers/auth'),
+    oauth = require('../../util/oauth'),
+    settings = require('../../settings'),
+    db = require('../../db'),
+    models = require('../../models'),
     common = require('./common');
 
 var client = new oauth.OAuth('b9V0NzaBlCxbWdLz1OQT5A',
@@ -48,7 +48,8 @@ var api = function(auth, path, method, data, callback) {
         return callback('Bad data from Twitter');
       }
 
-      callback(res.statusCode != 200 && res.statusCode != 201, body);
+      callback((res.statusCode != 200
+             && res.statusCode != 201) ? res.statusCode : undefined,body);
     });
   });
   if (data)
@@ -72,9 +73,9 @@ var connect = function(req, res) {
   auth.authUser(args.email, args.password, function(err, bad, obj) {
 
     // Handle errors with, well, errors
-    if (err) return common.error(res, args['return'], 'Unexpected server error');
+    if (err) return common.error('Incorrect login', args['return'], res);
     // If the auth was incorrect or missing, bail
-    if (bad || !obj) return common.error(res, args['return'], 'Incorrect login');
+    if (bad || !obj) return common.error('Incorrect login', args['return'], res);
 
     // Set up the "session"
     var s = new common.Session();
@@ -82,7 +83,7 @@ var connect = function(req, res) {
     s.ret = args['return'];
 
     // Fetch the temp OAuth token
-    var returnUrl = settings.serverUri + '/twitter/callback?state=' + s.id;
+    var returnUrl = settings.serverUri + '/iapi/social/connect/callback?type=twitter&state=' + s.id;
     client.requestToken('/oauth/request_token', returnUrl, function(err, token) {
 
       // Handle errors
@@ -91,7 +92,7 @@ var connect = function(req, res) {
         console.log(err.stack);
         console.log('');
 
-        return common.error(res, args['return'], 'Error fetching Twitter request token');
+        return common.error('Error fetching Twitter request token', args['return'], res);
       }
 
       // Send the user to the authorization page
@@ -103,7 +104,7 @@ var connect = function(req, res) {
 };
 
 // OAuth verification callback
-var authCallback = function(req, res) {
+var callback = function(req, res) {
   var args = querystring.parse(url.parse(req.url).query);
 
   // Verify that the session is valid and hasn't expired
@@ -129,7 +130,7 @@ var authCallback = function(req, res) {
   client.accessToken('/oauth/access_token', token, function(err, token) {
 
     // Handle errors
-    if (err) return common.error(res, session.ret, 'Failed to authenticate with Twitter');
+    if (err) return common.error('Failed to authenticate with Twitter', session.ret, res);
 
     // Save the oauth token on the user's record
     session.auth.twitter_token = token.token;
@@ -146,7 +147,7 @@ var authCallback = function(req, res) {
         if (data) console.log(data);
         console.log('');
 
-        return common.error(res, session.ret, 'Unable to fetch user data');
+        return common.error('Unable to fetch user data', session.ret, res);
       }
 
       // Store the link in the user's profile
@@ -156,21 +157,11 @@ var authCallback = function(req, res) {
       db.apply(user);
 
       // Redirect back to the client
-      return common.success(res, session.ret);
+      return common.success('true', session.ret, res);
     });
   });
 
 };
 
-// URL Dispatcher
-var serve = function(req, res) {
-  var url = req.url.substr(9); //strip leading /twitter/
-
-  if (url.match(/^connect/)) return connect(req, res);
-  if (url.match(/^callback/)) return authCallback(req, res);
-
-  res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
-  res.end('Not Found');
-};
-
-exports.serve = serve;
+exports.connect = connect;
+exports.callback = callback;

@@ -204,7 +204,20 @@ var queryOne = function(type, q, callback) {
   });
 };
 
-var query = function(type, q, callback) {
+/* type, q, [[offset, limit]], callback */
+var query = function(type, q) {
+
+  // Magic args
+  var args = Array.prototype.slice.call(arguments);
+
+  var callback = args.pop();
+  var offset = 0;
+  var limit = 0;
+  if (args.length > 2) {
+    offset = offset || args[2][0];
+    limit = limit || args[2][1];
+  }
+
   // Don't query deleted fields
   q.deleted = {$ne: true};
 
@@ -229,7 +242,14 @@ var query = function(type, q, callback) {
       return callback(err);
     }
 
-    col.find(q).toArray(function(err, objs) {
+    // Base query
+    var f = col.find(q);
+    // Limit/offset
+    if (offset) f = f.skip(offset);
+    if (limit) f = f.limit(limit);
+
+    // Run the query and fetch the individual things
+    f.toArray(function(err, objs) {
       if (err) {
         console.log(err)
         return; callback(true);

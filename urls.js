@@ -1,9 +1,7 @@
 var staticServing = require('./static-serving'),
     interfaceServing = require('./interface/serve');
     iapi = require('./iapi/urls'),
-    facebook = require('./third-party/facebook'),
-    twitter = require('./third-party/twitter'),
-    linkedin = require('./third-party/linkedin'),
+    crosspost = require('./crosspost/handlers'),
     fs = require('fs');
 
 // Serves an individual file
@@ -26,10 +24,11 @@ var file = function(file, type) {
 };
 
 var urls = {
-  //dummy handler that keeps us from clobbering socket.io's urls
-  '^/socket.io/': function() {},
+  //dummy handler that keeps us from clobbering croquet's urls
+  '^/croquet/': function() {},
+
   //serve File objects from the db
-  '^/static/': staticServing.serve,
+  '^/staticfile/': staticServing.serve,
 
   //serve the api library
   '^/api-library.js': interfaceServing.serve,
@@ -37,13 +36,18 @@ var urls = {
   //delegate to the internal api
   '^/iapi/': iapi.serve,
 
-  //oauth callbacks
-  '^/fb/': facebook.serve,
-  '^/twitter/': twitter.serve,
-  '^/linkedin/': linkedin.serve
+  //crossposting urls
+  '^/crosspost': crosspost.serve,
 };
 
 var dispatch = function(req, res) {
+
+  // Special case for / for pingdom
+  if (req.url == '/') {
+    res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+    res.end('Hi');
+    return;
+  }
 
   //try to dispatch
   for (var r in urls) if (urls.hasOwnProperty(r)) {

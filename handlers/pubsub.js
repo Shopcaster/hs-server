@@ -3,19 +3,6 @@ var ids = require('./../util/ids'),
     auth = require('./auth'),
     mongo = require('mongodb');
 
-var convert = function(data) {
-  // Data conversion on message data
-  for (var i in data) if (data.hasOwnProperty(i)) {
-    var d = data[i];
-
-    // Date
-    if (d instanceof Date)
-      data[i] = {type: 'date', val: +d - 1307042003319};
-  }
-
-  return data;
-};
-
 // FAIR WARNING:
 //   This is one hell of a complicated module.  Bring your towel.
 //
@@ -62,9 +49,6 @@ var sub = function(client, data, callback, errback) {
         // only ever passed copies, and don't share references.
         delete fs._id;
 
-        // Fix up the data
-        convert(fs);
-
         // Send the pub on down
         client.send('pub', {
           key: obj._id,
@@ -81,7 +65,7 @@ var sub = function(client, data, callback, errback) {
       };
 
       // Send the initial data back to the user
-      callback(convert(obj));
+      callback(obj);
     });
 
   // Listen on the relation

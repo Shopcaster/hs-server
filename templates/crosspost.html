@@ -64,7 +64,7 @@
 <a href="{{ settings.clientUri }}/{{ listing._id }}">{{ settings.clientUri }}/{{ listing._id }}</a>
 </p>
 
-<p><img src="{{ settings.serverUri }}/static/{{ listing.photo }}" /></p>
+<p><img src="{{ settings.serverUri }}/{{ listing.photo }}" /></p>
     </textarea>
 
   </div>
@@ -84,7 +84,7 @@
     <textarea>{{ listing.description }}</textarea>
 
     <h3>Image</h3>
-    <img src="/static/{{listing.photo}}">
+    <img src="/{{listing.photo}}">
 
     <h3>Email</h3>
     <input value="{{ listing.email }}">
@@ -94,10 +94,6 @@
         Google Maps</a><br>
     City: <input value="{{ city }}, {{ state }}, {{ country }}">
     Postal: <input value="{{ postal }}">
-
-
-
-
 
   </div>
 

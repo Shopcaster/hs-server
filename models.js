@@ -19,6 +19,13 @@ Listing.prototype.genId = function(callback) {
 
 var User = function() {};
 User.prototype = new FieldSet('user');
+User.prototype.genId = function(callback) {
+  var self = this;
+  makeNiceId(this.getCollection(), function(id) {
+    self._id = id;
+    if (callback) callback();
+  });
+};
 
 var Offer = function() {};
 Offer.prototype = new FieldSet('offer');

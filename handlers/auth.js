@@ -6,33 +6,7 @@ var db = require('./../db'),
     templating = require('./../templating'),
     crypto = require('crypto');
 
-var pwAdjectives = [
-  'Happy',
-  'Conservative',
-  'Smarmy',
-  'Underhanded',
-  'Incredible',
-  'Horrified',
-  'Cranky',
-  'Marvelous',
-  'Suplexed',
-  'Rampaging',
-  'Virulent'
-];
-var pwNouns = [
-  'SkyScraper',
-  'Seaweed',
-  'Rhinos',
-  'Facebooks',
-  'WaterCooler',
-  'Zamboni',
-  'Coconut',
-  'NewtonianPhysics',
-  'Catfish',
-  'DrumSolo',
-  'Engineer',
-  'Rainbow'
-];
+var pwCharacters = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 var emailDelays = {};
 var emailDelayIntervals = {};
@@ -40,15 +14,15 @@ var emailDelayIntervals = {};
 // Utility functions
 
 var hashPassword = function(password, email) {
-  return crypto.createHash('sha256').update(password + email).digest('hex').toUpperCase();
+  return crypto.createHash('sha256')
+           .update(password + email.toLowerCase())
+           .digest('hex').toUpperCase();
 };
 
 var createPassword = function(email) {
-  var adjective = pwAdjectives[Math.floor(Math.random() * pwAdjectives.length)];
-  var noun = pwNouns[Math.floor(Math.random() * pwNouns.length)];
-  var n = Math.floor(Math.random() * 100 + 1);
-
-  var pwRaw = adjective + '_' + noun + n;
+  var pwRaw = '';
+  for (var i=0; i<6; i++)
+    pwRaw += pwCharacters[Math.floor(Math.random() * pwCharacters.length)];
 
   // Send an email to the user
   _email.send(email, 'Welcome to Hipsell',
@@ -58,8 +32,9 @@ var createPassword = function(email) {
   return hashPassword(pwRaw, email);
 };
 
+// TODO - document
 var authUser = function(email, password, callback) {
-  db.queryOne(models.Auth, {email: email}, function(err, obj) {
+  db.queryOne(models.Auth, {email: email.toLowerCase()}, function(err, obj) {
 
     // Handle failure gracefully
     if (err) return callback('Database Error');
@@ -76,6 +51,9 @@ var authUser = function(email, password, callback) {
 };
 
 var signup = function(email, callback) {
+  // Email addresses must be lower case
+  email = email.toLowerCase();
+
   var auth = new models.Auth();
   auth.email = email;
   auth.password = createPassword(email);
@@ -104,7 +82,7 @@ var auth = function(client, data, callback, errback, force) {
   // stalling responses to messages if the client tries to auth
   // too many times.
   //
-  // We also do per-email auth rate limiting.  We being stalling
+  // We also do per-email auth rate limiting.  We begin stalling
   // responses to auth messages for a particular email if clients
   // try to auth against it too many times.
   //

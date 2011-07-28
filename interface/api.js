@@ -1,13 +1,22 @@
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
 //
 // Expects the following to exist:
 //
-//   JSON.stringify :: Object -> String
-//   JSON.parse :: String -> Object
-//   sha256 :: String -> String
-//   io.Socket :: [Constructor] String -> Object -> unit
-//   console.log :: (Variable args) -> unit
-//   localStorage :: Object
-//   setTimeout :: Function -> Number -> Object
+//   JSON
+//   sha256
+//   console.log
+//   localStorage
+//   setTimeout
+//   EventEmitter
+//   croquet
 //
 
 // Global closure
@@ -25,80 +34,6 @@ config.datatypes = [
   'message', 'messages',
   'inquiry', 'inquiries'
 ];
-
-//
-// Node.js style EventEmitter
-//
-var EventEmitter = function EventEmitter() {};
-EventEmitter.prototype = {};
-
-var idd = 0;
-EventEmitter.prototype.on = function(event, listener) {
-  if (!this._listeners) this._listeners = {};
-  if (!this._listeners[event]) this._listeners[event] = [];
-  this._listeners[event].push(listener);
-
-  this.emit('newListener', event, listener);
-
-  return this;
-};
-EventEmitter.prototype.once = function(event, listener) {
-  if (!this._onceListeners) this._onceListeners = {};
-  if (!this._onceListeners[event]) this._onceListeners[event] = [];
-  this._onceListeners[event].push(listener);
-
-  this.emit('newListener', event, listener);
-
-  return this;
-};
-EventEmitter.prototype.removeListener = function(event, listener) {
-  if (this._listeners && this._listeners[event]) {
-    var n = this._listeners[event].indexOf(listener);
-    if (n >= 0) this._listeners[event].splice(n, 1);
-
-  } else if (this._onceListeners && this._onceListeners[event]) {
-    var n = this._onceListeners[event].indexOf(listener);
-    if (n >= 0) this._onceListeners[event].splice(n, 1);
-  }
-
-  return this;
-};
-EventEmitter.prototype.removeAllListeners = function(event) {
-  if (this._listeners) delete this._listeners[event];
-  if (this._onceListeners) delete this._onceListeners[event];
-
-  return this;
-};
-EventEmitter.prototype.emit = function() {
-  var args = Array.prototype.slice.call(arguments);
-  var event = args.shift();
-
-  // Call regular listeners
-  if (this._listeners && this._listeners[event]) {
-    for (var i=0; i<this._listeners[event].length; i++)
-      this._listeners[event][i].apply(null, args);
-  }
-
-  // Call once listeners
-  if (this._onceListeners && this._onceListeners[event]) {
-    for (var i=0; i<this._onceListeners[event].length; i++)
-      this._onceListeners[event][i].call(null, args);
-
-    // Clean up
-    delete this._onceListeners[event];
-  }
-
-  return this;
-};
-// We have no concept of max listeners...
-EventEmitter.prototype.setMaxListeners = function() {};
-// This is slightly broken in that it doesn't return once listeners
-EventEmitter.prototype.listeners = function(event) {
-  if (!this._listeners) this._listeners = {};
-  if (!this._listeners[event]) this._listeners[event] = [];
-
-  return this._listeners[event];
-};
 
 //
 // Initialize the zz object
@@ -123,22 +58,22 @@ zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
   pub: true,
-  presence: false,
-  not: false
+  presence: true,
+  not: true
 };
 zz.logging.outgoing = {
-  ping: false,
-  error: false,
-  auth: false,
-  deauth: false,
-  passwd: false,
-  sub: false,
-  unsub: false,
-  create: false,
-  update: false,
-  'delete': false,
-  'sub-presence': false,
-  'unsub-presence': false
+  ping: true,
+  error: true,
+  auth: true,
+  deauth: true,
+  passwd: true,
+  sub: true,
+  unsub: true,
+  create: true,
+  update: true,
+  'delete': true,
+  'sub-presence': true,
+  'unsub-presence': true
 };
 
 // Friendly log
@@ -166,22 +101,8 @@ var messaging = new EventEmitter();
   // Actively pending responses
   var pendingResponses = 0;
 
-  messaging.serialize = function(type, data) {
-    return type + ':' + JSON.stringify(data);
-  };
-  messaging.deserialize = function(str) {
-    var i = str.indexOf(':');
-    if (i < 1)
-      throw 'Invalid message: ' + str;
-    var type = str.substr(0, i);
-    var data = JSON.parse(str.substr(i + 1) || null);
-
-    return {type: type, data: data};
-  };
-
   // Handles incoming messages
   messaging.handleMessage = function(msg) {
-    msg = messaging.deserialize(msg);
 
     // Log the message if we're configured to do so
     if (zz.logging.incoming[msg.type]) log(msg.type, msg.data);
@@ -198,7 +119,8 @@ var messaging = new EventEmitter();
   };
   // Sends a message
   messaging.send = function(msg, data, callback) {
-    // Create this message's ID
+
+    // Grab an id and increment global id
     var id = messaging.id++;
 
     // Log if we're asked to
@@ -206,9 +128,6 @@ var messaging = new EventEmitter();
 
     // Default data
     data = data || {};
-
-    // Update the data with the message ID
-    data.id = id;
 
     // Set up a timeout to fire if this response takes too long
     var to = setTimeout(function() {
@@ -223,6 +142,9 @@ var messaging = new EventEmitter();
       // it was fired.
       to = null;
     }, zz.waitThreshold);
+
+    // Fire the message
+    connection.send(id, msg, data);
 
     // Register the callback for this message's response
     messaging.callbacks[id] = function(data) {
@@ -250,10 +172,6 @@ var messaging = new EventEmitter();
       if (data.error) callback(new Error(data.error));
       else callback(undefined, data.value);
     };
-
-
-    // Fire the message
-    connection.send(messaging.serialize(msg, data));
   };
 })();
 
@@ -264,11 +182,10 @@ var messaging = new EventEmitter();
 //
 var connection = new EventEmitter();
 (function() {
-  var con = new io.Socket(/*$host$*/, {
-    secure: /*$secure$*/,
-    port: /*$port$*/,
-    rememberTransport: false
-  });
+  var con = new croquet.Connection(
+    (/*$secure$*/ ? 'https://' : 'http://') +
+    /*$host$*/ + ':' + /*$port$*/ + '/croquet'
+  );
 
   var ready = false;
   var delayedMessages = [];
@@ -288,7 +205,7 @@ var connection = new EventEmitter();
 
     // Send all the delayed messages
     for (var i=0; i<delayedMessages.length; i++)
-      try { con.send.call(con, delayedMessages[i]) }
+      try { con.send.apply(con, delayedMessages[i]) }
       catch(err) { log(err) }
 
     // Fire the inits if we need to
@@ -338,17 +255,19 @@ var connection = new EventEmitter();
     if (!holdDisconnect) con.connect();
   });
 
-  connection.send = function(msg) {
+  connection.send = function(id, type, data) {
     // Send messages if they're allowed through
-    if (allowThrough) con.send.call(con, msg);
+    if (allowThrough) con.send.call(con, id, type, data);
     // Otherwise, delay the messages
-    else delayedMessages.push(msg);
+    else delayedMessages.push([id, type, data]);
   };
   connection.connect = function() {
+    console.log('-  connection.connect');
     holdDisconnect = false;
     con.connect();
   };
   connection.disconnect = function() {
+    console.log('-  connection.disconnect');
     holdDisconnect = true;
     con.disconnect();
   };
@@ -780,23 +699,10 @@ zz.recordError = function(err) {
     for (var i in data) if (data.hasOwnProperty(i)) {
       var d = data[i];
 
-      // Data conversion
-      if (d && typeof d == 'object' && d.type) {
-        // Date
-        if (d.type == 'date')
-          d = new Date(d.val + 1307042003319);
-
-        // We have to do a manual comparison
-        if (+this.data[i] != +d) {
-          this.data[i] = d;
-          this.emit('field', i, d);
-        }
-
-        continue;
-      }
-
       // Only update fields if they're different
-      if (this.data[i] !== d) {
+      if (this.data[i] !== d
+      // Dates are a little weird
+      || (d instanceof Date && (+d) == (+this.data[i])) ) {
         // Update the field in our internal data storage
         this.data[i] = d;
         // Fire the relevant callback
@@ -1332,8 +1238,6 @@ var validate = function(data) {
 
     // Auto convert id
     if (d instanceof zz.models.Model) data[i] = d._id;
-    // Auto convert date
-    else if (d instanceof Date) data[i] = {type: 'date', val: +d - 1307042003319};
 
     // Check data types
     else switch (typeof d) {

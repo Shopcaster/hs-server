@@ -1,10 +1,10 @@
 var url = require('url'),
     https = require('https'),
     querystring = require('querystring'),
-    settings = require('./../settings'),
-    db = require('./../db'),
-    models = require('./../models'),
-    auth = require('./../handlers/auth'),
+    settings = require('../../settings'),
+    db = require('../../db'),
+    models = require('../../models'),
+    auth = require('../../handlers/auth'),
     common = require('./common');
 
 var APP_ID = '110693249023137';
@@ -50,7 +50,7 @@ var graph = function(auth, path, method, data, callback) {
   });
 };
 
-var authCallback = function(req, res) {
+var callback = function(req, res) {
   var args = querystring.parse(url.parse(req.url).query);
 
   // Handle errors
@@ -76,7 +76,7 @@ var authCallback = function(req, res) {
   var path = '/oauth/access_token' +
              '?client_id=' + APP_ID +
              '&client_secret=' + APP_SECRET +
-             '&redirect_uri=' + querystring.escape(settings.serverUri + '/fb/callback') +
+             '&redirect_uri=' + querystring.escape(settings.serverUri + '/iapi/social/connect/callback?type=fb') +
              '&code=' + args.code;
 
   graph(null, path, 'GET', null, function(err, data) {
@@ -87,7 +87,7 @@ var authCallback = function(req, res) {
       if (data) console.log(data);
       console.log('');
 
-      return common.error(res, session.ret, 'Unexpected error');
+      return common.error('Unexpected error', session.ret, res);
     }
 
     // Parse the data
@@ -108,7 +108,7 @@ var authCallback = function(req, res) {
         if (data) console.log(data);
         console.log('');
 
-        return common.error(res, session.ret, 'Unable to fetch user data');
+        return common.error('Unable to fetch user data', session.ret, res);
       }
 
       // Parse the data
@@ -119,7 +119,7 @@ var authCallback = function(req, res) {
         console.log(data);
         console.log('');
 
-        return common.error(res, session.ret, 'Bad data from Facebook');
+        return common.error('Bad data from Facebook', session.ret, res);
       }
 
       // Store the link in the user's profile
@@ -129,7 +129,7 @@ var authCallback = function(req, res) {
       db.apply(user);
 
       // Redirect back to the client
-      return common.success(res, session.ret);
+      return common.success('true', session.ret, res);
     });
   });
 };
@@ -144,10 +144,10 @@ var connect = function(req, res) {
   auth.authUser(args.email, args.password, function(err, bad, obj) {
 
     // Handle errors with, well, errors.
-    if (err) return common.error(res, args['return'], 'Unexpected server error');
+    if (err) return common.error('Unexpected server error', args['return'], res);
 
     // If the auth was incorrect or missing, throw out a 403
-    if (bad || !obj) return common.error(res, args['return'], 'Incorrect login');
+    if (bad || !obj) return common.error('Incorrect login', args['return'], res);
 
     // Set up the "session"
     var s = new common.Session();
@@ -157,9 +157,9 @@ var connect = function(req, res) {
     // Redirect the user to begin the flow
     var url = 'https://www.facebook.com/dialog/oauth' +
               '?client_id=' + APP_ID +
-              '&redirect_uri=' + settings.serverUri + '/fb/callback' +
+              '&redirect_uri=' + querystring.escape(settings.serverUri + '/iapi/social/connect/callback?type=fb') +
               '&state=' + s.id +
-              '&scope=' + 'offline_access';
+              '&scope=' + 'publish_stream';
 
     res.writeHead(302, {'Location': url});
     res.end();
@@ -167,16 +167,6 @@ var connect = function(req, res) {
 
 };
 
-// URL Dispatcher
-var serve = function(req, res) {
-  var url = req.url.substr(4); //strip leading /fb/
-
-  if (url.match(/^connect/)) return connect(req, res);
-  if (url.match(/^callback/)) return authCallback(req, res);
-
-  res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
-  res.end('Not Found');
-};
-
-exports.serve = serve;
+exports.connect = connect;
+exports.callback = callback;
 exports.graph = graph;

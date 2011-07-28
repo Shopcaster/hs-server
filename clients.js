@@ -1,72 +1,43 @@
-var io = require('socket.io'),
-    events = require('events'),
-    mongo = require('mongodb');
+var events = require('events'),
+    mongo = require('mongodb'),
+    croquet = require('./croquet/croquet');
 
 var socket;
-var clients = {}, cur_id = 0;
-
-// Serializes a message
-var serialize = function(messageType, messageData) {
-  if (typeof messageType != 'string' || typeof messageData != 'object')
-    throw new Error('Bad message');
-
-  return messageType + ':' + (JSON.stringify(messageData) || '');
-};
-
-// Deserializes a message
-var deserialize = function(msg) {
-  var i = msg.indexOf(':');
-  if (i < 1)
-    throw 'Invalid message: ' + msg;
-  var type = msg.substr(0, i);
-  var data = JSON.parse(msg.substr(i + 1) || null);
-
-  return {type: type, data: data};
-};
 
 // Client object
-var Client = function(client_id) {
-  this.id = cur_id++;
+var Client = function(connection) {
+  this.id = connection.cid;
+  this.connection = connection;
   this.state = {};
   this.setMaxListeners(0);
 };
 Client.prototype = new events.EventEmitter();
 Client.prototype.send = function(type, data) {
-  if (clients[this.id])
-    clients[this.id].send(serialize(type, data));
+  if (this.connection.connected)
+    this.connection.send(type, data);
 };
 
 init = function(server, handler) {
-  //initialize socket.io server
-  socket = new io.listen(server, {log: function() {}});
-  socket.on('connection', function(c) {
+  //initialize croquet
+  socket = new croquet.Croquet(server, '/croquet');
+  socket.on('connection', function(con) {
 
     //init stuff, because javascript's hashes suck
-    var client = new Client();
-    clients[client.id] = c;
+    var client = new Client(con);
 
     //listen for messages
-    c.on('message', function(msg) {
-      var done = false;
+    con.on('message', function(msg) {
 
       try {
-        var message = deserialize(msg);
-        var mid = message.data.id;
-        delete message.data.id;
-
         //dispatch the message
-        handler(client, message.type, message.data,
+        handler(client, msg.type, msg.data,
         //success callback
         function(val) {
-          if (!done)
-            client.send('response', {id: mid, value: val});
-          done = true;
+          msg.respond(val);
         },
         //error callback
         function(err) {
-          if (!done)
-            client.send('response', {id: mid, error: err});
-          done = true
+          msg.respondError(err);
         });
       } catch (err) {
         console.log(err.stack);
@@ -74,9 +45,8 @@ init = function(server, handler) {
       }
     });
     //listen for disconnect
-    c.on('disconnect', function() {
+    con.on('disconnect', function() {
       client.emit('disconnect');
-      delete clients[client.id];
     });
   });
 };

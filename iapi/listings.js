@@ -1,4 +1,5 @@
 var querystring = require('querystring'),
+    cors = require('../util/cors'),
     models = require('../models'),
     listings = require('../handlers/data-handling/listing'),
     db = require('../db'),
@@ -6,17 +7,10 @@ var querystring = require('querystring'),
     email = require('../email'),
     auth = require('../handlers/auth');
 
-var serve = function(req, res) {
-  //only serve posts and cors
-  if (req.method == 'OPTIONS') {
-    res.writeHead(200, {'Access-Control-Allow-Origin': '*',
-                        'Access-Control-Allow-Method': req.headers['access-control-request-method'],
-                        'Access-Control-Allow-Headers': req.headers['access-control-request-headers']});
-    res.end('');
+var serve = cors.wrap(function(req, res) {
 
-    return;
-
-  } else if (req.method != 'POST') {
+  // We only serve POSTs here.
+  if (req.method != 'POST') {
     res.writeHead(405, {'Content-Type': 'text/html; charset=utf-8'});
     res.end('Method Not Allowed');
     return;
@@ -52,8 +46,7 @@ var serve = function(req, res) {
           listings.createImg(q.photo, function(err, id) {
             //handle errors
             if (err) {
-              res.writeHead(500, {'Content-Type': 'text/plain',
-                                  'Access-Control-Allow-Origin': '*'});
+              res.writeHead(500, {'Content-Type': 'text/plain'});
               return res.end('Server Error');
             }
 
@@ -70,8 +63,7 @@ var serve = function(req, res) {
             db.apply(fs, function() {
 
               // Tell the client we succeeded
-              res.writeHead(201, {'Content-Type': 'application/json',
-                                  'Access-Control-Allow-Origin': '*'});
+              res.writeHead(201, {'Content-Type': 'application/json'});
 
               res.end('{"listing": "' + fs._id + '", ' +
                       '"password": "' + obj.password + '"}');
@@ -94,8 +86,7 @@ var serve = function(req, res) {
 
       //500 on db error
       if (err) {
-        res.writeHead(500, {'Content-Type': 'text/plain',
-                            'Access-Control-Allow-Origin': '*'});
+        res.writeHead(500, {'Content-Type': 'text/plain'});
         return res.end('Server Error');
       // If there was no user for this email, create one
       } else if (!obj) {
@@ -106,14 +97,13 @@ var serve = function(req, res) {
         });
       //403 if passwords don't match, or if the user doesn't exist
       } else if (obj.password !== q.password) {
-        res.writeHead(403, {'Content-Type': 'text/plain',
-                            'Access-Control-Allow-Origin': '*'});
+        res.writeHead(403, {'Content-Type': 'text/plain'});
         return res.end('Forbidden');
       } else {
         finish();
       }
     });
   });
-};
+});
 
 exports.serve = serve;

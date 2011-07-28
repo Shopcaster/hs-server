@@ -1,10 +1,10 @@
 var url = require('url'),
     querystring = require('querystring'),
-    auth = require('./../handlers/auth'),
-    oauth = require('./../util/oauth'),
-    settings = require('./../settings'),
-    db = require('./../db'),
-    models = require('./../models'),
+    auth = require('../../handlers/auth'),
+    oauth = require('../../util/oauth'),
+    settings = require('../../settings'),
+    db = require('../../db'),
+    models = require('../../models'),
     common = require('./common');
 
 var client = new oauth.OAuth('iXlFhLOOpd5WXZE_mTccdbF5mpe486hL9MHNvsxDMA7ZgbwFprLbpI-SFWOjIGqV',
@@ -74,9 +74,9 @@ var connect = function(req, res) {
   auth.authUser(args.email, args.password, function(err, bad, obj) {
 
     // Handle errors by failing -- with class
-    if (err) return common.error(res, args['return'], 'Unexpected server error');
+    if (err) return common.error('Unexpected server error', args['return'], res);
     // If the auth was incorrect of missing, bail
-    if (bad || !obj) return common.error(res, args['return'], 'Incorrect login');
+    if (bad || !obj) return common.error('Incorrect login', args['return'], res);
 
     // Set up the "session"
     var s = new common.Session();
@@ -84,7 +84,7 @@ var connect = function(req, res) {
     s.ret = args['return'];
 
     // Fetch the temp OAuth token
-    var callbackUrl = settings.serverUri + '/linkedin/callback?state=' + s.id;
+    var callbackUrl = settings.serverUri + '/iapi/social/connect/callback?type=linkedin&state=' + s.id;
     client.requestToken('/uas/oauth/requestToken', callbackUrl, function(err, token) {
 
       // Handle errors
@@ -93,7 +93,7 @@ var connect = function(req, res) {
         console.log(err.message);
         console.log('');
 
-        return common.error(res, args['return'], 'Error fetching LinkedIn request token');
+        return common.error('Error fetching LinkedIn request token', args['return'], res);
       }
 
       // Send the user to the authorization page
@@ -107,7 +107,7 @@ var connect = function(req, res) {
 };
 
 // OAuth verification callback
-var authCallback = function(req, res) {
+var callback = function(req, res) {
   var args = querystring.parse(url.parse(req.url).query);
 
   // Verify that the session is valid and hasn't expired
@@ -131,7 +131,7 @@ var authCallback = function(req, res) {
   client.accessToken('/uas/oauth/accessToken', token, function(err, token) {
 
     // Handle errors
-    if (err) return common.error(res, session.ret, 'Failed to authenticate with LinkedIn');
+    if (err) return common.error('Failed to authenticate with LinkedIn', session.ret, res);
 
     // Save the oauth token on the user's record
     session.auth.linkedin_token = token.token;
@@ -148,7 +148,7 @@ var authCallback = function(req, res) {
         if (data) console.log(data);
         console.log('');
 
-        return common.error(res, session.ret, 'Unable to fetch user data');
+        return common.error('Unable to fetch user data', session.ret, res);
       }
 
       // Store the link in the user's profile
@@ -160,20 +160,10 @@ var authCallback = function(req, res) {
       console.log(user);
 
       // Redirect back to the client
-      return common.success(res, session.ret);
+      return common.success('true', session.ret, res);
     });
   });
 };
 
-// URL Dispatcher
-var serve = function(req, res) {
-  var url = req.url.substr(10); //strip leading /linkedin/
-
-  if (url.match(/^connect/)) return connect(req, res);
-  if (url.match(/^callback/)) return authCallback(req, res);
-
-  res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
-  res.end('Not Found');
-};
-
-exports.serve = serve;
+exports.connect = connect;
+exports.callback = callback;
