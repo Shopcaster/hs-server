@@ -2,7 +2,7 @@
 
 Message format:
 
-[cid]|[mid]|[type]|[data...]
+[mid]|[type]|[data...]
 
 Where
   cid = Client ID
@@ -77,7 +77,6 @@ var parseMessage = function(message) {
 
   // Parse out the segments
   try {
-    get('cid');
     get('mid');
     get('type');
     parsed.data = message;
@@ -304,7 +303,7 @@ XHRTransport.prototype.doPoll = function(req, res) {
 
   // Get the connection
   var con = this.connections[params.cid];
-  if (!con) return wipeout;
+  if (!con) return wipeout();
 
   // Wipe out the disconnect timeout
   clearTimeout(this.dcTimeouts[con.cid]);

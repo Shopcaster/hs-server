@@ -36,6 +36,10 @@ var croquet = {};
   Connection.prototype = new EventEmitter();
 
   Connection.prototype.connect = function() {
+    // Handle multiple connects graciously
+    if (this.connected)
+      return;
+
     var self = this;
 
     this.connected = true;
@@ -71,9 +75,9 @@ var croquet = {};
   };
   Connection.prototype.disconnect = function() {
 
-    // Disconnecting an already disconnected connection is a problem
+    // Optimize disconnecting an already disconnected connection
     if (!this.connected)
-      throw new Error('Cannot disconnect from an already disconnected connection');
+      return;
 
     // If we're marked as disconnected but don't have a cid, it means
     // we have a pending connect call.  We should kill it and move on.
@@ -152,13 +156,16 @@ var croquet = {};
     };
   };
   Connection.prototype.stopReceiveLoop = function() {
-    if (this.recv) this._recv.abort();
+    if (this._recv) this._recv.abort();
   };
 
   // TODO - the send loop functionality could optimize latency a bit
   //        more
   Connection.prototype.startSendLoop = function() {
     var self = this;
+
+    // If the loop has already started, do nothing.
+    if (this.sendTimeout) return;
 
     this.sendTimeout = setTimeout(function() {
 
@@ -181,14 +188,16 @@ var croquet = {};
               self.startSendLoop();
 
             // Anything else is some sort of weird error.  We should
-            // recover by restoring the message queue and disconnecting.
+            // recover by restoring the message queue and continuing to
+            // try to send after a short delay.
             } else {
 
               // Restore the message queue
               self.pending = messages.concat(self.pending);
 
               // Disconnect
-              self.disconnect();
+              se
+              self.startSendLoop();
             }
           }
         };
