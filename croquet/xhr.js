@@ -2,7 +2,7 @@
 
 Message format:
 
-[mid]|[type]|[data...]
+[cid]|[mid]|[type]|[data...]
 
 Where
   cid = Client ID
@@ -77,6 +77,7 @@ var parseMessage = function(message) {
 
   // Parse out the segments
   try {
+    get('cid');
     get('mid');
     get('type');
     parsed.data = message;
@@ -335,7 +336,8 @@ XHRTransport.prototype.doDisconnect = function(req, res) {
   req.on('end', function() {
 
     // Shut down the connection
-    self.disconnect(self.connections[cid]);
+    if (self.connections[cid])
+      self.disconnect(self.connections[cid]);
 
     // Return with success
     res.writeHead(200, {});

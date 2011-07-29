@@ -57,23 +57,23 @@ zz.logging.waiting = true;
 zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
-  pub: true,
-  presence: true,
-  not: true
+  pub: false,
+  presence: false,
+  not: false
 };
 zz.logging.outgoing = {
-  ping: true,
-  error: true,
-  auth: true,
-  deauth: true,
-  passwd: true,
-  sub: true,
-  unsub: true,
-  create: true,
-  update: true,
-  'delete': true,
-  'sub-presence': true,
-  'unsub-presence': true
+  ping: false,
+  error: false,
+  auth: false,
+  deauth: false,
+  passwd: false,
+  sub: false,
+  unsub: false,
+  create: false,
+  update: false,
+  'delete': false,
+  'sub-presence': false,
+  'unsub-presence': false
 };
 
 // Friendly log

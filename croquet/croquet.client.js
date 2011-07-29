@@ -55,6 +55,7 @@ var croquet = {};
 
           // Basic connection init
           self.cid = xhr.responseText;
+          self._reallyConnected = true;
           self.emit('connect');
 
           // Start sending all pending messages every 20ms
@@ -89,6 +90,8 @@ var croquet = {};
 
     var self = this;
 
+    // Set status to disconnected immediately in order to prevent
+    // further messages from being sent.
     this.connected = false;
 
     var xhr = this.disconnecting = new XHR();
@@ -98,16 +101,22 @@ var croquet = {};
       if (xhr.readyState == 4) {
         delete self.disconnecting;
 
-        // Regardless of the response, we've disconnected.
-        delete self.cid;
-        self.stopSendLoop();
-        self.stopReceiveLoop();
-
-        // Fire the event
-        self.emit('disconnect');
+        self._setDisconnected();
       }
     };
   };
+  Connection.prototype._setDisconnected = function() {
+    if (!this._reallyConnected) return;
+
+    this._reallyConnected = false;
+    delete self.cid;
+    this.stopSendLoop();
+    this.stopReceiveLoop();
+
+    // Fire the event
+    this.emit('disconnect');
+  };
+
   Connection.prototype.send = function(id, type, data) {
     if (!this.connected)
       throw new Error('Cannot send messages on a disconnected connection');
@@ -144,7 +153,7 @@ var croquet = {};
 
         // A 410 means we've been disconnected
         } else if (xhr.status == 410) {
-          self.disconnect();
+          self._setDisconnected();
 
         // Any other sort of error is wonky, but we don't need to do
         // a full disconnect.  Instead, we just need to restart the
@@ -168,6 +177,8 @@ var croquet = {};
     if (this.sendTimeout) return;
 
     this.sendTimeout = setTimeout(function() {
+      delete self.sendTimeout;
+
 
       if (self.pending.length) {
 
@@ -195,9 +206,10 @@ var croquet = {};
               // Restore the message queue
               self.pending = messages.concat(self.pending);
 
-              // Disconnect
-              se
-              self.startSendLoop();
+              // Resume the send loop after a little bit
+              self.sendTimeout = setTimeout(function() {
+                self.startSendLoop();
+              }, 100); // 100 ms
             }
           }
         };
@@ -208,8 +220,14 @@ var croquet = {};
     }, 50); // 50ms
   };
   Connection.prototype.stopSendLoop = function() {
-    if (this.sendTimeout) clearTimeout(this.sendTimeout);
-    if (this._send) this._send.abort();
+    if (this.sendTimeout) {
+      clearTimeout(this.sendTimeout);
+      delete this.sendTimeout
+    }
+    if (this._send) {
+      this._send.abort();
+      delete this.sendTimeout;
+    }
   };
 
   // De/serialization utilities
