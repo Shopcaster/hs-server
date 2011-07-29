@@ -45,7 +45,7 @@ var croquet = {};
     this.connected = true;
 
     var xhr = this.connecting = new XHR();
-    xhr.open('GET', this.url + '/xhr/connect');
+    xhr.open('GET', this.url + '/xhr/connect', true);
     xhr.send();
     xhr.onreadystatechange = function() {
       if (xhr.readyState == 4) {
@@ -92,7 +92,7 @@ var croquet = {};
     this.connected = false;
 
     var xhr = this.disconnecting = new XHR();
-    xhr.open('POST', this.url + '/xhr/disconnect');
+    xhr.open('POST', this.url + '/xhr/disconnect', true);
     xhr.send(this.cid);
     xhr.onreadystatechange = function() {
       if (xhr.readyState == 4) {
@@ -119,7 +119,7 @@ var croquet = {};
     var self = this;
 
     var xhr = this._recv = new XHR();
-    xhr.open('GET', this.url + '/xhr/poll?cid=' + this.cid);
+    xhr.open('GET', this.url + '/xhr/poll?cid=' + this.cid, true);
     xhr.send();
     xhr.onreadystatechange = function() {
       if (xhr.readyState == 4) {
@@ -175,7 +175,7 @@ var croquet = {};
         self.pending = [];
 
         var xhr = self._send = new XHR();
-        xhr.open('POST', self.url + '/xhr/send');
+        xhr.open('POST', self.url + '/xhr/send', true);
         xhr.send(serializeMessages.apply(this, messages));
         xhr.onreadystatechange = function() {
           if (xhr.readyState == 4) {
