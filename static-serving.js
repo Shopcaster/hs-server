@@ -2,7 +2,8 @@ var db = require('./db'),
     models = require('./models');
 
 var serve = function(req, res) {
-  id = req.url.substr(1);
+  // Strip the opening slash as well as any extension
+  id = req.url.substr(1).split('.')[0];
 
   var s = db.queryOne(models.File, {_id: id}, function(err, file) {
     //handle database errors
