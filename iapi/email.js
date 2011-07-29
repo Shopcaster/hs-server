@@ -32,8 +32,15 @@ var serve = function(req, res) {
     var fromCraig = !!fields.sender.match(/noreply@craigslist.org/);
     var fromKijiji = !!fields.sender.match(/donotreply@kijiji.ca/);
 
+    // If it looks like a kijiji activation email, send it to crosspost
+    if (fromKijiji && fields.subject.match(/^Activate your Kijiji Ad/))
+      var forwardEmail = 'crosspost@hipsell.com';
+    // Otherwise we crosspost it right to sold
+    else
+      var forwardEmail = 'sold@hipsell.com';
+
     // Forward the email contents to sold@hipsell.com
-    email.send('sold@hipsell.com',
+    email.send(forwardEmail,
                'Autoreply For: ' + fields.subject,
                '<h4>Original Sender: ' + fields.from +
                '</h4><p>' + (fields['body-html'] || fields['body-html']) + '</p>');
