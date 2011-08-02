@@ -724,24 +724,31 @@ zz.recordError = function(err) {
       data = {add: data, remove: []};
 
     // Add elements
+    var added = [];
     for (var i=0; i<data.add.length; i++) {
       var x = data.add[i];
-      if (this.data.indexOf(x) == -1) this.data.push(x);
+      if (this.data.indexOf(x) == -1) {
+        this.data.push(x);
+        added.push(x);
+      }
     }
 
     // Remove elements
+    var removed = [];
     for (var i=0; i<data.remove.length; i++) {
       var x = data.remove[i];
       var n = this.data.indexOf(x);
-      if (n >= 0)
+      if (n >= 0) {
         this.data.splice(n, 1);
+        removed.push(x);
+      }
     };
 
     // Fire the appropriate events
     if (data.add.length)
-      this.emit('add', data.add);
+      this.emit('add', added);
     if (data.remove.length)
-      this.emit('remove', data.remove);
+      this.emit('remove', removed);
   };
 
   // Register a handler for `pub` messages so that we can update
