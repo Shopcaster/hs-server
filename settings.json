@@ -6,7 +6,7 @@
   },
   "production": {
     "serverUri": "http://hipsell.com:8080",
-    "clientUri": "http://dev.hipsell.com:3000",
+    "clientUri": "http://hipsell.com",
     "compressApiLibrary": true
   },
   "staging": {
