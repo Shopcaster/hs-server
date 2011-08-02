@@ -116,11 +116,6 @@ var apply = function() {
 
     //perform the upsert
     var upsert = function() {
-      // Decrement opcount here -- technically speaking the data
-      // hasn't been saved yet, but they have ID's which *should*
-      // be all anyone needs... (maybe?)
-      if (--opCount == 0 && callback) callback();
-
       db.collection(fs.getCollection(), function(err, col) {
         //ye olde error dump
         if (err) return console.log(err.stack, '');
@@ -132,7 +127,7 @@ var apply = function() {
         var nid = fs._id;
         delete nfs._id;
 
-        col.update({_id: nid}, {'$set': nfs}, {upsert: true}, function(err) {
+        col.update({_id: nid}, {'$set': nfs}, {upsert: true, safe: true}, function(err) {
           //ye olde error dump
           if (err) return console.log(err.stack, '');
 
@@ -140,6 +135,9 @@ var apply = function() {
           //handlers can't clobber the original
           if (!err)
             events.emit(eventType, fs.clone());
+
+          // If all the inserts are done, fire the callback
+          if (--opCount == 0 && callback) callback();
         });
       });
     };
