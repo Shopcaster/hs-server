@@ -254,6 +254,8 @@ var croquet = {};
       } else if (typeof d == 'object') {
         t = 'o';
         d = convertDataDown(d);
+      } else if (typeof d == 'boolean') {
+        t = 'b';s
       }
 
       ndata[t + i] = d;
@@ -295,6 +297,8 @@ var croquet = {};
         return data;
       case 'o':
         return convertObj(data);
+      case 'b':
+        return data;
       case 'u':
       default:
         return undefined;

@@ -47,6 +47,8 @@ var convertData = function(type, data) {
       return data;
     case 'o':
       return convertObj(data);
+    case 'b':
+      return data;
     case 'u':
     default:
       return undefined;
@@ -117,6 +119,8 @@ var convertDataDown = function(data) {
     } else if (typeof d == 'object') {
       t = 'o';
       d = convertDataDown(d);
+    } else if (typeof d == 'boolean') {
+      t = 'b';
     }
 
     ndata[t + i] = d;
