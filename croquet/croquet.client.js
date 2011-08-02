@@ -36,12 +36,16 @@ var croquet = {};
   Connection.prototype = new EventEmitter();
 
   Connection.prototype.connect = function() {
+    // Handle multiple connects graciously
+    if (this.connected)
+      return;
+
     var self = this;
 
     this.connected = true;
 
     var xhr = this.connecting = new XHR();
-    xhr.open('GET', this.url + '/xhr/connect');
+    xhr.open('GET', this.url + '/xhr/connect', true);
     xhr.send();
     xhr.onreadystatechange = function() {
       if (xhr.readyState == 4) {
@@ -51,6 +55,7 @@ var croquet = {};
 
           // Basic connection init
           self.cid = xhr.responseText;
+          self._reallyConnected = true;
           self.emit('connect');
 
           // Start sending all pending messages every 20ms
@@ -71,9 +76,9 @@ var croquet = {};
   };
   Connection.prototype.disconnect = function() {
 
-    // Disconnecting an already disconnected connection is a problem
+    // Optimize disconnecting an already disconnected connection
     if (!this.connected)
-      throw new Error('Cannot disconnect from an already disconnected connection');
+      return;
 
     // If we're marked as disconnected but don't have a cid, it means
     // we have a pending connect call.  We should kill it and move on.
@@ -85,25 +90,33 @@ var croquet = {};
 
     var self = this;
 
+    // Set status to disconnected immediately in order to prevent
+    // further messages from being sent.
     this.connected = false;
 
     var xhr = this.disconnecting = new XHR();
-    xhr.open('POST', this.url + '/xhr/disconnect');
+    xhr.open('POST', this.url + '/xhr/disconnect', true);
     xhr.send(this.cid);
     xhr.onreadystatechange = function() {
       if (xhr.readyState == 4) {
         delete self.disconnecting;
 
-        // Regardless of the response, we've disconnected.
-        delete self.cid;
-        self.stopSendLoop();
-        self.stopReceiveLoop();
-
-        // Fire the event
-        self.emit('disconnect');
+        self._setDisconnected();
       }
     };
   };
+  Connection.prototype._setDisconnected = function() {
+    if (!this._reallyConnected) return;
+
+    this._reallyConnected = false;
+    delete self.cid;
+    this.stopSendLoop();
+    this.stopReceiveLoop();
+
+    // Fire the event
+    this.emit('disconnect');
+  };
+
   Connection.prototype.send = function(id, type, data) {
     if (!this.connected)
       throw new Error('Cannot send messages on a disconnected connection');
@@ -115,7 +128,7 @@ var croquet = {};
     var self = this;
 
     var xhr = this._recv = new XHR();
-    xhr.open('GET', this.url + '/xhr/poll?cid=' + this.cid);
+    xhr.open('GET', this.url + '/xhr/poll?cid=' + this.cid, true);
     xhr.send();
     xhr.onreadystatechange = function() {
       if (xhr.readyState == 4) {
@@ -140,7 +153,7 @@ var croquet = {};
 
         // A 410 means we've been disconnected
         } else if (xhr.status == 410) {
-          self.disconnect();
+          self._setDisconnected();
 
         // Any other sort of error is wonky, but we don't need to do
         // a full disconnect.  Instead, we just need to restart the
@@ -152,7 +165,7 @@ var croquet = {};
     };
   };
   Connection.prototype.stopReceiveLoop = function() {
-    if (this.recv) this._recv.abort();
+    if (this._recv) this._recv.abort();
   };
 
   // TODO - the send loop functionality could optimize latency a bit
@@ -160,7 +173,12 @@ var croquet = {};
   Connection.prototype.startSendLoop = function() {
     var self = this;
 
+    // If the loop has already started, do nothing.
+    if (this.sendTimeout) return;
+
     this.sendTimeout = setTimeout(function() {
+      delete self.sendTimeout;
+
 
       if (self.pending.length) {
 
@@ -168,7 +186,7 @@ var croquet = {};
         self.pending = [];
 
         var xhr = self._send = new XHR();
-        xhr.open('POST', self.url + '/xhr/send');
+        xhr.open('POST', self.url + '/xhr/send', true);
         xhr.send(serializeMessages.apply(this, messages));
         xhr.onreadystatechange = function() {
           if (xhr.readyState == 4) {
@@ -181,14 +199,17 @@ var croquet = {};
               self.startSendLoop();
 
             // Anything else is some sort of weird error.  We should
-            // recover by restoring the message queue and disconnecting.
+            // recover by restoring the message queue and continuing to
+            // try to send after a short delay.
             } else {
 
               // Restore the message queue
               self.pending = messages.concat(self.pending);
 
-              // Disconnect
-              self.disconnect();
+              // Resume the send loop after a little bit
+              self.sendTimeout = setTimeout(function() {
+                self.startSendLoop();
+              }, 100); // 100 ms
             }
           }
         };
@@ -199,8 +220,14 @@ var croquet = {};
     }, 50); // 50ms
   };
   Connection.prototype.stopSendLoop = function() {
-    if (this.sendTimeout) clearTimeout(this.sendTimeout);
-    if (this._send) this._send.abort();
+    if (this.sendTimeout) {
+      clearTimeout(this.sendTimeout);
+      delete this.sendTimeout
+    }
+    if (this._send) {
+      this._send.abort();
+      delete this.sendTimeout;
+    }
   };
 
   // De/serialization utilities
@@ -227,6 +254,8 @@ var croquet = {};
       } else if (typeof d == 'object') {
         t = 'o';
         d = convertDataDown(d);
+      } else if (typeof d == 'boolean') {
+        t = 'b';s
       }
 
       ndata[t + i] = d;
@@ -268,6 +297,8 @@ var croquet = {};
         return data;
       case 'o':
         return convertObj(data);
+      case 'b':
+        return data;
       case 'u':
       default:
         return undefined;

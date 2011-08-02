@@ -47,6 +47,8 @@ var convertData = function(type, data) {
       return data;
     case 'o':
       return convertObj(data);
+    case 'b':
+      return data;
     case 'u':
     default:
       return undefined;
@@ -117,6 +119,8 @@ var convertDataDown = function(data) {
     } else if (typeof d == 'object') {
       t = 'o';
       d = convertDataDown(d);
+    } else if (typeof d == 'boolean') {
+      t = 'b';
     }
 
     ndata[t + i] = d;
@@ -304,7 +308,7 @@ XHRTransport.prototype.doPoll = function(req, res) {
 
   // Get the connection
   var con = this.connections[params.cid];
-  if (!con) return wipeout;
+  if (!con) return wipeout();
 
   // Wipe out the disconnect timeout
   clearTimeout(this.dcTimeouts[con.cid]);
@@ -336,7 +340,8 @@ XHRTransport.prototype.doDisconnect = function(req, res) {
   req.on('end', function() {
 
     // Shut down the connection
-    self.disconnect(self.connections[cid]);
+    if (self.connections[cid])
+      self.disconnect(self.connections[cid]);
 
     // Return with success
     res.writeHead(200, {});

@@ -37,7 +37,8 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-if (typeof sha256 == 'undefined') var sha256 = null;
+// Force sha256 into global scope
+if (typeof sha256 == 'undefined') var sha256 = undefined;
 
 (function() {
 
@@ -252,7 +253,7 @@ function sha256_self_test()
 }
 
 // Export the public sha256 we need
-if (typeof sha256 == 'null')
+if (typeof sha256 == 'undefined')
   sha256 = sha256_digest;
 
 })();

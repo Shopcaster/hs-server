@@ -57,23 +57,23 @@ zz.logging.waiting = true;
 zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
-  pub: true,
-  presence: true,
-  not: true
+  pub: false,
+  presence: false,
+  not: false
 };
 zz.logging.outgoing = {
-  ping: true,
-  error: true,
-  auth: true,
-  deauth: true,
-  passwd: true,
-  sub: true,
-  unsub: true,
-  create: true,
-  update: true,
-  'delete': true,
-  'sub-presence': true,
-  'unsub-presence': true
+  ping: false,
+  error: false,
+  auth: false,
+  deauth: false,
+  passwd: false,
+  sub: false,
+  unsub: false,
+  create: false,
+  update: false,
+  'delete': false,
+  'sub-presence': false,
+  'unsub-presence': false
 };
 
 // Friendly log
@@ -262,12 +262,10 @@ var connection = new EventEmitter();
     else delayedMessages.push([id, type, data]);
   };
   connection.connect = function() {
-    console.log('-  connection.connect');
     holdDisconnect = false;
     con.connect();
   };
   connection.disconnect = function() {
-    console.log('-  connection.disconnect');
     holdDisconnect = true;
     con.disconnect();
   };
@@ -726,24 +724,31 @@ zz.recordError = function(err) {
       data = {add: data, remove: []};
 
     // Add elements
+    var added = [];
     for (var i=0; i<data.add.length; i++) {
       var x = data.add[i];
-      if (this.data.indexOf(x) == -1) this.data.push(x);
+      if (this.data.indexOf(x) == -1) {
+        this.data.push(x);
+        added.push(x);
+      }
     }
 
     // Remove elements
+    var removed = [];
     for (var i=0; i<data.remove.length; i++) {
       var x = data.remove[i];
       var n = this.data.indexOf(x);
-      if (n >= 0)
+      if (n >= 0) {
         this.data.splice(n, 1);
+        removed.push(x);
+      }
     };
 
     // Fire the appropriate events
     if (data.add.length)
-      this.emit('add', data.add);
+      this.emit('add', added);
     if (data.remove.length)
-      this.emit('remove', data.remove);
+      this.emit('remove', removed);
   };
 
   // Register a handler for `pub` messages so that we can update
