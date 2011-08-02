@@ -127,14 +127,17 @@ var showCrosspost = function(req, res) {
 
         var title = (listing.description || '')
           .replace(/^\s*/, '')
-          .replace(/\s*$/, '')
-          .substr(0, 67)
-          .split(' ');
-        if (title.length > 1) {
-          title.pop();
-          title = title.join(' ')+'...';
-        } else {
-          title = title[0];
+          .replace(/\s*$/, '');
+        
+        if (title.length > 67){
+          title = title.substr(0, 67).split(' ');
+          
+          if (title.length > 1) {
+            title.pop();
+            title = title.join(' ')+'...';
+          } else {
+            title = title[0];
+          }
         }
         context.title = title;
 
