@@ -6,7 +6,7 @@ var Auth = function() {};
 Auth.prototype = new FieldSet('authentication');
 
 var Listing = function() {};
-Listing.prototype = new FieldSet('listing');
+Listing.prototype = new FieldSet('item');
 Listing.prototype.genId = function(callback) {
   var self = this;
   makeNiceId(this.getCollection(), function(id) {
