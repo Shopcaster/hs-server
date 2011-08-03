@@ -221,8 +221,7 @@ var query = function(type, q) {
 
   var typeName = '';
   if (typeof type == 'string') {
-    typeName = type;
-    var genType = function() { return new FieldSet(typeName); };
+    throw new Error('Must supply a FieldSet instance as the type');
   } else if (type && type.prototype && type.prototype instanceof FieldSet) {
     typeName = type.prototype.getCollection();
     var genType = function() { return new type(); };
@@ -281,11 +280,8 @@ FieldSet.prototype.genId = function(callback) {
   return this;
 };
 FieldSet.prototype.clone = function() {
-  var FS = function() {};
-  FS.prototype = new FieldSet(this.getCollection());
-
   //create the new fieldset
-  var fs = new FS();
+  var fs = new this.constructor();
 
   //copy the fields over
   for (var i in this) if (this.hasOwnProperty(i))

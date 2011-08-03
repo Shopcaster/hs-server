@@ -1,6 +1,7 @@
-var validate = require('./../util/validation').validate,
-    ids = require('./../util/ids'),
-    db = require('./../db');
+var validate = require('../util/validation').validate,
+    ids = require('../util/ids'),
+    db = require('../db'),
+    models = require('../models');
 
 // Special data conversion
 var convertSpecialData = function(data) {
@@ -79,7 +80,7 @@ var create = function(client, data, callback, errback) {
   } else {
 
     // Just stuff the data in a new fieldset
-    var fs = new db.FieldSet(data.type);
+    var fs = new models[data.type]();
     fs.merge(data.data);
     // Creator field is required on everything, so we pull it from this
     // user's auth info.
@@ -124,7 +125,7 @@ var update = function(client, data, callback, errback) {
   } else {
 
     // Stuff the data into a fieldset
-    var fs = new db.FieldSet(key.type);
+    var fs = new models[key.type]();
     fs.merge(data.diff);
     fs._id = key.id;
 
@@ -155,7 +156,7 @@ var del = function(client, data, callback, errback) {
   } else {
 
     // Create a deletion fs
-    var fs = new db.FieldSet(key.type);
+    var fs = new models[key.type]();
     fs._id = key.id;
     fs.deleted = true;
 

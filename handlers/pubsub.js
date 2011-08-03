@@ -1,5 +1,6 @@
 var ids = require('./../util/ids'),
     db = require('./../db'),
+    models = require('../models'),
     auth = require('./auth'),
     mongo = require('mongodb');
 
@@ -33,7 +34,7 @@ var sub = function(client, data, callback, errback) {
   if (key instanceof ids.Key) {
 
     // Do the initial data fetch
-    var obj = new db.FieldSet(key.type);
+    var obj = new models[key.type]();
     obj._id = key.id;
     db.get(obj, function(err, exists) {
       if (err === true) return errback('Database error');
@@ -123,7 +124,7 @@ var sub = function(client, data, callback, errback) {
     // Get the IDs
     var q = {};
     q[key.field] = key.val;
-    db.query(key.type, q, function(err, fss) {
+    db.query(models[key.type], q, function(err, fss) {
 
       // Handle errors
       if (err) return errback('Database Error');

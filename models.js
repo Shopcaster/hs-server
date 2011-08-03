@@ -57,3 +57,11 @@ exports.Inquiry = Inquiry;
 exports.File = File;
 exports.Convo = Convo;
 exports.ClientError = ClientError;
+
+// Expose the lowercase versions too
+var list = [];
+for (var i in exports) if (exports.hasOwnProperty(i))
+  if (exports[i].prototype && exports[i].prototype instanceof FieldSet)
+    list.push(i);
+for (var i=0; i<list.length; i++)
+  exports[list[i][0].toLowerCase() + list[i].substr(1)] = exports[list[i]];
