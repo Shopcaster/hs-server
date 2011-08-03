@@ -6,6 +6,7 @@ var mailgun = require('mailgun'),
     crypto = require('crypto'),
     db = require('./db'),
     models = require('./models'),
+    uuid = require('./util/uuid'),
     settings = require('./settings');
 
 // These are the static mailgun settings.  Nothing too fancy going on
@@ -39,7 +40,7 @@ var init = function(disable) {
 
 // This function uses Mailgun to send an HTML email to a single
 // recipient.
-var send = function(to, subject, body, from) {
+var send = function(to, subject, body, from, replyTo) {
 
   // Default from
   from = from || mgSettings.sender;
@@ -64,6 +65,8 @@ var send = function(to, subject, body, from) {
              '\nTo: ' + to +
              '\nContent-Type: text/html; charset=utf-8' +
              '\nSubject: ' + subject +
+             '\nMessage-ID: ' + uuid.uuid4() +
+             (replyTo ? '\nIn-Reply-To: ' + replyTo : '') +
              '\n\n' +
              body;
 
