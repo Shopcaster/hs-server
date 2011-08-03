@@ -1,6 +1,7 @@
 var staticServing = require('./static-serving'),
     interfaceServing = require('./interface/serve');
     iapi = require('./iapi/urls'),
+    templating = require('./templating'),
     crosspost = require('./crosspost/handlers'),
     fs = require('fs');
 
@@ -38,6 +39,9 @@ var urls = {
 
   //crossposting urls
   '^/crosspost': crosspost.serve,
+
+  //template testing
+  '^/template/': templating.serve
 };
 
 var dispatch = function(req, res) {

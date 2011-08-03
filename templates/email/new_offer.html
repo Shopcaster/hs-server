@@ -1,5 +1,9 @@
-<p>Hey, you've got a new ${{ fs.amount / 100.0 }} offer on your
-<a href="{{ settings.clientUri }}/{{ other._id }}">listing</a>.
+{{ include('_header') }}
+
+<p>Hey, you've got a new <strong style="color: green;">${{ fs.amount / 100.0 }}</strong> offer on your
+<a href="{{ settings.clientUri }}/{{ other._id }}">Hipsell listing</a>.
 </p>
 
-<h4>&ndash; Hipsell</h4>
+<h4>&ndash; The Hipsell Team</h4>
+
+{{ include('_footer') }}
