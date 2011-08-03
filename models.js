@@ -2,11 +2,17 @@ var FieldSet = require('./db').FieldSet,
     makeNiceId = require('./db').makeNiceId,
     crypto = require('crypto');
 
-var Auth = function() {};
-Auth.prototype = new FieldSet('authentication');
+var make = function(collection, c) {
+  var F = c || function() {};
+  F.prototype = new FieldSet(collection);
+  F.prototype.constructor = F;
 
-var Listing = function() {};
-Listing.prototype = new FieldSet('item');
+  return F;
+};
+
+var Auth = make('authentication');
+
+var Listing = make('item');
 Listing.prototype.genId = function(callback) {
   var self = this;
   makeNiceId(this.getCollection(), function(id) {
@@ -17,8 +23,7 @@ Listing.prototype.genId = function(callback) {
   return this;
 };
 
-var User = function() {};
-User.prototype = new FieldSet('user');
+var User = make('user');
 User.prototype.genId = function(callback) {
   var self = this;
   makeNiceId(this.getCollection(), function(id) {
@@ -27,26 +32,15 @@ User.prototype.genId = function(callback) {
   });
 };
 
-var Offer = function() {};
-Offer.prototype = new FieldSet('offer');
-
-var Message = function() {};
-Message.prototype = new FieldSet('message');
-
-var Inquiry = function() {};
-Inquiry.prototype = new FieldSet('inquiry');
-
-var Convo = function() {};
-Convo.prototype = new FieldSet('convo');
-
-var File = function() {};
-File.prototype = new FieldSet('staticfile');
+var Offer = make('offer');
+var Message = make('message');
+var Inquiry = make('inquiry');
+var Convo = make('convo');
+var ClientError = make('clienterror');
+var File = make('staticfile');
 File.prototype.generateHash = function() {
   this.hash = crypto.createHash('md5').update(this.data).digest('hex');
 };
-
-var ClientError = function() {};
-ClientError.prototype = new FieldSet('clienterror');
 
 exports.Auth = Auth;
 exports.Listing = Listing;
@@ -67,4 +61,4 @@ for (var i=0; i<list.length; i++)
   exports[list[i][0].toLowerCase() + list[i].substr(1)] = exports[list[i]];
 
 // Manually map item -> Listing
-//exports.item = Listing;
+exports.item = Listing;

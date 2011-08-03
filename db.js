@@ -267,7 +267,7 @@ var query = function(type, q) {
 var FieldSet = function(collection) {
   //require collection
   if (!collection)
-    throw new Error('Must set collection name when created a fieldset');
+    throw new Error('Must set collection name when creating a fieldset');
 
   this.getCollection = function() {
     return collection;

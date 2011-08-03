@@ -43,22 +43,3 @@ var chopPlain = function(email) {
   }
 };
 
-var chopSignature = function(input) {
-
-  // Look for the RFC3676 sig
-  if (input.match(/\n-- \n/)) {
-
-  }
-
-  // There's not really anything else we can do, unfortunately :(
-};
-
-// Diffs two emails
-var getDiff = function(newMsg, oldMsg) {
-
-}
-
-// Assuming toppos
-var getNewPart = function(email) {
-
-};
