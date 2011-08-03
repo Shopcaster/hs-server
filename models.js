@@ -65,3 +65,6 @@ for (var i in exports) if (exports.hasOwnProperty(i))
     list.push(i);
 for (var i=0; i<list.length; i++)
   exports[list[i][0].toLowerCase() + list[i].substr(1)] = exports[list[i]];
+
+// Manually map item -> Listing
+//exports.item = Listing;
