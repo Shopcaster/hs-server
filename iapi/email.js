@@ -44,8 +44,9 @@ var serve = function(req, res) {
     // it to crosspost@hipsell.com and finish.
     if (fromCraigslist
     || (fromKijiji && fields.subject.match(/^Activate your Kijiji Ad/))) {
-      email.send(forwardEmail,
-                 'Autoreply For: ' + fields.subject,
+      email.send(null,
+                 'crosspost@hipsell.com',
+                 'Activation Email For: ' + fields.subject,
                  '<h4>Original Sender: ' + fields.from +
                  '</h4><p>' + (fields['body-html'] || fields['body-html']) + '</p>');
 
@@ -105,7 +106,8 @@ var serve = function(req, res) {
             // we won't really have anything to send them anyway until
             // the listing creator responds.
             if (convoWasCreated)
-              email.send(fields.from,
+              email.send('Auto Response',
+                         fields.from,
                          'Re: ' + fields.subject,
                          templating['email/autoresponse'].render({listing: listing}),
                          fields.recipient);
@@ -123,7 +125,7 @@ var serve = function(req, res) {
             //        functionality
 
             // Send a notification to the listing owner.
-            // TODO
+            var listing = new models.Listing();
 
             // Fin.
           };

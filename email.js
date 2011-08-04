@@ -7,6 +7,7 @@ var mailgun = require('mailgun'),
     db = require('./db'),
     models = require('./models'),
     uuid = require('./util/uuid'),
+    mixpanel = require('./util/mixpanel'),
     settings = require('./settings');
 
 // These are the static mailgun settings.  Nothing too fancy going on
@@ -41,61 +42,76 @@ var init = function(disable) {
 
 // This function uses Mailgun to send an HTML email to a single
 // recipient.
-var send = function(to, subject, body, from, replyTo) {
+var send = function(type, to, subject, body, from, inReplyTo) {
 
-  // Default from
-  from = from || mgSettings.sender;
+  // This function does all the hard work.  If we're tracking this email,
+  // we'll use it as the callback for Mixpanel.  Otherwise, it's called
+  // directly.
+  var doit = function(body) {
 
-  // If email sending is disabled, log to console instead.
-  if (disabled) {
+    // Default from to the sender we provide in the settings up top.
+    from = from || mgSettings.sender;
 
-    console.log('Email:');
-    console.log('  To:      ' + to);
-    console.log('  Subject: ' + subject);
-    console.log('  Body:    ' + body);
-    console.log('');
+    // If email sending is disabled, log to console instead.
+    if (disabled) {
 
-    return;
-  }
+      console.log('Email:');
+      console.log('  To:      ' + to);
+      console.log('  Subject: ' + subject);
+      console.log('  Body:    ' + body);
+      console.log('');
 
-  // We have to build the MIME data manually due to Node.js lacking an
-  // appropriate MIME library.  Fortunately this stays simple as long
-  // as we aren't sending attachments (please don't ever require this
-  // feature D:).
-  var mime = 'From: ' + from +
-             '\nTo: ' + to +
-             '\nContent-Type: text/html; charset=utf-8' +
-             '\nSubject: ' + subject +
-             '\nMessage-ID: ' + uuid.uuid4() +
-             (replyTo ? '\nIn-Reply-To: ' + replyTo : '') +
-             '\n\n' +
-             body;
+      return;
+    }
 
-  // Use the raw send command since we're going the MIME route.  We
-  // *aren't* setting the sender field, as this will let Mailgun
-  // default to whatever sender we've set up.  If we ever have more
-  // than one sender though, we're going to need to choose which one
-  // we're sending from right here, or the mail won't send.
-  mail.sendRaw(from, [to], mime, settings.server, function(err) {
-    // So at the moment we're silently failing on errors.  In the
-    // future we'll probably want to log that failure in the DB and
-    // handle it somehow.
-  });
+    // We have to build the MIME data manually due to Node.js lacking an
+    // appropriate MIME library.  Fortunately this stays simple as long
+    // as we aren't sending attachments (please don't ever require this
+    // feature D:).
+    var mime = 'From: ' + from +
+               '\nTo: ' + to +
+               '\nContent-Type: text/html; charset=utf-8' +
+               '\nSubject: ' + subject +
+               '\nMessage-ID: ' + uuid.uuid4() +
+               (inReplyTo ? '\nIn-Reply-To: ' + inReplyTo : '') +
+               '\n\n' +
+               body;
 
-  // We're logging all outgoing emails, so we want to construct
-  // a basic object and throw that into the db.
-  var m = new db.OutgoingEmail();
-  m.mime = mime;
-  m.from = from;
-  m.to = to;
-  m.subject = subject;
-  db.apply(m);
+    // Use the raw send command since we're going the MIME route.  We
+    // *aren't* setting the sender field, as this will let Mailgun
+    // default to whatever sender we've set up.  If we ever have more
+    // than one sender though, we're going to need to choose which one
+    // we're sending from right here, or the mail won't send.
+    mail.sendRaw(from, [to], mime, settings.server, function(err) {
+      // So at the moment we're silently failing on errors.  In the
+      // future we'll probably want to log that failure in the DB and
+      // handle it somehow.
+    });
+
+    // We're logging all outgoing emails, so we want to construct
+    // a basic object and throw that into the db.
+    var m = new db.OutgoingEmail();
+    m.mime = mime;
+    m.from = from;
+    m.to = to;
+    m.subject = subject;
+    db.apply(m);
+  };
+
+  // If the email type is defined, we need to do Mixpanel email
+  // tracking.  Note that if the Mixpanel API call fails in any way, the
+  // original body will be used.
+  if (type)
+    mixpanel.trackEmail(type, to, body, doit);
+  // If no type was sent we can forego tracking.
+  else
+    doit(body);
 };
 
 // This is a simple wrapper around `send` that sends to a User ID
 // rather than to an email address.  It handles fetching the email
 // address out of the database automatically.
-var sendToUser = function(userId, subject, body, from) {
+var sendToUser = function(type, userId, subject, body, from, inReplyTo) {
 
   // Try to find the Auth object based on the user id, which is its
   // creator.
@@ -116,7 +132,7 @@ var sendToUser = function(userId, subject, body, from) {
     }
 
     // Now send the email
-    send(auth.email, subject, body, from);
+    send(type, auth.email, subject, body, from, inReplyTo);
 
   });
 };
