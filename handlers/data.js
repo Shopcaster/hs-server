@@ -49,6 +49,9 @@ var validators = {
   'convo': {listing: 'ref?'}
 };
 
+// Hack around listings/items
+validators.item = validators.listing;
+
 // Any data type that doesn't have an entry in this object gets the
 // default create/update/delete behavior, which is to just insert or
 // update all fields verbatim.

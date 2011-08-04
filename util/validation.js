@@ -8,6 +8,7 @@ var validate = function(spec, data) {
   if (!spec || !data) return false;
 
   var passed = true;
+  var field = null;
 
   var optional = false;
 
@@ -44,6 +45,7 @@ var validate = function(spec, data) {
       ||  (t == 'object' && typeof d != 'object')
       ||  (t == 'ref' && typeof d != 'string' && typeof d != 'object')
       ||  (typeof d === 'undefined')) {
+        field = i;
         passed = false;
         break;
       }
@@ -54,7 +56,7 @@ var validate = function(spec, data) {
 
       // Perform regex matching
       if (t in regexes && !regexes[t].exec(d)) {
-        console.log(t);
+        field = i;
         passed = false;
         break;
       }
@@ -63,7 +65,7 @@ var validate = function(spec, data) {
     // there; we only throw a protocol error if the field is required
     // and missing.
     } else if (!optional) {
-      console.log(t);
+      field = i;
       passed = false;
       break;
     }
@@ -76,6 +78,7 @@ var validate = function(spec, data) {
   // If the client has any fields that aren't in the spec, fail 'em.
   for (var i in data) if (data.hasOwnProperty(i)) {
     if (!spec.hasOwnProperty(i)) {
+      field = i;
       passed = false;
       break;
     }
