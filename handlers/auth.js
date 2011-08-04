@@ -25,7 +25,7 @@ var createPassword = function(email) {
     pwRaw += pwCharacters[Math.floor(Math.random() * pwCharacters.length)];
 
   // Send an email to the user
-  _email.send('New Account', email, 'Welcome to Hipsell',
+  _email.send('New Account', email, '★ Welcome to Hipsell',
     templating['email/signup'].render({password: pwRaw}));
 
   // Only store the hashed form

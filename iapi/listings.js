@@ -72,7 +72,7 @@ var serve = cors.wrap(function(req, res) {
               var msg = templating['email/listing_created'].render({id: fs._id});
 
               // Notify the user that their listing was posted
-              email.send('Listing Created', q.email, 'We\'ve Listed Your Item', msg);
+              email.send('Listing Created', q.email, '★ We\'ve Listed Your Item', msg);
 
               // Notify hipsell that the listing was posted
               email.send(null, 'crosspost@hipsell.com', 'New Listing',
