@@ -366,7 +366,7 @@ var connection = new EventEmitter();
       curUser = new AuthUser(user, email, password);
 
       // Track this in mixpanel
-      anl('identify', userid);
+      anl('identify', email);
       if (user.name) anl('set_tag', user.name);
 
       // Fire the success callback
@@ -723,7 +723,7 @@ zz.recordError = function(err) {
     // If data is an array, treat it as add
     if (data instanceof Array)
       data = {add: data, remove: []};
-
+      
     // Add elements
     var added = [];
     for (var i=0; i<data.add.length; i++) {
@@ -1276,7 +1276,7 @@ for (var i=0; i<config.datatypes.length; i+=2) {
           throw new Error('Validation error when creating ' + type);
 
         // Track all creates
-        anl('track', {create: type});
+        anl('track', 'create', {type: type});
 
         callback && callback(ret);
       });
