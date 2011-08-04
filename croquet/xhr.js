@@ -279,9 +279,6 @@ XHRTransport.prototype.doPoll = function(req, res) {
       con.pending = messages.concat(con.pending);
     });
 
-    // Prep the response
-    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
-
     // Serialize and send the messages
     for (var i=0; i<messages.length; i++) {
       var msg = serializeMessage(messages[i][0], messages[i][1]);
@@ -314,6 +311,10 @@ XHRTransport.prototype.doPoll = function(req, res) {
   clearTimeout(this.dcTimeouts[con.cid]);
   delete this.dcTimeouts[con.cid];
 
+  // Send a success header, so that the client knows it made the
+  // connection successfully
+  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
+
   // If the connection has pending messages to send, do it
   if (con.pending.length) {
     var msgs = con.pending;
@@ -322,7 +323,7 @@ XHRTransport.prototype.doPoll = function(req, res) {
 
   // Otherwise, wait for messages
   } else {
-    this.pollers[con.cid] = [send, wipeout];
+    this.pollers[con.cid] = [send, function() { res.end() }];
     // If the request gets closed, nuke the poller
     req.on('close', function() {
       delete self.pollers[con.cid];
