@@ -10,7 +10,7 @@ var preprocess = function(email, qp) {
 
     var match;
     var matches = [];
-    while (match = re.exec(email) matches.push(match);
+    while (match = re.exec(email)) matches.push(match);
     // Go backwards to preserve indices
     while (matches.length) {
       var m = matches.pop();
@@ -38,8 +38,15 @@ var chopPlain = function(email) {
     if (line == '-- ')
       break;
 
+    // If a line ends with ' wrote:', it indicates a reply section
+    // so we should skip.
+    if (line.match(/ wrote:$/))
+      break;
+
     // Add the line to the output
     output.push(line);
   }
 };
 
+exports.preprocess = preprocess;
+exports.chopPlain = chopPlain;

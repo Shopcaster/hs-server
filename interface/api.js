@@ -237,7 +237,8 @@ var connection = new EventEmitter();
       // Otherwise, we want to fetch user data before making ready
       allowThrough = true;
       doAuthUser(email, password, userid, makeReady);
-      allowThrough = false;
+      if (!ready)
+        allowThrough = false;
     });
     // But don't let anything else through
     if (!ready)

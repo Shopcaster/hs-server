@@ -14,7 +14,8 @@ var mailgun = require('mailgun'),
 // redacted.
 var mgSettings = {
   apiKey: 'key-61mtr1g-$cdqvb8_v4',
-  sender: 'Hipsell <noreply@hipsell.me>'
+  sender: 'Hipsell <noreply@hipsell.me>',
+  server: 'hipsell.me'
 };
 
 // Our Mailgun library requires an object to be instantiated, and all
@@ -75,11 +76,20 @@ var send = function(to, subject, body, from, replyTo) {
   // default to whatever sender we've set up.  If we ever have more
   // than one sender though, we're going to need to choose which one
   // we're sending from right here, or the mail won't send.
-  mail.sendRaw(from, [to], mime, 'hipsell.me', function(err) {
+  mail.sendRaw(from, [to], mime, settings.server, function(err) {
     // So at the moment we're silently failing on errors.  In the
     // future we'll probably want to log that failure in the DB and
     // handle it somehow.
   });
+
+  // We're logging all outgoing emails, so we want to construct
+  // a basic object and throw that into the db.
+  var m = new db.OutgoingEmail();
+  m.mime = mime;
+  m.from = from;
+  m.to = to;
+  m.subject = subject;
+  db.apply(m);
 };
 
 // This is a simple wrapper around `send` that sends to a User ID
