@@ -85,7 +85,7 @@ var serve = function(req, res) {
             email: auth._id
           };
         }
-        db.get(convo, function(err, convo) {
+        db.queryOne(models.Convo, q, function(err, convo) {
           console.log('got convo');
           // We'll need this later
           var convoWasCreated = !convo;
