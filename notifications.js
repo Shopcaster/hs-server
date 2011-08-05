@@ -32,7 +32,7 @@ var send = function(uid, type, fs, other) {
     var msg = emails[type].render({fs: fs, other: other});
 
     // And send the email
-    email.sendToUser(messages[type], uid, '★ ' + messages[type] || 'New Notification', msg);
+    email.sendToUser(messages[type], uid, messages[type] || 'New Notification', msg);
 
   // If they ARE online, try to send a message
   } else {
