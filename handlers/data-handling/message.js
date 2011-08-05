@@ -61,12 +61,12 @@ var create = function(client, data, callback, errback) {
           });
 
           // Send it
-          email.send('Email Response',              //type
-                     convo.email,                   //to
-                     'Re: ' + convo.subject,        //subject
-                     body,                          //body
-                     listing.email,                 //from
-                     convo.lastEmail || undefined); //in reply to
+          email.send('Email Response',                  //type
+                     convo.email,                       //to
+                     'Re: ' + convo.subject,            //subject
+                     body,                              //body
+                     'Hipsell <' + listing.email + '>', //from
+                     convo.lastEmail || undefined);     //in reply to
         }
       });
     });
