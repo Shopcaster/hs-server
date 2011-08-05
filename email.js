@@ -101,7 +101,10 @@ var send = function(type, to, subject, body, from, inReplyTo) {
   // If the email type is defined, we need to do Mixpanel email
   // tracking.  Note that if the Mixpanel API call fails in any way, the
   // original body will be used.
-  if (type)
+  //
+  // We also don't want to make the API call if we don't have email
+  // sending enabled, as this will skew data.
+  if (type && !disabled)
     mixpanel.trackEmail(type, to, body, doit);
   // If no type was sent we can forego tracking.
   else
