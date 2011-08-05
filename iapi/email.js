@@ -70,7 +70,7 @@ var serve = function(req, res) {
       doResp(res, 200, 'OK');
 
       // Try to fetch the auth object for this user
-      var auth = new db.Auth();
+      var auth = new models.Auth();
       auth._id = fields.from.match(/[\S]@[\S]/);
       db.get(auth, function(err, exists) {
 
