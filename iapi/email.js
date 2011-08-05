@@ -150,7 +150,10 @@ var serve = function(req, res) {
             convo = new models.Convo();
             convo.creator = auth.creator || null;
             convo.listing = listing._id;
-            if (!exists) convo.email = auth._id;
+            if (!exists) {
+              convo.email = auth._id;
+              convo.subject = fields.subject;
+            }
             db.apply(convo, finish);
           } else {
             finish();

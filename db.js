@@ -202,7 +202,7 @@ var queryOne = function(type, q, callback) {
   });
 };
 
-/* type, q, [[offset, limit]], callback */
+/* type, q, [[offset, limit]], [sort], callback */
 var query = function(type, q) {
 
   // Magic args
@@ -215,6 +215,9 @@ var query = function(type, q) {
     offset = offset || args[2][0];
     limit = limit || args[2][1];
   }
+  var sort = undefined;
+  if (args.length > 3)
+    sort = args[3] || undefined;
 
   // Don't query deleted fields
   q.deleted = {$ne: true};
@@ -239,11 +242,25 @@ var query = function(type, q) {
       return callback(err);
     }
 
+    // Prepare query options.
+    var options = {};
+
+    // Offset
+    if (offset) options.skip = offset;
+    if (limit) options.limit = limit;
+
+    // Sort
+    if (sort) {
+      if (sort[0] == '-')
+        options.sort = [sort.substr(1), 'desc'];
+      else if (sort[0] == '+')
+        options.sort = sort.substr(1);
+      else
+        options.sort = osrt;
+    }
+
     // Base query
-    var f = col.find(q);
-    // Limit/offset
-    if (offset) f = f.skip(offset);
-    if (limit) f = f.limit(limit);
+    var f = col.find(q, options);
 
     // Run the query and fetch the individual things
     f.toArray(function(err, objs) {

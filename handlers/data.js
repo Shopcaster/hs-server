@@ -1,5 +1,5 @@
 var validate = require('../util/validation').validate,
-    ids = require('../util/ids'),
+    keys = require('../util/keys'),
     db = require('../db'),
     models = require('../models');
 
@@ -103,8 +103,8 @@ var update = function(client, data, callback, errback) {
   if (!client.state.auth) return errback('Access denied');
 
   // Try to parse the key
-  var key = ids.parse(data.key);
-  if (!(key instanceof ids.Key)) return errback('Invalid key');
+  var key = keys.parse(data.key);
+  if (!(key instanceof keys.Key)) return errback('Invalid key');
 
   // Convert the special data before it hits the validator
   convertSpecialData(data);
@@ -145,8 +145,8 @@ var del = function(client, data, callback, errback) {
   if (!client.state.auth) return errback('Access denied');
 
   // Try to parse the key
-  var key = ids.parse(data.key);
-  if (!(key instanceof ids.Key)) return errback('Invalid key');
+  var key = keys.parse(data.key);
+  if (!(key instanceof keys.Key)) return errback('Invalid key');
 
   // Check if we have a special handler for this data type
   if (key.type in specialHandlers) {
@@ -171,12 +171,6 @@ var del = function(client, data, callback, errback) {
   }
 };
 
-var query = function(client, data, callback, errback) {
-
-  // Try to parse the key
-};
-
 exports.create = create;
 exports.update = update;
 exports.del = del;
-exports.query = query;

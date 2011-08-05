@@ -1,4 +1,4 @@
-var ids = require('./../util/ids'),
+var keys = require('./../util/keys'),
     db = require('./../db'),
     models = require('../models'),
     auth = require('./auth'),
@@ -28,10 +28,10 @@ var sub = function(client, data, callback, errback) {
   if (client.state.subs[data.key]) return callback(true);
 
   // Break up the key into its components
-  var key = ids.parse(data.key);
+  var key = keys.parse(data.key);
 
   // Listen on non-relation
-  if (key instanceof ids.Key) {
+  if (key instanceof keys.Key) {
 
     // Do the initial data fetch
     var obj = new models[key.type]();
@@ -70,7 +70,7 @@ var sub = function(client, data, callback, errback) {
     });
 
   // Listen on the relation
-  } else if (key instanceof ids.Query) {
+  } else if (key instanceof keys.Query) {
     // Util/DRY
     var send = function(add, remove) {
       client.send('pub', {

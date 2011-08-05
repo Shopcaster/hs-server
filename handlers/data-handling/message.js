@@ -55,7 +55,7 @@ var create = function(client, data, callback, errback) {
           // send it directly.
 
           // Generate the email body
-          var body = templating['email_response'].render({
+          var body = templating['email/email_response'].render({
             message: fs,
             listing: listing
           });

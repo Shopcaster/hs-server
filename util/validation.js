@@ -41,6 +41,7 @@ var validate = function(spec, data) {
       // Ensure types match
       if ((t == 'string' && typeof d != 'string')
       ||  (t == 'number' && typeof d != 'number')
+      ||  (t == 'integer' && typeof d != 'number')
       ||  (t == 'boolean' && typeof d != 'boolean')
       ||  (t == 'object' && typeof d != 'object')
       ||  (t == 'ref' && typeof d != 'string' && typeof d != 'object')
@@ -53,6 +54,13 @@ var validate = function(spec, data) {
       // For optional refs, let null through
       if (t == 'ref' && optional && d === null)
         continue;
+
+      // Make sure integers are actually integers
+      if (t == 'integer' && Math.floor(d) != d) {
+        field = i;
+        passed = false;
+        break;
+      }
 
       // Perform regex matching
       if (t in regexes && !regexes[t].exec(d)) {
