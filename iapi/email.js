@@ -32,7 +32,7 @@ var serve = function(req, res) {
 
     // Record the email in the database
     var m = new models.IncomingEmail();
-    for (var i in fields) if (field.hasOwnProperty(i))
+    for (var i in fields) if (fields.hasOwnProperty(i))
       m[i] = fields[i];
     db.apply(m);
 
