@@ -4,6 +4,7 @@ var mailgun = require('mailgun'),
     templating = require('../templating'),
     db = require('../db'),
     emailUtil = require('../util/email'),
+    nots = require('../notifications'),
     models = require('../models');
 
 var doResp = function(res, num, d) {
@@ -112,6 +113,18 @@ var serve = function(req, res) {
                          templating['email/autoresponse'].render({listing: listing}),
                          fields.recipient);
 
+            // Update the `lastEmail` field on the convo.  This will
+            // point to the email's Message-ID, and will be used when
+            // sending responses to ensure that threading happens
+            // properly (using the In-Reply-To header).
+            convo.lastEmail = fields['message-id'] || null;
+            // Strip out any wrapping brackets
+            if (convo.lastEmail)
+              convo.lastEmail = convo.lastEmail.replace(/^</, '')
+                                               .replace(/>$/, '');
+            // Save to db
+            db.apply(convo);
+
             // Now all we have to do is create the message and we're golden.
             var message = new models.Message();
             message.creator = auth.creator || null;
@@ -126,8 +139,19 @@ var serve = function(req, res) {
 
             // Send a notification to the listing owner.
             var listing = new models.Listing();
+            listing._id = convo.listing;
+            db.get(listing, function(err, found) {
 
-            // Fin.
+              // If there's a DB error, or the listing doesn't exist
+              // for some reason, we'll just not send this message...
+              if (err || !found)
+                return;
+
+              // Send the notification.
+              nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
+
+              // Fin.
+            });
           };
 
           // If the convo doesn't exist we need to create it

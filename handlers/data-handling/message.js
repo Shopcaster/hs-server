@@ -1,7 +1,8 @@
 var db = require('../../db'),
     models = require('../../models'),
     nots = require('../../notifications'),
-    templating = require('../../templating');
+    templating = require('../../templating'),
+    email = require('../../email');
 
 var create = function(client, data, callback, errback) {
   // Create the offer object -- this is entirely standard
@@ -13,6 +14,11 @@ var create = function(client, data, callback, errback) {
   db.apply(fs, function() {
     // Return the ID to the client
     callback(fs._id);
+
+    // If this message has an offer attached, we send a notification
+    // elsewhere (right in the offer creation/modification code).  As
+    // such, that notification code below is useless -- we bail early.
+    if (fs.offer) return;
 
     // Get the convo so that we can get the listing
     var convo = new models.Convo();
@@ -48,7 +54,19 @@ var create = function(client, data, callback, errback) {
           // we don't use the traditional notification API and instead
           // send it directly.
 
-          //var
+          // Generate the email body
+          var body = templating['email_response'].render({
+            message: fs,
+            listing: listing
+          });
+
+          // Send it
+          email.send('Email Response',              //type
+                     convo.email,                   //to
+                     'Re: ' + convo.subject,        //subject
+                     body,                          //body
+                     listing.email,                 //from
+                     convo.lastEmail || undefined); //in reply to
         }
       });
     });
