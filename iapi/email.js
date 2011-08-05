@@ -58,10 +58,13 @@ var serve = function(req, res) {
     // Fetch the relevant listing
     var listing = new models.Listing();
     listing._id = id;
-    db.get(listing, function(err) {
+    console.log('getting listing');
+    db.get(listing, function(err, found) {
+
+      console.log('got listing');
 
       // If there's no such listing, bail out
-      if (err) return doResp(res, 404, 'Not Found');
+      if (err || !found) return doResp(res, 404, 'Not Found');
 
       // Report success to mailgun, and handle the rest from here.
       doResp(res, 200, 'OK');
@@ -71,6 +74,7 @@ var serve = function(req, res) {
       auth._id = fields.from.match(/[\S]@[\S]/);
       db.get(auth, function(err, exists) {
 
+        console.log('got auth');
         // Treat error the same as a not exists case
         exists = !error && exists;
 
@@ -86,7 +90,7 @@ var serve = function(req, res) {
           };
         }
         db.get(convo, function(err, convo) {
-
+          console.log('got convo');
           // We'll need this later
           var convoWasCreated = !convo;
 
@@ -96,7 +100,7 @@ var serve = function(req, res) {
 
           // Common code; DRY
           var finish = function() {
-
+            console.log('finish()');
             // So at this point, we have access to a few things:
             //  * The sender's email
             //  * The relevant convo object
