@@ -43,7 +43,7 @@ var serve = function(req, res) {
 
     // If it looks like a kijiji or craigslist activation email, send
     // it to crosspost@hipsell.com and finish.
-    if (fromCraigslist
+    if (fromCraigs
     || (fromKijiji && fields.subject.match(/^Activate your Kijiji Ad/))) {
       email.send(null,
                  'crosspost@hipsell.com',
