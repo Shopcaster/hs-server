@@ -6,7 +6,7 @@ var preprocess = function(email, qp) {
     // Lines ending in = get unbreaked
     email = email.replace('=\n', '\n');
     // Convert charcodes
-    var re = /=\d({2})/;
+    var re = /=(\d{2})/;
 
     var match;
     var matches = [];
