@@ -68,7 +68,7 @@ var serve = function(req, res) {
 
       // Try to fetch the auth object for this user
       var auth = new models.Auth();
-      auth._id = fields.from.match(/[\S]+@[\S]+/)[0];
+      auth._id = fields.from.match(/[^\s<"]+@[^\s>"]+/)[0];
       db.get(auth, function(err, exists) {
 
         // Treat error the same as a not exists case
@@ -115,7 +115,7 @@ var serve = function(req, res) {
             // point to the email's Message-ID, and will be used when
             // sending responses to ensure that threading happens
             // properly (using the In-Reply-To header).
-            convo.lastEmail = fields['message-id'] || null;
+            convo.lastEmail = fields['Message-Id'] || null;
             // Strip out any wrapping brackets
             if (convo.lastEmail)
               convo.lastEmail = convo.lastEmail.replace(/^</, '')

@@ -46,6 +46,8 @@ var chopPlain = function(email) {
     // Add the line to the output
     output.push(line);
   }
+
+  return output.join('\n');
 };
 
 exports.preprocess = preprocess;
