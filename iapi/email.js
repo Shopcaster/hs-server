@@ -58,10 +58,7 @@ var serve = function(req, res) {
     // Fetch the relevant listing
     var listing = new models.Listing();
     listing._id = id;
-    console.log('getting listing');
     db.get(listing, function(err, found) {
-
-      console.log('got listing');
 
       // If there's no such listing, bail out
       if (err || !found) return doResp(res, 404, 'Not Found');
@@ -74,9 +71,8 @@ var serve = function(req, res) {
       auth._id = fields.from.match(/[\S]@[\S]/);
       db.get(auth, function(err, exists) {
 
-        console.log('got auth');
         // Treat error the same as a not exists case
-        exists = !error && exists;
+        exists = !err && exists;
 
         // Try to fetch an existing conversation
         if (exists) {
