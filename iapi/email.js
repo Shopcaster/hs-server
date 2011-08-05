@@ -75,15 +75,14 @@ var serve = function(req, res) {
         exists = !err && exists;
 
         // Try to fetch an existing conversation
+        var q = {
+          listing: listing._id;
+        };
         if (exists) {
-          var q = {
-            creator: auth.creator
-          };
+          q.creator = auth.creator
         } else {
-          var q = {
-            creator: null,
-            email: auth._id
-          };
+          q.creator = null;
+          q.email = auth._id;
         }
         db.queryOne(models.Convo, q, function(err, convo) {
 
@@ -147,13 +146,12 @@ var serve = function(req, res) {
             // Note how we handle the nonexistant user case: creator
             // is null, and the email field is set to that email
             // address.
-            console.log('creating convo');
             convo = new models.Convo();
             convo.creator = auth.creator || null;
+            convo.listing = listing._id;
             if (!exists) convo.email = auth._id;
             db.apply(convo, finish);
           } else {
-            console.log('did not create convo');
             finish();
           }
         });
