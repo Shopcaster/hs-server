@@ -147,7 +147,8 @@ var serve = function(req, res) {
             // Note how we handle the nonexistant user case: creator
             // is null, and the email field is set to that email
             // address.
-            var convo = new models.Convo();
+            console.log('creating convo');
+            convo = new models.Convo();
             convo.creator = auth.creator || null;
             if (!exists) convo.email = auth._id;
             db.apply(convo, finish);
