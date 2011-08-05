@@ -25,7 +25,7 @@ var createPassword = function(email) {
     pwRaw += pwCharacters[Math.floor(Math.random() * pwCharacters.length)];
 
   // Send an email to the user
-  _email.send(email, 'Welcome to Hipsell',
+  _email.send('New Account', email, 'Welcome to Hipsell',
     templating['email/signup'].render({password: pwRaw}));
 
   // Only store the hashed form
@@ -70,6 +70,43 @@ var signup = function(email, callback) {
 
     // Save the records, and return success when it's done.
     db.apply(auth, user, function() {
+
+      // Collect all messages and convos that were created using
+      // this new user's email address.  We need to associate them
+      // with the new user object, and disassociate them from the
+      // email.
+      db.query(models.Convo, {email: email}, function(err, convos) {
+
+        // If there was an error, just bail
+        if (err) return;
+
+        // Update each convo
+        for (var i=0; i<convos.length; i++) {
+          delete convos[i].lastEmail;
+          delete convos[i].email;
+          convos[i].creator = auth.creator;
+        }
+
+        // Save 'em
+        db.apply.apply(this, convos);
+      });
+      db.query(models.Message, {email: email}, function(err, messages) {
+
+        // If there was an error, just bail
+        if (err) return;
+
+        // Update each message
+        for (var i=0; i<messages.length; i++) {
+          delete messages[i].email;
+          messages[i].creator = auth.creator;
+        }
+
+        // Save 'em
+        db.apply.apply(this, messages);
+      });
+
+      // Since those updates fail silently, we can return success
+      // early.
       callback(auth, user);
     });
   });

@@ -2,6 +2,7 @@
 
 var cli = require('cli'),
     http = require('http'),
+    fs = require('fs'),
     // These bad boys don't get loaded off the bat.  Instead, we load
     // them as late as possible in the initialization sequence.  The
     // reason for this is that we don't want modules to be
@@ -18,7 +19,8 @@ var cli = require('cli'),
     clients,
     protocol,
     email,
-    templating;
+    templating,
+    querying;
 
 cli.parse({
   mode: [false, 'Server mode (development, production, staging, test)', 'string', 'development'],
@@ -40,6 +42,18 @@ cli.main(function(args, opts) {
   settings = require('./settings');
   settings.setMode(opts.mode);
 
+  //parse the api library, to make sure there aren't any errors
+  console.log('  Checking API library');
+  try {
+    require('uglify-js').parser.parse(fs.readFileSync('interface/api.js', 'utf8')
+                                           .replace(/\/\*\$\w+\$\*\//, '""'));
+  } catch (err) {
+    console.log('    Syntax error in api library (' + (err.line+1) + ':' + err.col + ')');
+    console.log('    ' + err.message);
+    console.log('');
+    process.exit(0);
+  }
+
   //set up database
   console.log('  Initializing Database');
   db = require('./db');
@@ -49,6 +63,11 @@ cli.main(function(args, opts) {
     console.log('  Initializing Templating');
     templating = require('./templating');
     templating.init();
+
+    //set up querying
+    console.log('  Initialising Querying');
+    querying = require('./querying');
+    querying.init();
 
     //set up email
     console.log('  Initializing Email');

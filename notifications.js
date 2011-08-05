@@ -16,8 +16,8 @@ emails[Types.NewOffer] = templating['email/new_offer'];
 emails[Types.NewMessage] = templating['email/new_message'];
 
 var messages = {};
-messages[Types.NewOffer] = 'New offer on your listing';
-messages[Types.NewMessage] = 'New message on a listing';
+messages[Types.NewOffer] = 'New offer on your item!';
+messages[Types.NewMessage] = 'New message on an item';
 
 var send = function(uid, type, fs, other) {
   // Get the user's presence
@@ -32,7 +32,7 @@ var send = function(uid, type, fs, other) {
     var msg = emails[type].render({fs: fs, other: other});
 
     // And send the email
-    email.sendToUser(uid, messages[type] || 'New Notification', msg);
+    email.sendToUser(messages[type], uid, messages[type] || 'New Notification', msg);
 
   // If they ARE online, try to send a message
   } else {

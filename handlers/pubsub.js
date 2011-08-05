@@ -1,5 +1,6 @@
-var ids = require('./../util/ids'),
+var keys = require('./../util/keys'),
     db = require('./../db'),
+    models = require('../models'),
     auth = require('./auth'),
     mongo = require('mongodb');
 
@@ -27,13 +28,13 @@ var sub = function(client, data, callback, errback) {
   if (client.state.subs[data.key]) return callback(true);
 
   // Break up the key into its components
-  var key = ids.parse(data.key);
+  var key = keys.parse(data.key);
 
   // Listen on non-relation
-  if (key instanceof ids.Key) {
+  if (key instanceof keys.Key) {
 
     // Do the initial data fetch
-    var obj = new db.FieldSet(key.type);
+    var obj = new models[key.type]();
     obj._id = key.id;
     db.get(obj, function(err, exists) {
       if (err === true) return errback('Database error');
@@ -69,7 +70,7 @@ var sub = function(client, data, callback, errback) {
     });
 
   // Listen on the relation
-  } else if (key instanceof ids.Query) {
+  } else if (key instanceof keys.Query) {
     // Util/DRY
     var send = function(add, remove) {
       client.send('pub', {
@@ -123,7 +124,7 @@ var sub = function(client, data, callback, errback) {
     // Get the IDs
     var q = {};
     q[key.field] = key.val;
-    db.query(key.type, q, function(err, fss) {
+    db.query(models[key.type], q, function(err, fss) {
 
       // Handle errors
       if (err) return errback('Database Error');

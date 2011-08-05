@@ -1,3 +1,4 @@
+{{ include('_header') }}
 
 <p>A new listing has been created on Hipsell!</p>
 
@@ -6,4 +7,6 @@ Listing: <a href="{{ settings.clientUri }}/{{ id }}">
 Crosspost: <a href="{{ settings.serverUri }}/crosspost/{{ id }}">
     {{ settings.serverUri }}/crosspost/{{ id }}</a>
 
-<h4>&ndash; Hipsell</h4>
+<h4>&ndash; The Hipsell Team</h4>
+
+{{ include('_footer') }}

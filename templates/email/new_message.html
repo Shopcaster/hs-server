@@ -1,10 +1,14 @@
-<p>Hey, there's a new response to one of your messages on
+{{ include('_header') }}
+
+<p>Hey, there's a new message in a conversation you're having on
 <a href="{{ settings.clientUri }}/{{ other._id }}">this Hipsell
 listing</a>:
 </p>
 
-<blockquote>
+<blockquote style="border-left: 1px solid silver; padding: 5px 10px 5px 10px;">
 {{ fs.message }}
 </blockquote>
 
-<h4>&ndash; Hipsell</h4>
+<h4>&ndash; The Hipsell Team</h4>
+
+{{ include('_footer') }}

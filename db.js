@@ -116,11 +116,6 @@ var apply = function() {
 
     //perform the upsert
     var upsert = function() {
-      // Decrement opcount here -- technically speaking the data
-      // hasn't been saved yet, but they have ID's which *should*
-      // be all anyone needs... (maybe?)
-      if (--opCount == 0 && callback) callback();
-
       db.collection(fs.getCollection(), function(err, col) {
         //ye olde error dump
         if (err) return console.log(err.stack, '');
@@ -132,7 +127,7 @@ var apply = function() {
         var nid = fs._id;
         delete nfs._id;
 
-        col.update({_id: nid}, {'$set': nfs}, {upsert: true}, function(err) {
+        col.update({_id: nid}, {'$set': nfs}, {upsert: true, safe: true}, function(err) {
           //ye olde error dump
           if (err) return console.log(err.stack, '');
 
@@ -140,6 +135,9 @@ var apply = function() {
           //handlers can't clobber the original
           if (!err)
             events.emit(eventType, fs.clone());
+
+          // If all the inserts are done, fire the callback
+          if (--opCount == 0 && callback) callback();
         });
       });
     };
@@ -204,7 +202,7 @@ var queryOne = function(type, q, callback) {
   });
 };
 
-/* type, q, [[offset, limit]], callback */
+/* type, q, [[offset, limit]], [sort], callback */
 var query = function(type, q) {
 
   // Magic args
@@ -217,14 +215,16 @@ var query = function(type, q) {
     offset = offset || args[2][0];
     limit = limit || args[2][1];
   }
+  var sort = undefined;
+  if (args.length > 3)
+    sort = args[3] || undefined;
 
   // Don't query deleted fields
   q.deleted = {$ne: true};
 
   var typeName = '';
   if (typeof type == 'string') {
-    typeName = type;
-    var genType = function() { return new FieldSet(typeName); };
+    throw new Error('Must supply a FieldSet instance as the type');
   } else if (type && type.prototype && type.prototype instanceof FieldSet) {
     typeName = type.prototype.getCollection();
     var genType = function() { return new type(); };
@@ -242,11 +242,25 @@ var query = function(type, q) {
       return callback(err);
     }
 
+    // Prepare query options.
+    var options = {};
+
+    // Offset
+    if (offset) options.skip = offset;
+    if (limit) options.limit = limit;
+
+    // Sort
+    if (sort) {
+      if (sort[0] == '-')
+        options.sort = [sort.substr(1), 'desc'];
+      else if (sort[0] == '+')
+        options.sort = sort.substr(1);
+      else
+        options.sort = osrt;
+    }
+
     // Base query
-    var f = col.find(q);
-    // Limit/offset
-    if (offset) f = f.skip(offset);
-    if (limit) f = f.limit(limit);
+    var f = col.find(q, options);
 
     // Run the query and fetch the individual things
     f.toArray(function(err, objs) {
@@ -270,7 +284,7 @@ var query = function(type, q) {
 var FieldSet = function(collection) {
   //require collection
   if (!collection)
-    throw new Error('Must set collection name when created a fieldset');
+    throw new Error('Must set collection name when creating a fieldset');
 
   this.getCollection = function() {
     return collection;
@@ -283,11 +297,8 @@ FieldSet.prototype.genId = function(callback) {
   return this;
 };
 FieldSet.prototype.clone = function() {
-  var FS = function() {};
-  FS.prototype = new FieldSet(this.getCollection());
-
   //create the new fieldset
-  var fs = new FS();
+  var fs = new this.constructor();
 
   //copy the fields over
   for (var i in this) if (this.hasOwnProperty(i))

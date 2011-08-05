@@ -3,6 +3,8 @@ var mailgun = require('mailgun'),
     email = require('../email'),
     templating = require('../templating'),
     db = require('../db'),
+    emailUtil = require('../util/email'),
+    nots = require('../notifications'),
     models = require('../models');
 
 var doResp = function(res, num, d) {
@@ -28,43 +30,136 @@ var serve = function(req, res) {
     if (!email.verify(fields.timestamp, fields.token, fields.signature))
       return doResp(res, 400, 'Bad Request');
 
-    // check to see if this is from craigslist
-    var fromCraig = !!fields.sender.match(/noreply@craigslist.org/);
-    var fromKijiji = !!fields.sender.match(/donotreply@kijiji.ca/);
+    // Record the email in the database
+    var m = new models.IncomingEmail();
+    for (var i in fields) if (fields.hasOwnProperty(i))
+      m[i] = fields[i];
+    db.apply(m);
 
-    // If it looks like a kijiji activation email, send it to crosspost
-    if (fromKijiji && fields.subject.match(/^Activate your Kijiji Ad/))
-      var forwardEmail = 'crosspost@hipsell.com';
-    // Otherwise we crosspost it right to sold
-    else
-      var forwardEmail = 'sold@hipsell.com';
+    // Check to see if this is from Craigslist or Kijiji
+    var fromCraig = !! fields.sender.match(/noreply@craigslist.org/);
+    var fromKijiji = !! fields.sender.match(/donotreply@kijiji.ca/)
+                     || !! fields.from.match(/Kijiji Canada/);
 
-    // Forward the email contents to sold@hipsell.com
-    email.send(forwardEmail,
-               'Autoreply For: ' + fields.subject,
-               '<h4>Original Sender: ' + fields.from +
-               '</h4><p>' + (fields['body-html'] || fields['body-html']) + '</p>');
+    // If it looks like a kijiji or craigslist activation email, send
+    // it to crosspost@hipsell.com and finish.
+    if (fromCraig
+    || (fromKijiji && fields.subject.match(/^Activate your Kijiji Ad/))) {
+      email.send(null,
+                 'crosspost@hipsell.com',
+                 'Activation Email For: ' + fields.subject,
+                 '<h4>Original Sender: ' + fields.from +
+                 '</h4><p>' + (fields['body-html'] || fields['body-html']) + '</p>');
 
-    // If it's from craig, finish early
-    if (fromCraig || fromKijiji) return doResp(res, 200, 'OK');
+      // Bail out.
+      return doResp(res, 200, 'OK');
+    }
 
-    // Otherwise, fetch the relevant listing
+    // Fetch the relevant listing
     var listing = new models.Listing();
     listing._id = id;
-    db.get(listing, function(err) {
+    db.get(listing, function(err, found) {
 
       // If there's no such listing, bail out
-      if (err) return doResp(res, 404, 'Not Found');
+      if (err || !found) return doResp(res, 404, 'Not Found');
 
-      // Report success to mailgun
+      // Report success to mailgun, and handle the rest from here.
       doResp(res, 200, 'OK');
 
-      // Send the autoreply to the sender
-      email.send(fields.from,
-                 'Re: ' + fields.subject,
-                 templating['email/autoresponse'].render({listing: listing}),
-                 fields.recipient);
+      // Try to fetch the auth object for this user
+      var auth = new models.Auth();
+      auth._id = fields.from.match(/[^\s<"]+@[^\s>"]+/)[0];
+      db.get(auth, function(err, exists) {
 
+        // Treat error the same as a not exists case
+        exists = !err && exists;
+
+        // Try to fetch an existing conversation
+        var q = {
+          listing: listing._id
+        };
+        if (exists) {
+          q.creator = auth.creator
+        } else {
+          q.creator = null;
+          q.email = auth._id;
+        }
+        db.queryOne(models.Convo, q, function(err, convo) {
+
+          // We'll need this later
+          var convoWasCreated = !convo;
+
+          // If there's an error... well, recovering from that is
+          // going to be a bitch, so...
+          if (err) return; //TODO - Recover
+
+          // Common code; DRY
+          var finish = function() {
+            // So at this point, we have access to a few things:
+            //  * The sender's email
+            //  * The relevant convo object
+            //  * Whether or not we created the convo
+
+            // If we created the convo, we'll open up with a straight
+            // autoreply email to the sender -- this works nicely, as
+            // we won't really have anything to send them anyway until
+            // the listing creator responds.
+            if (convoWasCreated)
+              email.send('Auto Response',
+                         fields.from,
+                         'Re: ' + fields.subject,
+                         templating['email/autoresponse'].render({listing: listing}),
+                         'Hipsell <' + listing.email + '>',
+                         fields['Message-Id'] || undefined);
+
+            // Update the `lastEmail` field on the convo.  This will
+            // point to the email's Message-ID, and will be used when
+            // sending responses to ensure that threading happens
+            // properly (using the In-Reply-To header).
+            convo.lastEmail = fields['Message-Id'] || null;
+            // Strip out any wrapping brackets
+            if (convo.lastEmail)
+              convo.lastEmail = convo.lastEmail.replace(/^</, '')
+                                               .replace(/>$/, '');
+            // Save to db
+            db.apply(convo);
+
+            // Now all we have to do is create the message and we're golden.
+            var message = new models.Message();
+            message.creator = auth.creator || null;
+            if (!message.creator) message.email = auth._id;
+            message.convo = convo._id;
+            message.offer = null;
+            message.message = emailUtil.preprocess(fields['body-plain'], true);
+            message.message = emailUtil.chopPlain(message.message);
+            db.apply(message);
+            // TODO - check out Mailgun's sig/quote stripping
+            //        functionality
+
+            // Send a notification to the listing owner.
+            nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
+
+            // Fin.
+          };
+
+          // If the convo doesn't exist we need to create it
+          if (!convo) {
+            // Note how we handle the nonexistant user case: creator
+            // is null, and the email field is set to that email
+            // address.
+            convo = new models.Convo();
+            convo.creator = auth.creator || null;
+            convo.listing = listing._id;
+            if (!exists) {
+              convo.email = auth._id;
+              convo.subject = fields.subject;
+            }
+            db.apply(convo, finish);
+          } else {
+            finish();
+          }
+        });
+      });
     });
   });
 };

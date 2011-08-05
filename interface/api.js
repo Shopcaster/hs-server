@@ -237,7 +237,8 @@ var connection = new EventEmitter();
       // Otherwise, we want to fetch user data before making ready
       allowThrough = true;
       doAuthUser(email, password, userid, makeReady);
-      allowThrough = false;
+      if (!ready)
+        allowThrough = false;
     });
     // But don't let anything else through
     if (!ready)
@@ -366,7 +367,8 @@ var connection = new EventEmitter();
       curUser = new AuthUser(user, email, password);
 
       // Track this in mixpanel
-      anl('identify', userid);
+      anl('identify', email);
+      if (user.name) anl('set_tag', user.name);
 
       // Fire the success callback
       callback && callback(undefined);
@@ -1233,6 +1235,76 @@ zz.recordError = function(err) {
 })();
 
 //
+// Querying
+//
+(function() {
+
+var Query = function(type, query) {
+  this._type = type;
+  this._query = query || '';
+};
+Query.prototype._ret = function(callback) {
+  if (callback) {
+
+    var data = {
+      type: this._type,
+      query: this._query
+    };
+    if (this._limit) data.limit = this._limit;
+    if (this._offset) data.offset = this._offset;
+    if (this._sort) data.sort = this._sort;
+
+    messaging.send('query', data, function(err, ids) {
+      if (err) console.log('Error querying ' + data.query);
+      else callback(ids);
+    });
+
+    return undefined;
+  } else {
+    return this;
+  }
+};
+Query.prototype.offset = function(n, callback) {
+  if (typeof n != 'number') throw new Error('Must specify a number');
+  this._offset = n;
+
+  return this._ret(callback);
+};
+Query.prototype.limit = function(n, callback) {
+  if (typeof n != 'number') throw new Error('Must specify a number');
+  this._limit = n;
+
+  return this._ret(callback);
+};
+Query.prototype.sort = function(s, callback) {
+  if (typeof n != 'string') throw new Error('Must specify a string');
+  this._sort = s;
+
+  return this._ret(callback);
+};
+Query.prototype.run = function(callback) {
+  return this._ret(callback);
+};
+
+
+// Add a queryer to each datatype
+var type;
+for (var i=0; i<config.datatypes.length; i+=2) with ({i: i, type: type}) {
+  type = config.datatypes[i];
+
+  zz.data[type].query = function(query, callback) {
+    if (typeof query == 'function')
+      throw new Error('Cannot run a query with no name, limit, offset, or sort');
+
+    var query = new Query(type, query);
+    return query._ret(callback);
+  };
+}
+
+// End querying closure
+})();
+
+//
 // Data creation
 //
 (function() {
@@ -1275,7 +1347,7 @@ for (var i=0; i<config.datatypes.length; i+=2) {
           throw new Error('Validation error when creating ' + type);
 
         // Track all creates
-        anl('track', {create: type});
+        anl('track', 'create', {type: type});
 
         callback && callback(ret);
       });
@@ -1309,6 +1381,8 @@ for (var i=0; i<config.datatypes.length; i+=2) {
     };
   }
 }
+
+// End create/update closure
 })();
 
 //

@@ -1,6 +1,7 @@
-var validate = require('./../util/validation').validate,
-    ids = require('./../util/ids'),
-    db = require('./../db');
+var validate = require('../util/validation').validate,
+    keys = require('../util/keys'),
+    db = require('../db'),
+    models = require('../models');
 
 // Special data conversion
 var convertSpecialData = function(data) {
@@ -48,6 +49,9 @@ var validators = {
   'convo': {listing: 'ref?'}
 };
 
+// Hack around listings/items
+validators.item = validators.listing;
+
 // Any data type that doesn't have an entry in this object gets the
 // default create/update/delete behavior, which is to just insert or
 // update all fields verbatim.
@@ -79,7 +83,7 @@ var create = function(client, data, callback, errback) {
   } else {
 
     // Just stuff the data in a new fieldset
-    var fs = new db.FieldSet(data.type);
+    var fs = new models[data.type]();
     fs.merge(data.data);
     // Creator field is required on everything, so we pull it from this
     // user's auth info.
@@ -99,8 +103,8 @@ var update = function(client, data, callback, errback) {
   if (!client.state.auth) return errback('Access denied');
 
   // Try to parse the key
-  var key = ids.parse(data.key);
-  if (!(key instanceof ids.Key)) return errback('Invalid key');
+  var key = keys.parse(data.key);
+  if (!(key instanceof keys.Key)) return errback('Invalid key');
 
   // Convert the special data before it hits the validator
   convertSpecialData(data);
@@ -124,7 +128,7 @@ var update = function(client, data, callback, errback) {
   } else {
 
     // Stuff the data into a fieldset
-    var fs = new db.FieldSet(key.type);
+    var fs = new models[key.type]();
     fs.merge(data.diff);
     fs._id = key.id;
 
@@ -141,8 +145,8 @@ var del = function(client, data, callback, errback) {
   if (!client.state.auth) return errback('Access denied');
 
   // Try to parse the key
-  var key = ids.parse(data.key);
-  if (!(key instanceof ids.Key)) return errback('Invalid key');
+  var key = keys.parse(data.key);
+  if (!(key instanceof keys.Key)) return errback('Invalid key');
 
   // Check if we have a special handler for this data type
   if (key.type in specialHandlers) {
@@ -155,7 +159,7 @@ var del = function(client, data, callback, errback) {
   } else {
 
     // Create a deletion fs
-    var fs = new db.FieldSet(key.type);
+    var fs = new models[key.type]();
     fs._id = key.id;
     fs.deleted = true;
 
@@ -167,12 +171,6 @@ var del = function(client, data, callback, errback) {
   }
 };
 
-var query = function(client, data, callback, errback) {
-
-  // Try to parse the key
-};
-
 exports.create = create;
 exports.update = update;
 exports.del = del;
-exports.query = query;

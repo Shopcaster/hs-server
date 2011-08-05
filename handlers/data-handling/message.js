@@ -1,6 +1,8 @@
-var db = require('./../../db'),
-    models = require('./../../models'),
-    nots = require('./../../notifications');
+var db = require('../../db'),
+    models = require('../../models'),
+    nots = require('../../notifications'),
+    templating = require('../../templating'),
+    email = require('../../email');
 
 var create = function(client, data, callback, errback) {
   // Create the offer object -- this is entirely standard
@@ -13,10 +15,12 @@ var create = function(client, data, callback, errback) {
     // Return the ID to the client
     callback(fs._id);
 
-    // Send a notification to the offer's creator as well as the
-    // offer's listing's creator
+    // If this message has an offer attached, we send a notification
+    // elsewhere (right in the offer creation/modification code).  As
+    // such, that notification code below is useless -- we bail early.
+    if (fs.offer) return;
 
-    // Get the offer so that we can get the listing
+    // Get the convo so that we can get the listing
     var convo = new models.Convo();
     convo._id = fs.convo;
     db.get(convo, function(err, success) {
@@ -30,12 +34,40 @@ var create = function(client, data, callback, errback) {
         // Bail on errors
         if (err) return;
 
-        // Send the notification to the listing's creator
-        if (fs.creator != listing.creator)
-          nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
-        // Send the notificaton to the offer's creator
-        if (fs.creator != convo.creator)
-          nots.send(convo.creator, nots.Types.NewMessage, fs, listing);
+        // Send notifications for messages created by standard users to
+        // both the convo's creator (the buyer), and the convo's
+        // listing's creator (the seller).
+        if (convo.creator) {
+
+          // Send the notification to the listing's creator
+          if (fs.creator != listing.creator)
+            nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
+          // Send the notificaton to the convo's creator
+          if (fs.creator != convo.creator)
+            nots.send(convo.creator, nots.Types.NewMessage, fs, listing);
+
+        // Send notifications for messages created on a convo where
+        // the buyer is using email instead of an account.
+        } else {
+          // Since it's impossible for the buyer to create a message
+          // through normal means, we just always send one.  Also,
+          // we don't use the traditional notification API and instead
+          // send it directly.
+
+          // Generate the email body
+          var body = templating['email/email_response'].render({
+            message: fs,
+            listing: listing
+          });
+
+          // Send it
+          email.send('Email Response',                  //type
+                     convo.email,                       //to
+                     'Re: ' + convo.subject,            //subject
+                     body,                              //body
+                     'Hipsell <' + listing.email + '>', //from
+                     convo.lastEmail || undefined);     //in reply to
+        }
       });
     });
   });

@@ -34,6 +34,38 @@ var croquet = {};
     this.mid = 0;
   };
   Connection.prototype = new EventEmitter();
+  Connection.prototype.constructor = Connection;
+
+  Connection.prototype._xhr = function(method, path, data, callback) {
+    // Magic arguments
+    if (typeof data == 'function') {
+      callback = data;
+      data = undefined;
+    }
+
+    var xhr = new XHR();
+    xhr.onreadystatechange = function() {
+      switch (xhr.readyState) {
+        case 4:
+          clearTimeout(timeout);
+          callback();
+          break;
+      }
+    };
+
+    xhr.open(method, this.url + path, true);
+    xhr.send(data);
+
+    // Set up a timeout; if the xhr doesn't complete in 30s, we kill
+    // it manually.  This will trigger the callback, with the xhr's
+    // status being 0 -- just like a connection failure.
+    var timeout = setTimeout(function() {
+      console.log('Failed request to ' + path);
+      xhr.abort();
+    }, 30 * 1000);
+
+    return xhr;
+  };
 
   Connection.prototype.connect = function() {
     // Handle multiple connects graciously
@@ -44,35 +76,30 @@ var croquet = {};
 
     this.connected = true;
 
-    var xhr = this.connecting = new XHR();
-    xhr.open('GET', this.url + '/xhr/connect', true);
-    xhr.send();
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState == 4) {
-        delete self.connecting;
+    var xhr = this.connecting = this._xhr('GET', '/xhr/connect', function() {
+      delete self.connecting;
 
-        if (xhr.status === 201) {
+      if (xhr.status === 201) {
 
-          // Basic connection init
-          self.cid = xhr.responseText;
-          self._reallyConnected = true;
-          self.emit('connect');
+        // Basic connection init
+        self.cid = xhr.responseText;
+        self._reallyConnected = true;
+        self.emit('connect');
 
-          // Start sending all pending messages every 20ms
-          self.startSendLoop();
+        // Start sending all pending messages every 20ms
+        self.startSendLoop();
 
-          // Bootstrap the receive process
-          self.startReceiveLoop();
+        // Bootstrap the receive process
+        self.startReceiveLoop();
 
-        } else {
-          console.log('Error when connecting to server: ' + xhr.status + '.  Retrying in 1s');
-          setTimeout(function() {
-            self.connect();
-          }, 1000 * 1); // 1s
-        }
-
+      } else {
+        console.log('Error when connecting to server: ' + xhr.status + '.  Retrying in 1s');
+        setTimeout(function() {
+          self.connect();
+        }, 1000 * 1); // 1s
       }
-    };
+
+    });
   };
   Connection.prototype.disconnect = function() {
 
@@ -94,21 +121,16 @@ var croquet = {};
     // further messages from being sent.
     this.connected = false;
 
-    var xhr = this.disconnecting = new XHR();
-    xhr.open('POST', this.url + '/xhr/disconnect', true);
-    xhr.send(this.cid);
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState == 4) {
-        delete self.disconnecting;
-
-        self._setDisconnected();
-      }
-    };
+    var xhr = this.disconnecting = this._xhr('POST', '/xhr/disconnect', this.cid, function() {
+      delete self.disconnecting;
+      self._setDisconnected();
+    });
   };
   Connection.prototype._setDisconnected = function() {
     if (!this._reallyConnected) return;
 
     this._reallyConnected = false;
+    this.connected = false;
     delete self.cid;
     this.stopSendLoop();
     this.stopReceiveLoop();
@@ -127,42 +149,39 @@ var croquet = {};
   Connection.prototype.startReceiveLoop = function() {
     var self = this;
 
-    var xhr = this._recv = new XHR();
-    xhr.open('GET', this.url + '/xhr/poll?cid=' + this.cid, true);
-    xhr.send();
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState == 4) {
-        delete self._recv;
+    var xhr = this._recv = this._xhr('GET', '/xhr/poll?cid=' + this.cid, function() {
+      delete self._recv;
 
-        // A 200 indicates that we successfully received messages
-        if (xhr.status == 200) {
+      // A 200 indicates that we successfully received messages
+      if (xhr.status == 200) {
 
-          // Parse messages and raise the events
-          var messages = deserializeMessages(xhr.responseText);
-          for (var i=0; i<messages.length; i++) {
-            try {
-              self.emit('message', messages[i]);
-            // Eat errors to keep the processing going
-            } catch (err) {
-              console.log(err.stack);
-            }
+        // Parse messages and raise the events
+        var messages = deserializeMessages(xhr.responseText);
+        for (var i=0; i<messages.length; i++) {
+          try {
+            self.emit('message', messages[i]);
+          // Eat errors to keep the processing going
+          } catch (err) {
+            console.log(err.stack);
           }
-
-          // Continue running the receive loop
-          self.startReceiveLoop();
-
-        // A 410 means we've been disconnected
-        } else if (xhr.status == 410) {
-          self._setDisconnected();
-
-        // Any other sort of error is wonky, but we don't need to do
-        // a full disconnect.  Instead, we just need to restart the
-        // poll.
-        } else {
-          self.startReceiveLoop();
         }
+
+        // Continue running the receive loop
+        if (self.connected)
+          self.startReceiveLoop();
+
+      // A 410 means we've been disconnected
+      } else if (xhr.status == 410) {
+        self._setDisconnected();
+
+      // Any other sort of error is wonky, but we don't need to do
+      // a full disconnect.  Instead, we just need to restart the
+      // poll.
+      } else {
+        if (self.connected)
+          self.startReceiveLoop();
       }
-    };
+    });
   };
   Connection.prototype.stopReceiveLoop = function() {
     if (this._recv) this._recv.abort();
@@ -185,35 +204,30 @@ var croquet = {};
         var messages = self.pending;
         self.pending = [];
 
-        var xhr = self._send = new XHR();
-        xhr.open('POST', self.url + '/xhr/send', true);
-        xhr.send(serializeMessages.apply(this, messages));
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState == 4) {
-            delete self._send;
+        var data = serializeMessages.apply(this, messages);
+        var xhr = self._send = self._xhr('POST', '/xhr/send', data, function() {
+          delete self._send;
 
-            // 201 indicates success
-            if (xhr.status == 201) {
+          // 201 indicates success
+          if (xhr.status == 201) {
 
-              // Continue sending
+            // Continue sending
+            self.startSendLoop();
+
+          // Anything else is some sort of weird error.  We should
+          // recover by restoring the message queue and continuing to
+          // try to send after a short delay.
+          } else {
+
+            // Restore the message queue
+            self.pending = messages.concat(self.pending);
+
+            // Resume the send loop after a little bit
+            self.sendTimeout = setTimeout(function() {
               self.startSendLoop();
-
-            // Anything else is some sort of weird error.  We should
-            // recover by restoring the message queue and continuing to
-            // try to send after a short delay.
-            } else {
-
-              // Restore the message queue
-              self.pending = messages.concat(self.pending);
-
-              // Resume the send loop after a little bit
-              self.sendTimeout = setTimeout(function() {
-                self.startSendLoop();
-              }, 100); // 100 ms
-            }
+            }, 100); // 100 ms
           }
-        };
-
+        });
       } else {
         self.startSendLoop();
       }
@@ -255,7 +269,7 @@ var croquet = {};
         t = 'o';
         d = convertDataDown(d);
       } else if (typeof d == 'boolean') {
-        t = 'b';s
+        t = 'b';
       }
 
       ndata[t + i] = d;
@@ -328,6 +342,10 @@ var croquet = {};
     return msg;
   };
   var deserializeMessages = function(data) {
+
+    // Trim leading whitespace from the data.  This may be added
+    // by the server to prevent browsers from buffering.
+    data = data.replace(/^\s+/, '');
 
     // We hold all our messages here, and only send them once they're
     // all parsed.

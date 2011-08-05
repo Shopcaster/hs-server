@@ -1,147 +1,60 @@
-<!DOCTYPE html>
-<html>
-<head><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
-<body style="
-  margin:0;
-  padding:0;
-  background-color:#e5e5e7;
-  background-image: url({{ settings.clientUri }}/img/bg.png);
-" background="{{ settings.clientUri }}/img/bg.png">
+{{ include('_header') }}
 
-<table border="0" cellpadding="0" cellspacing="0"  style="
-  margin:0;
-  padding:0;
-  width:100%;
-  background-color:#e5e5e7;
-  background-image: url({{ settings.clientUri }}/img/bg.png);
-  font-family: arial, sans-serif;
-">
+<table>
+  <tr>
+    <td colspan="3" style="color:#444;font-size:14px;">
+      <p style="margin-top: 0;">This item is still <span style="font-weight:bold;color:#009345;">Available</span>.
+      The seller has listed their item using <a href="http://hipsell.com" style="color:#1b75bb;">Hipsell</a>
+      &ndash; the easiest way to buy and sell. To view the listing,
+      click <a href="{{ settings.clientUri + '/' + listing._id }}" style="color:#1b75bb;">here</a>
+      or use the buttons below.</p>
+      <p>We've also sent your message along to the seller; we'll email
+      you back with their response.</p>
+    </td>
+  </tr>
 
-  <tr><td style="height:40px;" height="40" background="{{ settings.clientUri }}/img/bg.png"></td></tr>
-
-  <tr><td background="{{ settings.clientUri }}/img/bg.png">
-    <table border="0" cellpadding="0" cellspacing="0" style="
-      width:500px;
-      margin:0 auto;
-      padding:0;
-      background-color:#F1F1F2;
-    ">
-      <tr>
-        <td colspan="5" background="{{ settings.clientUri }}/img/ab_bg.png" height="50" style="
-          background-color:#3F74B2;
-          background-image:url({{ settings.clientUri }}/img/ab_bg.png);
-          background-repeat:repeat-x;
-          height:50px;
-          border:1px solid #444;
-          border-bottom:1px solid #555;
-        ">
-          <a href="{{ settings.clientUri }}">
-            <img src="{{ settings.clientUri }}/img/ab_logo.png" alt="Hipsell" style="
-              width:176px;
-              height:34px;
-              color:#F1F1F2;
-              font-size:16px;
-              margin-left:20px;
-              margin-top: 4px;
-              border: none;">
-          </a>
-        </td>
-      </tr>
-      <tr><td style="
-        height:20px;
-        border-left:1px solid #999;
-        border-right:1px solid #999;
-      " height="20" colspan="5"></td></tr>
-      <tr>
-        <td style="width:20px;border-left:1px solid #999;" width="20"></td>
-        <td colspan="3" style="color:#444;font-size:14px;">
-          This item is still <span style="font-weight:bold;color:#009345;">Available</span>. The seller has listed their item using <a href="http://hipsell.com" style="color:#1b75bb;">Hipsell</a> &ndash; the easiest way to buy and sell. To view the listing, click <a href="{{ settings.clientUri + '/' + listing._id }}" style="color:#1b75bb;">here</a> or use the buttons below.
-        </td>
-        <td style="width:20px;border-right:1px solid #999;" width="20"></td>
-      </tr>
-      <tr><td style="
-        height:20px;
-        border-left:1px solid #999;
-        border-right:1px solid #999;
-      " height="20" colspan="5"></td></tr>
-      <tr>
-        <td style="
-          border-left:1px solid #999;
-          width:10px;
-        " width="10"></td>
-        <td height="47" width="225" background="{{ settings.clientUri }}/img/button_bg.png" style="
-          height:47px;
-          width:225px;
-          background-color:#009345;
-          background-image:url({{ settings.clientUri }}/img/button_bg.png);
-          background-repeat:no-repeat;
-          border:none;
-          font-weight:bold;
-          font-size:17px;
-          color:#F1F1F2;
-          text-align:center;
-          border-radius: 5px;
-          -moz-border-radius: 5px;
-          -webkit-border-radius: 5px;
-          -khtml-border-radius: 5px;
-        ">
-          <a href="{{ settings.clientUri + '/' + listing._id }}" style="
-            color:#F1F1F2;
-            vertical-align:middle;
-            text-decoration:none;
-            text-shadow:0 -1px 1px #1B1B1B;
-            padding: 12px 50px 12px 50px;
-          ">Ask a Question</a>
-        </td>
-        <td style="
-          width:10px;
-        " width="10"></td>
-        <td height="47" width="225" background="{{ settings.clientUri }}/img/button_bg.png" style="
-          height:47px;
-          width:225px;
-          background-color:#009345;
-          background-image:url({{ settings.clientUri }}/img/button_bg.png);
-          background-repeat:no-repeat;
-          border:none;
-          font-weight:bold;
-          font-size:17px;
-          color:#F1F1F2;
-          text-align:center;
-          border-radius: 5px;
-          -moz-border-radius: 5px;
-          -webkit-border-radius: 5px;
-          -khtml-border-radius: 5px;
-        ">
-          <a href="{{ settings.clientUri + '/' + listing._id }}" style="
-            color:#F1F1F2;
-            text-decoration:none;
-            text-shadow:0 -1px 1px #1B1B1B;
-            padding: 12px 55px 12px 55px;
-          ">Make an Offer</a>
-        </td>
-        <td style="
-          border-right:1px solid #999;
-          width:10px;
-        " width="10"></td>
-      </tr>
-      <tr><td style="
-        height:10px;
-        border-left:1px solid #999;
-        border-right:1px solid #999;
-        border-bottom:1px solid #999;
-      " height="20" colspan="5"></td></tr>
-    </table>
-  </td></tr>
-  <tr><td style="height:5px;" height="5" background="{{ settings.clientUri }}/img/bg.png"></td></tr>
-  <tr><td background="{{ settings.clientUri }}/img/bg.png" style="
-    text-align:center;
-    color:#777;
-    font-size:12px;">
-
-    <a href="http://beta.hipsell.com/about" style="color:#5f5f5f;">About</a> |
-    <a href="http://twitter.com/hipsellapp" style="color:#5f5f5f;">Twitter</a> |
-    <a href="http://facebook.com/hipsell" style="color:#5f5f5f;">Facebook</a>
-  </td></tr>
-  <tr><td style="height:40px;" height="40" background="{{ settings.clientUri }}/img/bg.png"></td></tr>
+  <tr height="47" style="height: 47px;">
+    <td height="41" width="225" background="{{ settings.clientUri }}/img/button_bg.png"
+        style="height: 41px;
+               width: 225px;
+               background-color: #009345;
+               background-image: url({{ settings.clientUri }}/img/button_bg.png);
+               background-repeat: no-repeat;
+               border: none;
+               font-weight: bold;
+               font-size: 17px;
+               color: #F1F1F2;
+               text-align: center;">
+      <a href="{{ settings.clientUri + '/' + listing._id }}"
+         style="color: #F1F1F2;
+                vertical-align: middle;
+                text-decoration: none;
+                text-shadow: 0 -1px 1px #1B1B1B;
+                padding: 12px 50px 12px 50px;">
+        Ask a Question</a>
+    </td>
+    <td width="20"
+        style="width: 20px;"></td>
+    <td height="41" width="225" background="{{ settings.clientUri }}/img/button_bg.png"
+        style="height: 41px;
+               width: 225px;
+               background-color: #009345;
+               background-image: url({{ settings.clientUri }}/img/button_bg.png);
+               background-repeat: no-repeat;
+               border: none;
+               font-weight: bold;
+               font-size: 17px;
+               color: #F1F1F2;
+               text-align: center;">
+      <a href="{{ settings.clientUri + '/' + listing._id }}"
+         style="color: #F1F1F2;
+                text-decoration: none;
+                text-shadow: 0 -1px 1px #1B1B1B;
+                padding: 12px 55px 12px 55px;">
+        Make an Offer</a>
+    </td>
+  </tr>
 </table>
-</body></html>
+
+
+{{ include('_footer') }}

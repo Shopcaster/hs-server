@@ -4,7 +4,8 @@ var validate = require('./util/validation').validate,
     pubsub = require('./handlers/pubsub'),
     data = require('./handlers/data'),
     presence = require('./handlers/presence'),
-    clientError = require('./handlers/client-error');
+    clientError = require('./handlers/client-error'),
+    query = require('./handlers/query');
 
 var validators = {
   'ping':   {},
@@ -16,7 +17,8 @@ var validators = {
   'create': {type: 'string', data: 'object'},
   'update': {key: 'string', diff: 'object'},
   'delete': {key: 'string'},
-  'query':  {key: 'string'},
+  'query':  {type: 'string', query: 'string?', sort: 'string?',
+             offset: 'number?', limit: 'number?'},
   'sub-presence': {user: 'string'},
   'unsub-presence': {user: 'string'}
 };
@@ -33,7 +35,8 @@ var handlers = {
   'create': data.create,
   'update': data.update,
   'delete': data.del,
-  'query': data.query,
+
+  'query': query.query,
 
   'sub-presence': presence.sub,
   'unsub-presence': presence.unsub,

@@ -1,3 +1,13 @@
+
+//
+// Sample keys:
+//
+//     convo/1234dead5678beef
+//     convo(foo=bar)
+//
+
+
+
 //               type / key  [= type.field]
 var keyRegex = /^(\w+)\/(\w+)(=(\w+)\.(\w+))?$/
 

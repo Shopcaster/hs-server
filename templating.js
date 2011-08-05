@@ -45,10 +45,16 @@ var Template = function(f) {
 
   // Record the file this is from for future reference
   this.file = f;
+  // Also the directory
+  var split = f.split('/');
+  split.pop();
+  this.dir = split.join('/');
 
 };
 Template.prototype = {};
 Template.prototype.render = function(data) {
+  var self = this;
+
   // Shortcut -- if there's only one part, there are no variables
   // used and we can just return it.
   if (this.parts.length == 1)
@@ -59,6 +65,24 @@ Template.prototype.render = function(data) {
   for (var i in data) if (data.hasOwnProperty(i))
     newData[i] = data[i];
   newData.settings = settings;
+  newData.include = function(f, context) {
+    var split = f.split('/');
+    var built = self.dir.split('/');
+
+    while (split.length) {
+      var p = split.shift();
+
+      // Going up a directory pops
+      if (p == '..' && built.length) built.pop();
+      // The same dir is a nop
+      else if (p == '.') continue;
+      // Everything else is appended
+      else built.push(p);
+    }
+
+    t = exports[built.join('/')];
+    return t.render(context);
+  };
 
   // We append rendered parts to this
   var rendered = '';
@@ -132,5 +156,14 @@ var init = function() {
   walk('');
 };
 
+// This just serves up templates so that we can test the results
+var serve = function(req, res) {
+  var url = req.url.match(/^\/template\/(.*)/)[1];
+
+  res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+  res.end(exports[url].render());
+};
+
 exports.init = init;
+exports.serve = serve;
 

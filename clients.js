@@ -15,7 +15,8 @@ var Client = function(connection) {
 Client.prototype = new events.EventEmitter();
 Client.prototype.send = function(type, data) {
   if (this.connection.state === ConnectionState.connected)
-    this.connection.send(type, data);
+    try { this.connection.send(type, data) }
+    catch(err) {}
 };
 
 init = function(server, handler) {
