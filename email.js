@@ -90,7 +90,7 @@ var send = function(type, to, subject, body, from, inReplyTo) {
 
     // We're logging all outgoing emails, so we want to construct
     // a basic object and throw that into the db.
-    var m = new db.OutgoingEmail();
+    var m = new models.OutgoingEmail();
     m.mime = mime;
     m.from = from;
     m.to = to;

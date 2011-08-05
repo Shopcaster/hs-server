@@ -53,6 +53,8 @@ exports.Inquiry = Inquiry;
 exports.File = File;
 exports.Convo = Convo;
 exports.ClientError = ClientError;
+exports.IncomingEmail = IncomingEmail;
+exports.OutgoingEmail = OutgoingEmail;
 
 // Expose the lowercase versions too
 var list = [];
