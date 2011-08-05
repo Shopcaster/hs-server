@@ -68,7 +68,7 @@ var serve = function(req, res) {
 
       // Try to fetch the auth object for this user
       var auth = new models.Auth();
-      auth._id = fields.from.match(/[\S]@[\S]/);
+      auth._id = fields.from.match(/[\S]+@[\S]+/)[0];
       db.get(auth, function(err, exists) {
 
         // Treat error the same as a not exists case
