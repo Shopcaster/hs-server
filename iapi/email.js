@@ -76,7 +76,7 @@ var serve = function(req, res) {
 
         // Try to fetch an existing conversation
         var q = {
-          listing: listing._id;
+          listing: listing._id
         };
         if (exists) {
           q.creator = auth.creator
