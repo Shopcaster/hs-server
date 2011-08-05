@@ -86,7 +86,7 @@ var serve = function(req, res) {
           };
         }
         db.queryOne(models.Convo, q, function(err, convo) {
-          console.log('got convo');
+
           // We'll need this later
           var convoWasCreated = !convo;
 
@@ -96,7 +96,6 @@ var serve = function(req, res) {
 
           // Common code; DRY
           var finish = function() {
-            console.log('finish()');
             // So at this point, we have access to a few things:
             //  * The sender's email
             //  * The relevant convo object
@@ -138,20 +137,9 @@ var serve = function(req, res) {
             //        functionality
 
             // Send a notification to the listing owner.
-            var listing = new models.Listing();
-            listing._id = convo.listing;
-            db.get(listing, function(err, found) {
+            nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
 
-              // If there's a DB error, or the listing doesn't exist
-              // for some reason, we'll just not send this message...
-              if (err || !found)
-                return;
-
-              // Send the notification.
-              nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
-
-              // Fin.
-            });
+            // Fin.
           };
 
           // If the convo doesn't exist we need to create it
