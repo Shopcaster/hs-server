@@ -109,7 +109,8 @@ var serve = function(req, res) {
                          fields.from,
                          'Re: ' + fields.subject,
                          templating['email/autoresponse'].render({listing: listing}),
-                         fields.recipient);
+                         'Hipsell <' + listing.email + '>',
+                         fields['Message-Id'] || undefined);
 
             // Update the `lastEmail` field on the convo.  This will
             // point to the email's Message-ID, and will be used when
