@@ -153,6 +153,7 @@ var serve = function(req, res) {
             if (!exists) convo.email = auth._id;
             db.apply(convo, finish);
           } else {
+            console.log('did not create convo');
             finish();
           }
         });
