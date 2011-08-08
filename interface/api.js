@@ -1256,6 +1256,7 @@ Query.prototype._ret = function(callback) {
     if (this._limit) data.limit = this._limit;
     if (this._offset) data.offset = this._offset;
     if (this._sort) data.sort = this._sort;
+    if (this._paraems) data.params = this._params;
 
     messaging.send('query', data, function(err, ids) {
       if (err) console.log('Error querying ' + data.query);
@@ -1282,6 +1283,15 @@ Query.prototype.limit = function(n, callback) {
 Query.prototype.sort = function(s, callback) {
   if (typeof n != 'string') throw new Error('Must specify a string');
   this._sort = s;
+
+  return this._ret(callback);
+};
+Query.prototype.params = function(p, callback) {
+  for (var i in p) if (p.hasOwnProperty(i))
+    if (typeof p[i] != 'string' && typeof p[i] != 'number')
+      throw new Error('Invaild data type for parameter ' + i + ': ' + typeof p[i]);
+
+  this._params = p;
 
   return this._ret(callback);
 };

@@ -56,6 +56,24 @@ var makeNiceId = function(collection, callback) {
   });
 };
 
+var ensureIndex = function(collection, field, type) {
+  db.collection(collection, function(err, col) {
+
+    // Fail on errors
+    if (err) {
+      console.log('Unable to ensure index on collection ' + collection + ':' + field);
+      console.log(err.stack);
+      console.log('');
+      return;
+    }
+
+    // Set the index.
+    var s = {};
+    s[field] = type;
+    col.ensureIndex(s, function() {});
+  });
+};
+
 ///////////////////////////////
 // DB Stuff
 ///////////////////////////////
@@ -331,6 +349,7 @@ exports.get = get;
 exports.queryOne = queryOne;
 exports.query = query;
 exports.makeNiceId = makeNiceId;
+exports.ensureIndex = ensureIndex;
 
 exports.FieldSet = FieldSet;
 

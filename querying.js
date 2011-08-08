@@ -1,10 +1,12 @@
-var fs = require('fs');
+var fs = require('fs'),
+    vm = require('vm');
 
 var Query = function(f) {
   this.filename = f;
 
   try {
-    this.query = JSON.stringify(fs.readFileSync('queries/' + f, 'utf8'));
+    var contents = fs.readFileSync('queries/' + f, 'utf8');
+    this.query = vm.createScript('(function() { return ' + contents + ' })();');
     exports[f] = this;
   } catch (err) {
     console.log('Error reading query ' + f + ':');
@@ -17,23 +19,9 @@ var Query = function(f) {
     process.exit(0);
   }
 };
-Query.prototype.get = function() {
-  var q = {};
-
-  // Do the clone.
-  var walk = function(o, n) {
-    for (var i in o) if (o.hasOwnProperty(i)) {
-      if (typeof o[i] == 'object') {
-        n[i] = {};
-        arguments.callee(o[i], n[i]);
-      } else {
-        n[i] = o[i];
-      }
-    };
-  };
-  walk(this.query, q);
-
-  return q;
+Query.prototype.make = function(params) {
+  // Execute the script in the context of the params.
+  return this.query.runInNewContext(params);
 };
 
 // Initializes the querying system by synchronously scanning the queries
