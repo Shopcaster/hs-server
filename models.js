@@ -44,7 +44,7 @@ File.prototype.generateHash = function() {
   this.hash = crypto.createHash('md5').update(this.data).digest('hex');
 };
 
-var AwaitedText = make('awaitedtext');
+var AwaitedSms = make('awaitedsms');
 
 exports.Auth = Auth;
 exports.Listing = Listing;
@@ -57,7 +57,7 @@ exports.Convo = Convo;
 exports.ClientError = ClientError;
 exports.IncomingEmail = IncomingEmail;
 exports.OutgoingEmail = OutgoingEmail;
-exports.AwaitedText = AwaitedText;
+exports.AwaitedSMS = AwaitedSMS;
 
 // Expose the lowercase versions too
 var list = [];
