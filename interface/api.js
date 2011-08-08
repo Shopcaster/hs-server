@@ -368,7 +368,7 @@ var connection = new EventEmitter();
 
       // Track this in mixpanel
       anl('identify', email);
-      if (user.name) anl('set_tag', user.name);
+      if (user.name) anl('name_tag', user.name);
 
       // Fire the success callback
       callback && callback(undefined);
