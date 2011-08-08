@@ -60,7 +60,7 @@ var croquet = {};
     // it manually.  This will trigger the callback, with the xhr's
     // status being 0 -- just like a connection failure.
     var timeout = setTimeout(function() {
-      console.log('Failed request to ' + path);
+      //console.log('Failed request to ' + path);
       xhr.abort();
     }, 30 * 1000);
 
