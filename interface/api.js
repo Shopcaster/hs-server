@@ -1277,7 +1277,7 @@ Query.prototype.limit = function(n, callback) {
   return this._ret(callback);
 };
 Query.prototype.sort = function(s, callback) {
-  if (typeof n != 'string') throw new Error('Must specify a string');
+  if (typeof s != 'string') throw new Error('Must specify a string');
   this._sort = s;
 
   return this._ret(callback);
