@@ -44,7 +44,7 @@ File.prototype.generateHash = function() {
   this.hash = crypto.createHash('md5').update(this.data).digest('hex');
 };
 
-var AwaitedSms = make('awaitedsms');
+var AwaitedSMS = make('awaitedsms');
 
 exports.Auth = Auth;
 exports.Listing = Listing;
