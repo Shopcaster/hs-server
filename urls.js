@@ -3,6 +3,7 @@ var staticServing = require('./static-serving'),
     iapi = require('./iapi/urls'),
     templating = require('./templating'),
     crosspost = require('./crosspost/handlers'),
+    phone = require('./phone/handlers'),
     fs = require('fs');
 
 // Serves an individual file
@@ -41,7 +42,10 @@ var urls = {
   '^/crosspost': crosspost.serve,
 
   //template testing
-  '^/template/': templating.serve
+  '^/template/': templating.serve,
+
+  //twilio stuff
+  '^/phone/': phone.server
 };
 
 var dispatch = function(req, res) {

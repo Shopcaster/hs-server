@@ -47,7 +47,7 @@ zz.EventEmitter = EventEmitter;
 //
 // Misc zz settings
 //
-zz.waitThreshold = 500;
+zz.waitThreshold = 1000;
 
 //
 // Logging Setup
@@ -76,9 +76,12 @@ zz.logging.outgoing = {
   'unsub-presence': false
 };
 
+//
 // Friendly log
+//
 var log = function() {
-  console && console.log.apply(console, Array.prototype.slice.call(arguments));
+  (typeof console != 'undefined')
+    && console.log.apply(console, Array.prototype.slice.call(arguments));
 };
 
 //
@@ -133,7 +136,7 @@ var messaging = new EventEmitter();
     var to = setTimeout(function() {
       // Increment the pending responses count.  If it was 0 prior to
       // this, then we need to fire the `waiting` event on zz.
-      if (++pendingResponses > 0) {
+      if (pendingResponses++ == 0) {
         zz.emit('waiting');
         if (zz.logging.waiting) log('Waiting');
       }

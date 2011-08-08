@@ -24,6 +24,13 @@
 
     form input {width: 100%; margin-bottom: 50px;}
   </style>
+  <script>
+  var codefield = document.getElementById('codefield');
+  document.getElementById('code').onclick = function() {
+    document.getElementById('code').style.display = 'none';
+
+  };
+  </script>
 </head>
 <body
 {{ if (listing.done) 'class="done"';
@@ -66,6 +73,14 @@
 
 <p><img src="{{ settings.serverUri }}/{{ listing.photo }}" /></p>
     </textarea>
+
+    <h3>SMS Code (if required)</h3>
+    <!--
+    <input id = "codefield" value="{{ listing.craigSMSCode }}">
+    {{ listing.craigSMSCode ?
+     '<input type="button" id="code" value="Get Code">'
+     : '' }}
+    -->
 
   </div>
 

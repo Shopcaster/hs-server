@@ -45,7 +45,7 @@ var handleSms = function(req, res) {
         // Set it on the appropriate listing.
         var listing = new models.Listing();
         listing._id = sms.listing;
-        listing.craigSmsCode = code;
+        listing.craigSMSCode = code;
         db.apply(listing);
 
         // Return success
@@ -68,3 +68,6 @@ var serve = function(req, res) {
   res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
   res.end('Not Found');
 };
+
+exports.serve = serve;
+

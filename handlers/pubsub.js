@@ -1,5 +1,5 @@
-var keys = require('./../util/keys'),
-    db = require('./../db'),
+var keys = require('../util/keys'),
+    db = require('../db'),
     models = require('../models'),
     auth = require('./auth'),
     mongo = require('mongodb');
@@ -10,17 +10,13 @@ var keys = require('./../util/keys'),
 
 var sub = function(client, data, callback, errback) {
 
-  // If the client has no sub hash, do some cleanup
+  // If the client has no sub hash, do some setup
   if (!(client.state.subs)) {
     client.state.subs = {};
 
     // Clean up handlers on disconnect
     client.on('disconnect', function() {
-      for (var i in client.state.subs) if (client.state.subs.hasOwnProperty(i)) {
-        client.state.subs[i]();
-        delete client.state.subs[i];
-      }
-      delete client.state.subs;
+      unsub(client, {key: data.key}, function() {}, function() {});
     });
   }
 
