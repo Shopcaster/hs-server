@@ -238,7 +238,7 @@ var auth = function(client, data, callback, errback, force) {
           delete client.state.auth;
         } catch (err) {
           console.log('Error on client disconnect');
-          console.log(err);
+          console.log(err.stack || err);
           console.log('');
         }
       });

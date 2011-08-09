@@ -1,0 +1,3 @@
+{
+  location: { $near: [latitude, longitude] }
+}

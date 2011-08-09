@@ -1256,7 +1256,7 @@ Query.prototype._ret = function(callback) {
     if (this._limit) data.limit = this._limit;
     if (this._offset) data.offset = this._offset;
     if (this._sort) data.sort = this._sort;
-    if (this._paraems) data.params = this._params;
+    if (this._params) data.params = this._params;
 
     messaging.send('query', data, function(err, ids) {
       if (err) console.log('Error querying ' + data.query);

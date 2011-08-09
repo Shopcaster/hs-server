@@ -24,7 +24,6 @@ var query = function(client, data, callback, errback) {
     // If there was an error, let 'em know
     if (err) {
       console.log('Error running ' + data.query + ' query:');
-      console.log(err.stack);
       return errback('Database Error');
     }
 

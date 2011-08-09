@@ -99,7 +99,7 @@ var croquet = {};
       } else {
         self._conAttempts++;
         var t = Math.log(self._conAttempts) / Math.log(1.2);
-        console.log('Error when connecting to server: ' + xhr.status + '.  Retrying in ' + t + 's');
+        console.log('Error when connecting to server.  Retrying in ' + t + 's');
         setTimeout(function() {
           self.connect();
         }, 1000 * t);

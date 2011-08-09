@@ -253,7 +253,7 @@ var query = function(type, q) {
     throw new Error('Type must be a FieldSet or String');
   }
 
-  db.collection(typeName, function(err, col) {
+  db.collection(typeName, {}, function(err, col) {
     if (err) {
       console.log(err.stack);
       console.log('');
@@ -283,8 +283,8 @@ var query = function(type, q) {
     // Run the query and fetch the individual things
     f.toArray(function(err, objs) {
       if (err) {
-        console.log(err)
-        return; callback(true);
+        console.log(err.stack || err)
+        return callback(err);
       }
 
       var fss = [];

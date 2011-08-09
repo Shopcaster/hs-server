@@ -19,9 +19,19 @@ var Query = function(f) {
     process.exit(0);
   }
 };
+Query.prototype = {};
+Query.prototype.constructor = Query;
 Query.prototype.make = function(params) {
-  // Execute the script in the context of the params.
-  return this.query.runInNewContext(params);
+  // Execute the script in the context of the params.  We have to
+  // copy the data over for some strange reason, otherwise the data
+  // isn't marked as an object.
+  var q =this.query.runInNewContext(params);
+
+  var obj = {};
+  for (var i in q) if (q.hasOwnProperty(i))
+    obj[i] = q[i];
+
+  return obj;
 };
 
 // Initializes the querying system by synchronously scanning the queries

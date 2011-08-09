@@ -6,7 +6,7 @@ var cors = require('../util/cors'),
     formidable = require('formidable'),
     fs = require('fs');
 
-var ret(res, loc, field, val) {
+var ret = function(res, loc, field, val) {
   val = querystring.stringify(val);
 
   res.writeHead(303, {'Location': loc + '?' + field + '=' + val});
