@@ -32,6 +32,7 @@ var croquet = {};
     this.connected = false;
     this.pending = [];
     this.mid = 0;
+    this._conAttempts = 0;
   };
   Connection.prototype = new EventEmitter();
   Connection.prototype.constructor = Connection;
@@ -60,7 +61,7 @@ var croquet = {};
     // it manually.  This will trigger the callback, with the xhr's
     // status being 0 -- just like a connection failure.
     var timeout = setTimeout(function() {
-      console.log('Failed request to ' + path);
+      //console.log('Failed request to ' + path);
       xhr.abort();
     }, 30 * 1000);
 
@@ -69,7 +70,7 @@ var croquet = {};
 
   Connection.prototype.connect = function() {
     // Handle multiple connects graciously
-    if (this.connected)
+    if (this._reallyConnected || this.connecting)
       return;
 
     var self = this;
@@ -92,11 +93,16 @@ var croquet = {};
         // Bootstrap the receive process
         self.startReceiveLoop();
 
+        // Clear connection attempts
+        self._conAttempts = 0;
+
       } else {
-        console.log('Error when connecting to server: ' + xhr.status + '.  Retrying in 1s');
+        self._conAttempts++;
+        var t = Math.log(self._conAttempts) / Math.log(1.2);
+        console.log('Error when connecting to server: ' + xhr.status + '.  Retrying in ' + t + 's');
         setTimeout(function() {
           self.connect();
-        }, 1000 * 1); // 1s
+        }, 1000 * t);
       }
 
     });

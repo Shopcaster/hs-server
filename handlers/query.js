@@ -13,7 +13,9 @@ var query = function(client, data, callback, errback) {
   } else {
     var q = querying[data.query];
     if (!q) return callback([]);
-    q = q.get();
+
+    // Apply the parameters
+    q = q.make(data.params || {});
   }
 
   // The db query callback
