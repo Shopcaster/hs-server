@@ -32,7 +32,7 @@ var createPassword = function(email) {
   return hashPassword(pwRaw, email);
 };
 
-// TODO - document
+// Callback(error, badPw, obj)
 var authUser = function(email, password, callback) {
   db.queryOne(models.Auth, {email: email.toLowerCase()}, function(err, obj) {
 
