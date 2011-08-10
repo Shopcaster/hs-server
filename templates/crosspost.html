@@ -60,7 +60,7 @@
     <input value="{{ listing.price }}">
 
     <h3>Location</h3>
-    <a href="http://maps.google.com?q=loc:{{ listing.latitude }},{{ listing.longitude }}&z=16">Google Maps</a>
+    <a href="http://maps.google.com?q=loc:{{ listing.location[0] }},{{ listing.location[1] }}&z=16">Google Maps</a>
     <br>
     City: <input value="{{ city }}, {{ state }}, {{ country }}">
 
@@ -105,7 +105,7 @@
     <input value="{{ listing.email }}">
 
     <h3>Location</h3>
-    <a href="http://maps.google.com/?q=loc:{{listing.latitude}},{{listing.longitude}}&z=16">
+    <a href="http://maps.google.com/?q=loc:{{listing.location[0]}},{{listing.location[1]}}&z=16">
         Google Maps</a><br>
     City: <input value="{{ city }}, {{ state }}, {{ country }}">
     Postal: <input value="{{ postal }}">

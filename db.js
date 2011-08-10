@@ -265,11 +265,11 @@ var query = function(type, q) {
     // Sort
     if (sort) {
       if (sort[0] == '-')
-        options.sort = [sort.substr(1), 'desc'];
+        options.sort = [[sort.substr(1), 'desc']];
       else if (sort[0] == '+')
-        options.sort = sort.substr(1);
+        options.sort = [[sort.substr(1), 'asc']];
       else
-        options.sort = osrt;
+        options.sort = [[sort, 'asc']];
     }
 
     // Base query

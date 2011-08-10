@@ -64,7 +64,7 @@ var showCrosspost = function(req, res) {
       host: 'maps.googleapis.com',
       port: 80,
       path: '/maps/api/geocode/json?'
-        +'latlng='+listing.latitude+','+listing.longitude
+        +'latlng='+listing.location[0]+','+listing.location[1]
         +'&sensor=false'
     }, function(gRes) {
       var result = '';
