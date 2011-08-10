@@ -49,7 +49,7 @@ var serve = cors.wrap(function(req, res) {
         if (err) return ret(res, fields.return, 'error', 'Database error');
 
         // Resize the avatar
-        external.run('resize-avatar', data, function(err, res) {
+        external.run('resize-avatar', data, function(err, avy) {
 
           // Handle errors by failing, like all good software should.
           if (err) {
@@ -61,7 +61,7 @@ var serve = cors.wrap(function(req, res) {
 
           // Create the new static file
           var f = new models.File();
-          f.data = res;
+          f.data = avy;
           f.mime = 'image/jpeg';
           f.generateHash();
 
