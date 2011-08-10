@@ -57,20 +57,15 @@ var makeNiceId = function(collection, callback) {
 };
 
 var ensureIndex = function(collection, field, type) {
-  db.collection(collection, function(err, col) {
-
-    // Fail on errors
+  var s = {};
+  s[field] = type;
+  db.ensureIndex(collection, s, function(err) {
     if (err) {
       console.log('Unable to ensure index on collection ' + collection + ':' + field);
       console.log(err.stack);
       console.log('');
       return;
     }
-
-    // Set the index.
-    var s = {};
-    s[field] = type;
-    col.ensureIndex(s, function() {});
   });
 };
 

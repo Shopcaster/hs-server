@@ -25,9 +25,9 @@ var make = function(collection, options, c) {
   return F;
 };
 
-var Auth = make('authentication', {geo: 'location'});
+var Auth = make('authentication');
 
-var Listing = make('item');
+var Listing = make('item', {geo: 'location'});
 Listing.prototype.genId = function(callback) {
   var self = this;
   makeNiceId(this.getCollection(), function(id) {

@@ -57,7 +57,7 @@ zz.logging.waiting = true;
 zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
-  pub: true,
+  pub: false,
   presence: false,
   not: false
 };
@@ -67,7 +67,7 @@ zz.logging.outgoing = {
   auth: false,
   deauth: false,
   passwd: false,
-  sub: true,
+  sub: false,
   unsub: false,
   create: false,
   update: false,
