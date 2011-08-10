@@ -22,8 +22,6 @@ message = [type]|[data...]
 
 */
 
-// TODO - do type handling on nested objects?
-
 var querystring = require('querystring'),
     EventEmitter = require('events').EventEmitter,
     _url = require('url'),
@@ -203,7 +201,7 @@ XHRTransport.prototype.doConnect = function(req, res) {
   // Prep the DC timeout for this connection
   this.dcTimeouts[cid] = setTimeout(function() {
     self.disconnect(con);
-  }, 1000 * 60 * 10); // 10 minutes
+  }, 1000 * 60 * 2); // 2 minutes
 };
 
 XHRTransport.prototype.doSend = function(req, res) {
