@@ -13,7 +13,7 @@ var doResp = function(res, num, d) {
 };
 
 var serve = function(req, res) {
-  var match = req.url.match(/listing\/\d+$/);
+  var match = req.url.match(/\w+\/\d+$/);
   var id = match && match[0];
 
   // If we couldn't grab what looks like a listing id from the URL, we
@@ -65,6 +65,19 @@ var serve = function(req, res) {
 
       // Report success to mailgun, and handle the rest from here.
       doResp(res, 200, 'OK');
+
+      // If the listing is already sold, we skip a lot of the work
+      // and just send a "No longer available" email.
+      if (listing.sold) {
+        email.send('Auto Response - Sold',
+                   fields.from,
+                   'Re: ' + fields.subject,
+                   templating['email/autoresponse_sold'].render({userid: auth.creator}),
+                   'Hipsell <' + listing.email + '>',
+                   fields['Message-Id'] || undefined);
+
+        return;
+      }
 
       // Try to fetch the auth object for this user
       var auth = new models.Auth();

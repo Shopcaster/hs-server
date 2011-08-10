@@ -1,8 +1,8 @@
-var db = require('./../../db'),
-    models = require('./../../models'),
-    external = require('./../../util/external'),
-    email = require('./../../email'),
-    templating = require('./../../templating');
+var db = require('../../db'),
+    models = require('../../models'),
+    external = require('../../util/external'),
+    email = require('../../email'),
+    templating = require('../../templating');
 
 var createImg = function(img_b64, callback) {
   var img = new models.File();

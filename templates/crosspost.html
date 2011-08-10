@@ -24,6 +24,13 @@
 
     form input {width: 100%; margin-bottom: 50px;}
   </style>
+  <script>
+  var codefield = document.getElementById('codefield');
+  document.getElementById('code').onclick = function() {
+    document.getElementById('code').style.display = 'none';
+
+  };
+  </script>
 </head>
 <body
 {{ if (listing.done) 'class="done"';
@@ -53,7 +60,7 @@
     <input value="{{ listing.price }}">
 
     <h3>Location</h3>
-    <a href="http://maps.google.com?q=loc:{{ listing.latitude }},{{ listing.longitude }}&z=16">Google Maps</a>
+    <a href="http://maps.google.com?q=loc:{{ listing.location[0] }},{{ listing.location[1] }}&z=16">Google Maps</a>
     <br>
     City: <input value="{{ city }}, {{ state }}, {{ country }}">
 
@@ -66,6 +73,14 @@
 
 <p><img src="{{ settings.serverUri }}/{{ listing.photo }}" /></p>
     </textarea>
+
+    <h3>SMS Code (if required)</h3>
+    <!--
+    <input id = "codefield" value="{{ listing.craigSMSCode }}">
+    {{ listing.craigSMSCode ?
+     '<input type="button" id="code" value="Get Code">'
+     : '' }}
+    -->
 
   </div>
 
@@ -90,7 +105,7 @@
     <input value="{{ listing.email }}">
 
     <h3>Location</h3>
-    <a href="http://maps.google.com/?q=loc:{{listing.latitude}},{{listing.longitude}}&z=16">
+    <a href="http://maps.google.com/?q=loc:{{listing.location[0]}},{{listing.location[1]}}&z=16">
         Google Maps</a><br>
     City: <input value="{{ city }}, {{ state }}, {{ country }}">
     Postal: <input value="{{ postal }}">

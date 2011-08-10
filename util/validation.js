@@ -44,6 +44,7 @@ var validate = function(spec, data) {
       ||  (t == 'integer' && typeof d != 'number')
       ||  (t == 'boolean' && typeof d != 'boolean')
       ||  (t == 'object' && typeof d != 'object')
+      ||  (t == 'array' && !(d instanceof Array))
       ||  (t == 'ref' && typeof d != 'string' && typeof d != 'object')
       ||  (typeof d === 'undefined')) {
         field = i;

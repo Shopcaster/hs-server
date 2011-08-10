@@ -44,7 +44,7 @@ var showAll = function(req, res) {
 };
 
 var showCrosspost = function(req, res) {
-  var match = req.url.match(/(listing\/\d+)(\?done=true)?/);
+  var match = req.url.match(/(\w+\/\d+)(\?done=true)?/);
   var id = match && match[1];
 
   // If we couldn't grab the id, we should bail
@@ -64,7 +64,7 @@ var showCrosspost = function(req, res) {
       host: 'maps.googleapis.com',
       port: 80,
       path: '/maps/api/geocode/json?'
-        +'latlng='+listing.latitude+','+listing.longitude
+        +'latlng='+listing.location[0]+','+listing.location[1]
         +'&sensor=false'
     }, function(gRes) {
       var result = '';
@@ -128,10 +128,10 @@ var showCrosspost = function(req, res) {
         var title = (listing.description || '')
           .replace(/^\s*/, '')
           .replace(/\s*$/, '');
-        
+
         if (title.length > 67){
           title = title.substr(0, 67).split(' ');
-          
+
           if (title.length > 1) {
             title.pop();
             title = title.join(' ')+'...';

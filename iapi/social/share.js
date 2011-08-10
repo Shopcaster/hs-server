@@ -75,8 +75,8 @@ var twitter = function(auth, listing, reauth, success, fail) {
     data.status = split.join(' ') + '...';
   }
   //geo
-  data.lat = listing.latitude;
-  data.long = listing.longitude;
+  data.lat = listing.location[0];
+  data.long = listing.location[1];
   //ensure correct format
   data = querystring.stringify(data);
 

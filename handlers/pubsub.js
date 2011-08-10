@@ -1,5 +1,5 @@
-var keys = require('./../util/keys'),
-    db = require('./../db'),
+var keys = require('../util/keys'),
+    db = require('../db'),
     models = require('../models'),
     auth = require('./auth'),
     mongo = require('mongodb');
@@ -10,17 +10,13 @@ var keys = require('./../util/keys'),
 
 var sub = function(client, data, callback, errback) {
 
-  // If the client has no sub hash, do some cleanup
+  // If the client has no sub hash, do some setup
   if (!(client.state.subs)) {
     client.state.subs = {};
 
     // Clean up handlers on disconnect
     client.on('disconnect', function() {
-      for (var i in client.state.subs) if (client.state.subs.hasOwnProperty(i)) {
-        client.state.subs[i]();
-        delete client.state.subs[i];
-      }
-      delete client.state.subs;
+      unsub(client, {key: data.key}, function() {}, function() {});
     });
   }
 
@@ -45,9 +41,9 @@ var sub = function(client, data, callback, errback) {
         // Only send along pubs if the ID's match
         if (fs._id != obj._id) return;
 
-        // Don't want to pass the ID field down the line, so
-        // delete it here.  This is safe, as the db events are
-        // only ever passed copies, and don't share references.
+        // Don't want to pass the ID field down the line, so we
+        // clone the fieldset and delete the id here.
+        fs = fs.clone();
         delete fs._id;
 
         // Send the pub on down

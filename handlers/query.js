@@ -13,7 +13,9 @@ var query = function(client, data, callback, errback) {
   } else {
     var q = querying[data.query];
     if (!q) return callback([]);
-    q = q.get();
+
+    // Apply the parameters
+    q = q.make(data.params || {});
   }
 
   // The db query callback
@@ -22,7 +24,6 @@ var query = function(client, data, callback, errback) {
     // If there was an error, let 'em know
     if (err) {
       console.log('Error running ' + data.query + ' query:');
-      console.log(err.stack);
       return errback('Database Error');
     }
 

@@ -32,8 +32,7 @@ var serve = cors.wrap(function(req, res) {
         var fs = new models.Listing();
         //copy the data
         fs.description = q.description;
-        fs.latitude = parseFloat(q.latitude);
-        fs.longitude = parseFloat(q.longitude);
+        fs.location = [parseFloat(q.latitude), parseFloat(q.longitude)];
         fs.price = parseInt(q.price);
         fs.sold = !!q.sold;
         //set the ceator

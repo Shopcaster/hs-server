@@ -1,18 +1,33 @@
 var FieldSet = require('./db').FieldSet,
     makeNiceId = require('./db').makeNiceId,
+    db = require('./db'),
+    settings = require('./settings'),
     crypto = require('crypto');
 
-var make = function(collection, c) {
+var make = function(collection, options, c) {
+
+  // Magic args
+  if (typeof options == 'function') {
+    c = options;
+    options = {};
+  }
+  options = options || {};
+
+  // Generate the object
   var F = c || function() {};
   F.prototype = new FieldSet(collection);
   F.prototype.constructor = F;
+
+  // Ensure geoindex
+  if (options.geo)
+    db.ensureIndex(collection, options.geo, '2d');
 
   return F;
 };
 
 var Auth = make('authentication');
 
-var Listing = make('item');
+var Listing = make('item', {geo: 'location'});
 Listing.prototype.genId = function(callback) {
   var self = this;
   makeNiceId(this.getCollection(), function(id) {
@@ -43,6 +58,11 @@ var File = make('staticfile');
 File.prototype.generateHash = function() {
   this.hash = crypto.createHash('md5').update(this.data).digest('hex');
 };
+File.prototype.getUrl = function() {
+  return settings.serverUri + '/' + this._id;
+};
+
+var AwaitedSMS = make('awaitedsms');
 
 exports.Auth = Auth;
 exports.Listing = Listing;
@@ -55,6 +75,7 @@ exports.Convo = Convo;
 exports.ClientError = ClientError;
 exports.IncomingEmail = IncomingEmail;
 exports.OutgoingEmail = OutgoingEmail;
+exports.AwaitedSMS = AwaitedSMS;
 
 // Expose the lowercase versions too
 var list = [];

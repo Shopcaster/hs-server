@@ -18,7 +18,7 @@ var validators = {
   'update': {key: 'string', diff: 'object'},
   'delete': {key: 'string'},
   'query':  {type: 'string', query: 'string?', sort: 'string?',
-             offset: 'number?', limit: 'number?'},
+             offset: 'number?', limit: 'number?', params: 'object?'},
   'sub-presence': {user: 'string'},
   'unsub-presence': {user: 'string'}
 };

@@ -32,7 +32,7 @@ var createPassword = function(email) {
   return hashPassword(pwRaw, email);
 };
 
-// TODO - document
+// Callback(error, badPw, obj)
 var authUser = function(email, password, callback) {
   db.queryOne(models.Auth, {email: email.toLowerCase()}, function(err, obj) {
 
@@ -238,7 +238,7 @@ var auth = function(client, data, callback, errback, force) {
           delete client.state.auth;
         } catch (err) {
           console.log('Error on client disconnect');
-          console.log(err);
+          console.log(err.stack || err);
           console.log('');
         }
       });

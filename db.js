@@ -56,6 +56,19 @@ var makeNiceId = function(collection, callback) {
   });
 };
 
+var ensureIndex = function(collection, field, type) {
+  var s = {};
+  s[field] = type;
+  db.ensureIndex(collection, s, function(err) {
+    if (err) {
+      console.log('Unable to ensure index on collection ' + collection + ':' + field);
+      console.log(err.stack);
+      console.log('');
+      return;
+    }
+  });
+};
+
 ///////////////////////////////
 // DB Stuff
 ///////////////////////////////
@@ -235,7 +248,7 @@ var query = function(type, q) {
     throw new Error('Type must be a FieldSet or String');
   }
 
-  db.collection(typeName, function(err, col) {
+  db.collection(typeName, {}, function(err, col) {
     if (err) {
       console.log(err.stack);
       console.log('');
@@ -252,11 +265,11 @@ var query = function(type, q) {
     // Sort
     if (sort) {
       if (sort[0] == '-')
-        options.sort = [sort.substr(1), 'desc'];
+        options.sort = [[sort.substr(1), 'desc']];
       else if (sort[0] == '+')
-        options.sort = sort.substr(1);
+        options.sort = [[sort.substr(1), 'asc']];
       else
-        options.sort = osrt;
+        options.sort = [[sort, 'asc']];
     }
 
     // Base query
@@ -265,8 +278,8 @@ var query = function(type, q) {
     // Run the query and fetch the individual things
     f.toArray(function(err, objs) {
       if (err) {
-        console.log(err)
-        return; callback(true);
+        console.log(err.stack || err)
+        return callback(err);
       }
 
       var fss = [];
@@ -331,6 +344,7 @@ exports.get = get;
 exports.queryOne = queryOne;
 exports.query = query;
 exports.makeNiceId = makeNiceId;
+exports.ensureIndex = ensureIndex;
 
 exports.FieldSet = FieldSet;
 

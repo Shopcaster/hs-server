@@ -34,6 +34,9 @@ var create = function(client, data, callback, errback) {
         // Bail on errors
         if (err) return;
 
+        // If the listing is sold, don't generate notifications.
+        if (listing.sold) return;
+
         // Send notifications for messages created by standard users to
         // both the convo's creator (the buyer), and the convo's
         // listing's creator (the seller).

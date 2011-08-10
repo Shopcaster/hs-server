@@ -47,7 +47,7 @@ zz.EventEmitter = EventEmitter;
 //
 // Misc zz settings
 //
-zz.waitThreshold = 500;
+zz.waitThreshold = 1000;
 
 //
 // Logging Setup
@@ -76,9 +76,12 @@ zz.logging.outgoing = {
   'unsub-presence': false
 };
 
+//
 // Friendly log
+//
 var log = function() {
-  console && console.log.apply(console, Array.prototype.slice.call(arguments));
+  (typeof console != 'undefined')
+    && console.log.apply(console, Array.prototype.slice.call(arguments));
 };
 
 //
@@ -133,7 +136,7 @@ var messaging = new EventEmitter();
     var to = setTimeout(function() {
       // Increment the pending responses count.  If it was 0 prior to
       // this, then we need to fire the `waiting` event on zz.
-      if (++pendingResponses > 0) {
+      if (pendingResponses++ == 0) {
         zz.emit('waiting');
         if (zz.logging.waiting) log('Waiting');
       }
@@ -368,7 +371,7 @@ var connection = new EventEmitter();
 
       // Track this in mixpanel
       anl('identify', email);
-      if (user.name) anl('set_tag', user.name);
+      if (user.name) anl('name_tag', user.name);
 
       // Fire the success callback
       callback && callback(undefined);
@@ -927,10 +930,11 @@ zz.recordError = function(err) {
         // Fetch the model
         zz.data[self._type](id, function(m) {
           // If this isn't a sorted list just push it and call it
-          // a day
-          if (!self.sorted) {
+          // a day.  We can share this case with zero length arrays
+          // as well.
+          if (!self.sorted || self.length == 0) {
             self.push(m);
-            self.emit('add', m, -1);
+            self.emit('add', m, self.length);
             return;
           }
 
@@ -1253,6 +1257,7 @@ Query.prototype._ret = function(callback) {
     if (this._limit) data.limit = this._limit;
     if (this._offset) data.offset = this._offset;
     if (this._sort) data.sort = this._sort;
+    if (this._params) data.params = this._params;
 
     messaging.send('query', data, function(err, ids) {
       if (err) console.log('Error querying ' + data.query);
@@ -1277,8 +1282,17 @@ Query.prototype.limit = function(n, callback) {
   return this._ret(callback);
 };
 Query.prototype.sort = function(s, callback) {
-  if (typeof n != 'string') throw new Error('Must specify a string');
+  if (typeof s != 'string') throw new Error('Must specify a string');
   this._sort = s;
+
+  return this._ret(callback);
+};
+Query.prototype.params = function(p, callback) {
+  for (var i in p) if (p.hasOwnProperty(i))
+    if (typeof p[i] != 'string' && typeof p[i] != 'number')
+      throw new Error('Invaild data type for parameter ' + i + ': ' + typeof p[i]);
+
+  this._params = p;
 
   return this._ret(callback);
 };

@@ -1,10 +1,12 @@
-var fs = require('fs');
+var fs = require('fs'),
+    vm = require('vm');
 
 var Query = function(f) {
   this.filename = f;
 
   try {
-    this.query = JSON.stringify(fs.readFileSync('queries/' + f, 'utf8'));
+    var contents = fs.readFileSync('queries/' + f, 'utf8');
+    this.query = vm.createScript('(function() { return ' + contents + ' })();');
     exports[f] = this;
   } catch (err) {
     console.log('Error reading query ' + f + ':');
@@ -17,23 +19,19 @@ var Query = function(f) {
     process.exit(0);
   }
 };
-Query.prototype.get = function() {
-  var q = {};
+Query.prototype = {};
+Query.prototype.constructor = Query;
+Query.prototype.make = function(params) {
+  // Execute the script in the context of the params.  We have to
+  // copy the data over for some strange reason, otherwise the data
+  // isn't marked as an object.
+  var q =this.query.runInNewContext(params);
 
-  // Do the clone.
-  var walk = function(o, n) {
-    for (var i in o) if (o.hasOwnProperty(i)) {
-      if (typeof o[i] == 'object') {
-        n[i] = {};
-        arguments.callee(o[i], n[i]);
-      } else {
-        n[i] = o[i];
-      }
-    };
-  };
-  walk(this.query, q);
+  var obj = {};
+  for (var i in q) if (q.hasOwnProperty(i))
+    obj[i] = q[i];
 
-  return q;
+  return obj;
 };
 
 // Initializes the querying system by synchronously scanning the queries
