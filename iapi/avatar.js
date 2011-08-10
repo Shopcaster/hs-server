@@ -2,6 +2,7 @@ var cors = require('../util/cors'),
     auth = require('../handlers/auth'),
     db = require('../db'),
     models = require('../models'),
+    external = require('../util/external'),
     querystring = require('querystring'),
     formidable = require('formidable'),
     fs = require('fs');
@@ -48,13 +49,34 @@ var serve = cors.wrap(function(req, res) {
         if (err) return ret(res, fields.return, 'error', 'Database error');
 
         // Resize the avatar
-        // TODO
+        external.run('resize-avatar', data, function(err, res) {
 
-        // Save it into a staticfile
+          // Handle errors by failing, like all good software should.
+          if (err) {
+            console.log('Error converting avatar:');
+            console.log(res.toString());
+            console.log('');
+            return ret(res, fields.return, 'error', 'Error converting image');
+          }
 
-        // Update the user's avatar url to point to that staticfile
+          // Create the new static file
+          var f = new models.File();
+          f.data = res;
+          f.mime = 'image/jpeg';
+          f.generateHash();
 
-        // Finally, return success
+          // Save it.
+          db.apply(f, function() {
+
+            // Update the user's avatar to point to the staticfile.
+            obj.avatar = f.getUrl();
+            db.apply(obj, function() {
+
+              return ret(res, fields.return, 'success', 'true');
+            });
+          });
+
+        });
       });
     });
   });

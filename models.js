@@ -1,6 +1,7 @@
 var FieldSet = require('./db').FieldSet,
     makeNiceId = require('./db').makeNiceId,
     db = require('./db'),
+    settings = require('./settings'),
     crypto = require('crypto');
 
 var make = function(collection, options, c) {
@@ -56,6 +57,9 @@ var IncomingEmail = make('incomingemail');
 var File = make('staticfile');
 File.prototype.generateHash = function() {
   this.hash = crypto.createHash('md5').update(this.data).digest('hex');
+};
+File.prototype.getUrl = function() {
+  return settings.serverUri + '/' + this._id;
 };
 
 var AwaitedSMS = make('awaitedsms');

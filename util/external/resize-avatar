@@ -1,18 +1,37 @@
 #!/usr/bin/env python
 
-import Image
+import Image, ExifTags
 import sys
 from cStringIO import StringIO
 
 # (w, h)
-size = (40, 40)
-output_ratio =  1
+size = (256, 256)
+output_ratio = size[0] / size[1]
 
 if __name__ == '__main__':
 
     #load the image
     input = StringIO(sys.stdin.read())
     img = Image.open(input)
+
+    #find the orientation tag
+    for orientation in ExifTags.TAGS.keys():
+        if ExifTags.TAGS[orientation] == 'Orientation':
+            break
+    #grab the image's exif data
+    exif = hasattr(img, '_getexif') and img._getexif()
+    #if the exif data is present, check for rotation data we need
+    #to handle
+    if exif:
+        exif = exif.items()
+        exif = dict(exif)
+        if orientation in exif:
+            if exif[orientation] == 3:
+                img = img.rotate(180, Image.BICUBIC, True)
+            elif exif[orientation] == 6:
+                img = img.rotate(270, Image.BICUBIC, True)
+            elif exif[orientation] == 8:
+                img = img.rotate(90, Image.BICUBIC, True)
 
     #force rgb format
     if img.mode != 'RGB':
@@ -24,15 +43,16 @@ if __name__ == '__main__':
 
     #do the crop
     if (float(w) / h) > output_ratio:
-      n2 = int((w - h) / 2.0)
-      img = img.crop((n2, 0, n2 + h, h))
+      n = int((h * size[0]) / size[1])
+      n2 = int((w - n) / 2.0)
+      img = img.crop((n2, 0, n2 + n, h))
     else:
-      n = w
-      n2 = int((h - w) / 2.0)
-      img = img.crop((0, n2, w, n2 + w))
+      n = int((w * size[1]) / size[0])
+      n2 = int((h - n) / 2.0)
+      img = img.crop((0, n2, w, n2 + n))
 
     #resize
     img = img.resize(size, Image.ANTIALIAS)
 
     #output
-    img.save(sys.stdout, 'PNG')
+    img.save(sys.stdout, 'JPEG')
