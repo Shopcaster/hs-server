@@ -4,13 +4,18 @@ var cors = require('../util/cors'),
     models = require('../models'),
     external = require('../util/external'),
     querystring = require('querystring'),
+    _url = require('url'),
     formidable = require('formidable'),
     fs = require('fs');
 
 var ret = function(res, loc, field, val) {
-  val = querystring.stringify(val);
+  var url = _url.parse(loc);
+  url.query = url.query ? querystring.parse(url.query) : {};
+  url.query[field] = val;
+  url.query = querystring.stringify(url.query);
+  url.search = '?' + url.query;
 
-  res.writeHead(303, {'Location': loc + '?' + field + '=' + val});
+  res.writeHead(303, {'Location': _url.format(url)});
   res.end('');
 }
 
@@ -69,8 +74,11 @@ var serve = cors.wrap(function(req, res) {
           db.apply(f, function() {
 
             // Update the user's avatar to point to the staticfile.
-            obj.avatar = f.getUrl();
-            db.apply(obj, function() {
+            var user = new models.User();
+            user._id = obj.creator;
+            user.avatar = f.getUrl();
+
+            db.apply(user, function() {
 
               return ret(res, fields.return, 'success', 'true');
             });

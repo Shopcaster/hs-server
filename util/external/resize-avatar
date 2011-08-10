@@ -55,4 +55,4 @@ if __name__ == '__main__':
     img = img.resize(size, Image.ANTIALIAS)
 
     #output
-    img.save(sys.stdout, 'JPEG')
+    img.save(sys.stdout, 'PNG')
