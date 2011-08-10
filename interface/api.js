@@ -57,7 +57,7 @@ zz.logging.waiting = true;
 zz.logging.connection = true;
 zz.logging.responses = true;
 zz.logging.incoming = {
-  pub: false,
+  pub: true,
   presence: false,
   not: false
 };
@@ -67,7 +67,7 @@ zz.logging.outgoing = {
   auth: false,
   deauth: false,
   passwd: false,
-  sub: false,
+  sub: true,
   unsub: false,
   create: false,
   update: false,
@@ -930,10 +930,11 @@ zz.recordError = function(err) {
         // Fetch the model
         zz.data[self._type](id, function(m) {
           // If this isn't a sorted list just push it and call it
-          // a day
-          if (!self.sorted) {
+          // a day.  We can share this case with zero length arrays
+          // as well.
+          if (!self.sorted || self.length == 0) {
             self.push(m);
-            self.emit('add', m, -1);
+            self.emit('add', m, self.length);
             return;
           }
 
