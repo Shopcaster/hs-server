@@ -41,9 +41,9 @@ var sub = function(client, data, callback, errback) {
         // Only send along pubs if the ID's match
         if (fs._id != obj._id) return;
 
-        // Don't want to pass the ID field down the line, so
-        // delete it here.  This is safe, as the db events are
-        // only ever passed copies, and don't share references.
+        // Don't want to pass the ID field down the line, so we
+        // clone the fieldset and delete the id here.
+        fs = fs.clone();
         delete fs._id;
 
         // Send the pub on down
