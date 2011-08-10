@@ -10,7 +10,7 @@ var serve = function(req, res) {
 
   if (url.match(/^listings/)) return listings.serve(req, res);
   if (url.match(/^auth/)) return auth.serve(req, res);
-  if (url.match(/^email\/listing\/\d+$/)) return email.serve(req, res);
+  if (url.match(/^email\/\w+\/\d+$/)) return email.serve(req, res);
   if (url.match(/^social\/share/)) return share.serve(req, res);
   if (url.match(/^social\/connect/)) return connect.serve(req, res);
   if (url.match(/^avatar/)) return avatar.serve(req, res);
