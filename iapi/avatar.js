@@ -35,7 +35,7 @@ var serve = cors.wrap(function(req, res) {
     }
 
     // Grab the user.
-    auth.authUser(email, password, function(err, badPassword, obj) {
+    auth.authUser(fields.email, fields.password, function(err, badPassword, obj) {
 
       // Database errors are bad
       if (err) return ret(res, fields.return, 'error', 'Database error');
