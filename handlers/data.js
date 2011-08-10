@@ -29,8 +29,7 @@ var validators = {
 
   'listing': {photo: 'string?',
               description: 'string?',
-              latitude: 'number?',
-              longitude: 'number?',
+              location: 'array?',
               price: 'number?',
               sold: 'boolean?',
               accepted: 'ref?'},

@@ -13,7 +13,7 @@ var doResp = function(res, num, d) {
 };
 
 var serve = function(req, res) {
-  var match = req.url.match(/listing\/\d+$/);
+  var match = req.url.match(/\w+\/\d+$/);
   var id = match && match[0];
 
   // If we couldn't grab what looks like a listing id from the URL, we
