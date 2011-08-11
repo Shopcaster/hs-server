@@ -8,7 +8,7 @@ var trackEmail = function(campaign, to, email, callback) {
     campaign: campaign,
     distinct_id: to,
     type: 'html',
-    redirect_host: 'mp.hipsell.com'
+    redirect_host: 'mp.hipsell.me'
   });
   var options = {
     host: 'api.mixpanel.com',

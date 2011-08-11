@@ -15,7 +15,7 @@ var mailgun = require('mailgun'),
 // redacted.
 var mgSettings = {
   apiKey: 'key-61mtr1g-$cdqvb8_v4',
-  sender: 'Hipsell <noreply@hipsell.me>',
+  sender: 'Hipsell <feedback@hipsell.com>',
   server: 'hipsell.me'
 };
 
@@ -157,9 +157,9 @@ var makeRoute = function(email, dest) {
   // setting up the actual route, as our endpoint is unlikely to be
   // reachable
   if (mode == 'test' || mode == 'development') {
-    console.log('New email route from ' + email + '@hipsell.me --> ' + dest);
+    console.log('New email route from ' + email + mgSettings.server +' --> ' + dest);
     console.log('');
-    return email + '@hipsell.me';
+    return email + mgSettings.server;
   }
 
   // Add suffixes specific to server mode, to ensure uniqueness.
@@ -170,7 +170,7 @@ var makeRoute = function(email, dest) {
   }
 
   // Add the domain to the email address to use.
-  email = email + '@hipsell.me';
+  email = email + mgSettings.server;
 
   // Now create the route.
   mail.createRoute(email, settings.serverUri + dest);
