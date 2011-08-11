@@ -201,7 +201,7 @@ XHRTransport.prototype.doConnect = function(req, res) {
   // Prep the DC timeout for this connection
   this.dcTimeouts[cid] = setTimeout(function() {
     self.disconnect(con);
-  }, 1000 * 60 * 2); // 2 minutes
+  }, 1000 * 30); // 30 second
 };
 
 XHRTransport.prototype.doSend = function(req, res) {
@@ -289,7 +289,7 @@ XHRTransport.prototype.doPoll = function(req, res) {
     // Add a new DC timeout
     self.dcTimeouts[con.cid] = setTimeout(function() {
       self.disconnect(con);
-    }, 1000 * 60 * 10); // 10 m
+    }, 1000 * 30); // 30 seconds
   };
 
 

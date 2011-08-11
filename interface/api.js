@@ -453,6 +453,9 @@ var connection = new EventEmitter();
     return curUser;
   };
 
+  // When the browser window closes, deauth
+  window.onbeforeunload = zz.auth.deauth;
+
 })();
 
 //
