@@ -54,7 +54,8 @@ var croquet = {};
         clearTimeout(timeout);
         xhr.success = !!(xhr.responseText && xhr.responseText.length);
         callback(xhr);
-      }
+      };
+      xhr.timeout = 30 * 1000;
     } else {
       var xhr = new XMLHttpRequest();
       xhr.onreadystatechange = function() {
@@ -66,18 +67,19 @@ var croquet = {};
             break;
         }
       };
+      // Set up a timeout; if the xhr doesn't complete in 30s, we kill
+      // it manually.  This will trigger the callback, with the xhr's
+      // status being 0 -- just like a connection failure.
+      var timeout = setTimeout(function() {
+        //console.log('Failed request to ' + path);
+        xhr.abort();
+      }, 30 * 1000);
     }
 
     xhr.open(method, this.url + path, true);
     xhr.send(data);
 
-    // Set up a timeout; if the xhr doesn't complete in 30s, we kill
-    // it manually.  This will trigger the callback, with the xhr's
-    // status being 0 -- just like a connection failure.
-    var timeout = setTimeout(function() {
-      //console.log('Failed request to ' + path);
-      xhr.abort();
-    }, 30 * 1000);
+
 
     return xhr;
   };
@@ -341,10 +343,14 @@ var croquet = {};
     }
   };
   var convertObj = function(obj) {
-    for (var i in obj) if (obj.hasOwnProperty(i)) {
-      var d = obj[i];
-      obj[i.substr(1)] = convertData(i.substr(0, 1), d);
-      delete obj[i];
+    var fields = [];
+    for (var i in obj) if (obj.hasOwnProperty(i))
+      fields.push(i);
+    for (var i=0; i<fields.length; i++) {
+      var f = fields[i];
+      var d = obj[f];
+      obj[f.substr(1)] = convertData(f.substr(0, 1), d);
+      delete obj[f];
     }
 
     return obj;
