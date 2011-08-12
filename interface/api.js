@@ -941,7 +941,7 @@ zz.recordError = function(err) {
           // as well.
           if (!self.sorted || self.length == 0) {
             self.push(m);
-            self.emit('add', m, self.length);
+            self.emit('add', m, self.length-1);
             return;
           }
 
