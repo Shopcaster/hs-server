@@ -195,7 +195,8 @@ XHRTransport.prototype.doConnect = function(req, res) {
   this.emit('connection', con);
 
   // Send the CID back to the client
-  res.writeHead(201, {'Content-Type': 'text/plain; charset=utf-8'});
+  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
+                      'Cache-Control': 'no-cache'});
   res.end(cid);
 
   // Prep the DC timeout for this connection
@@ -250,7 +251,7 @@ XHRTransport.prototype.doSend = function(req, res) {
     }
 
     // Send a response to the client
-    res.writeHead(201, {});
+    res.writeHead(200, {'Cache-Control': 'no-cache'});
     res.end('');
 
   });
@@ -261,8 +262,8 @@ XHRTransport.prototype.doPoll = function(req, res) {
 
   // The DC functions
   var wipeout = function() {
-    res.writeHead(410, {}); // `Gone`
-    res.end('');
+    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'}); // `Gone`
+    res.end('dc');
   };
 
   // The sending function
@@ -296,7 +297,8 @@ XHRTransport.prototype.doPoll = function(req, res) {
   // Fetch the query params
   var params = querystring.parse(_url.parse(req.url).query);
   if (!params || !params.cid) {
-    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
+    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8',
+                        'Cache-Control': 'no-cache'});
     res.end('Missing cid query param');
     return;
   }
@@ -311,7 +313,8 @@ XHRTransport.prototype.doPoll = function(req, res) {
 
   // Send a success header, so that the client knows it made the
   // connection successfully
-  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
+  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
+                      'Cache-Control': 'no-cache'});
 
   // If the connection has pending messages to send, do it
   if (con.pending.length) {
@@ -343,7 +346,7 @@ XHRTransport.prototype.doDisconnect = function(req, res) {
       self.disconnect(self.connections[cid]);
 
     // Return with success
-    res.writeHead(200, {});
+    res.writeHead(200, {'Cache-Control': 'no-cache'});
     res.end('');
   });
 };

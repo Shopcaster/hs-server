@@ -79,9 +79,12 @@ zz.logging.outgoing = {
 //
 // Friendly log
 //
-var log = function() {
+var log = function(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) {
+  // This braindead implementation brought to you by IE.
   (typeof console != 'undefined')
-    && console.log.apply(console, Array.prototype.slice.call(arguments));
+    && console.log(a || '', b || '', c || '', d || '', e || '', f || '',
+                   g || '', h || '', i || '', j || '', k || '', l || '',
+                   m || '', n || '', o || '', p || '');
 };
 
 //

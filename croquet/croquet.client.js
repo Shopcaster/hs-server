@@ -5,15 +5,12 @@
 var croquet = {};
 (function() {
 
-  // Canonicalize XHR, using IE's CORS version if available.  Otherwise,
-  // check that XMLHttpRequest is available with CORS and use that.  If
-  // neither of those are true, bail.
+  // We either need XDR support or CORS support.  If we have neither,
+  // bonb out.
   var XHR = null;
-  if (typeof XDomainRequest != 'undefined') {
-    XHR = XDomainRequest;
-  } else if (typeof(new XMLHttpRequest().withCredentials) !== 'undefined') {
-    XHR = XMLHttpRequest;
-  } else {
+  if (typeof XDomainRequest == 'undefined' &&
+      typeof(new XMLHttpRequest().withCredentials) === 'undefined') {
+
     alert("Sorry, but your browser doesn't support security features " +
           "(specifically, CORS) required by Hipsell to operate.  Please " +
           "use a different browser; modern versions of Internet Explorer, " +
@@ -44,15 +41,32 @@ var croquet = {};
       data = undefined;
     }
 
-    var xhr = new XHR();
-    xhr.onreadystatechange = function() {
-      switch (xhr.readyState) {
-        case 4:
-          clearTimeout(timeout);
-          callback();
-          break;
+    // We have a separate codepath for XDomainRequest (the IE version of
+    // CORS) and XMLHttpRequest.  Luckily, they share the same general
+    // semantics, sending, and cancellation object, so we can share
+    // a fair amount of code.
+    if (typeof XDomainRequest != 'undefined') {
+      var xhr = new XDomainRequest();
+
+      // These are all set to the same.  Alas, we can only infer
+      // success based on the presence of body data.
+      xhr.onerror = xhr.ontimeout = xhr.onload = function() {
+        clearTimeout(timeout);
+        xhr.success = !!(xhr.responseText && xhr.responseText.length);
+        callback(xhr);
       }
-    };
+    } else {
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        switch (xhr.readyState) {
+          case 4:
+            xhr.success = xhr.status == 200;
+            clearTimeout(timeout);
+            callback(xhr);
+            break;
+        }
+      };
+    }
 
     xhr.open(method, this.url + path, true);
     xhr.send(data);
@@ -77,10 +91,10 @@ var croquet = {};
 
     this.connected = true;
 
-    var xhr = this.connecting = this._xhr('GET', '/xhr/connect', function() {
+    this.connecting = this._xhr('GET', '/xhr/connect', function(xhr) {
       delete self.connecting;
 
-      if (xhr.status === 201) {
+      if (xhr.success) {
 
         // Basic connection init
         self.cid = xhr.responseText;
@@ -127,7 +141,7 @@ var croquet = {};
     // further messages from being sent.
     this.connected = false;
 
-    var xhr = this.disconnecting = this._xhr('POST', '/xhr/disconnect', this.cid, function() {
+    this.disconnecting = this._xhr('POST', '/xhr/disconnect', this.cid, function(xhr) {
       delete self.disconnecting;
       self._setDisconnected();
     });
@@ -155,11 +169,17 @@ var croquet = {};
   Connection.prototype.startReceiveLoop = function() {
     var self = this;
 
-    var xhr = this._recv = this._xhr('GET', '/xhr/poll?cid=' + this.cid, function() {
+    this._recv = this._xhr('GET', '/xhr/poll?cid=' + this.cid, function(xhr) {
       delete self._recv;
 
-      // A 200 indicates that we successfully received messages
-      if (xhr.status == 200) {
+      // Handle success
+      if (xhr.success) {
+
+        // If the responsetext is just 'dc', we need to do a disconnect
+        // and bail out.  Otherwise, we continue as per usual.
+        if (xhr.responseText == 'dc') {
+          return self._setDisconnected();
+        }
 
         // Parse messages and raise the events
         var messages = deserializeMessages(xhr.responseText);
@@ -175,10 +195,6 @@ var croquet = {};
         // Continue running the receive loop
         if (self.connected)
           self.startReceiveLoop();
-
-      // A 410 means we've been disconnected
-      } else if (xhr.status == 410) {
-        self._setDisconnected();
 
       // Any other sort of error is wonky, but we don't need to do
       // a full disconnect.  Instead, we just need to restart the
@@ -211,11 +227,11 @@ var croquet = {};
         self.pending = [];
 
         var data = serializeMessages.apply(this, messages);
-        var xhr = self._send = self._xhr('POST', '/xhr/send', data, function() {
+        self._send = self._xhr('POST', '/xhr/send', data, function(xhr) {
           delete self._send;
 
-          // 201 indicates success
-          if (xhr.status == 201) {
+          // Handle success
+          if (xhr.success) {
 
             // Continue sending
             self.startSendLoop();
