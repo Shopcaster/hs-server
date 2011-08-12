@@ -261,7 +261,7 @@ if (typeof sha256 == 'undefined')
 //
 // Node.js style EventEmitter
 //
-if (typeof EventEmitter == 'undefined') {
+if (typeof EventEmitter == 'undefined' || navigator.userAgent.match(/MSIE 8\.0/)) { // IE hack
 
   var EventEmitter = function EventEmitter() {};
   EventEmitter.prototype = {};

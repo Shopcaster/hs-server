@@ -151,7 +151,7 @@ var croquet = {};
 
     this._reallyConnected = false;
     this.connected = false;
-    delete self.cid;
+    delete this.cid;
     this.stopSendLoop();
     this.stopReceiveLoop();
 
