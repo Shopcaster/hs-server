@@ -170,7 +170,7 @@ var makeRoute = function(email, dest) {
   }
 
   // Add the domain to the email address to use.
-  email = email + mgSettings.server;
+  email = email + '@' + mgSettings.server;
 
   // Now create the route.
   mail.createRoute(email, settings.serverUri + dest);
