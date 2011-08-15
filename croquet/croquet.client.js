@@ -248,6 +248,7 @@ var croquet = {};
 
             // Resume the send loop after a little bit
             self.sendTimeout = setTimeout(function() {
+              delete self.sendTimeout;
               self.startSendLoop();
             }, 100); // 100 ms
           }

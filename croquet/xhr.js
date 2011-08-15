@@ -252,7 +252,7 @@ XHRTransport.prototype.doSend = function(req, res) {
 
     // Send a response to the client
     res.writeHead(200, {'Cache-Control': 'no-cache'});
-    res.end('');
+    res.end('ok');
 
   });
 };
@@ -285,7 +285,7 @@ XHRTransport.prototype.doPoll = function(req, res) {
     }
 
     // End the response
-    res.end();
+    res.end('ok');
 
     // Add a new DC timeout
     self.dcTimeouts[con.cid] = setTimeout(function() {
@@ -324,7 +324,7 @@ XHRTransport.prototype.doPoll = function(req, res) {
 
   // Otherwise, wait for messages
   } else {
-    this.pollers[con.cid] = [send, function() { res.end() }];
+    this.pollers[con.cid] = [send, function() { res.end('ok') }];
     // If the request gets closed, nuke the poller
     req.on('close', function() {
       delete self.pollers[con.cid];
@@ -347,7 +347,7 @@ XHRTransport.prototype.doDisconnect = function(req, res) {
 
     // Return with success
     res.writeHead(200, {'Cache-Control': 'no-cache'});
-    res.end('');
+    res.end('ok');
   });
 };
 
