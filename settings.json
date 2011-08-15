@@ -19,8 +19,8 @@
     ]
   },
   "staging": {
-    "serverUri": "http://beta.hipsell.com:8080",
-    "clientUri": "http://beta.hipsell.com",
+    "serverUri": "http://s.hipsell.com:8080",
+    "clientUri": "http://s.hipsell.com",
     "compressApiLibrary": false,
     "phoneNumbers": [ {"+17733624348": "(773) 362-4348"} ]
   },
