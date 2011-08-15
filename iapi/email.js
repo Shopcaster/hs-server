@@ -72,7 +72,7 @@ var serve = function(req, res) {
         email.send('Auto Response - Sold',
                    fields.from,
                    'Re: ' + fields.subject,
-                   templating['email/autoresponse_sold'].render({userid: auth.creator}),
+                   templating['email/autoresponse_sold'].render({userid: listing.creator}),
                    'Hipsell <' + listing.email + '>',
                    fields['Message-Id'] || undefined);
 
