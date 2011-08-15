@@ -13,26 +13,41 @@ var cli = require('cli'),
     // initialization order.  Note that this isn't an academic
     // concern, and things actually break without this loading
     // technique.
-    settings,
     db,
     urls,
+    email,
     clients,
     protocol,
-    email,
-    templating,
-    querying;
+    settings,
+    querying,
+    templating;
 
 cli.parse({
-  mode: [false, 'Server mode (development, production, staging, test)', 'string', 'development'],
+  mode: [false, 'Server mode (development, production, staging, test)', 'string', 'lsettings.json'],
   port: ['p', 'Listen on this port', 'number', 8080],
   host: ['s', 'Listen on this hostname', 'string', '0.0.0.0'],
   dbhost: [false, 'Database server hostname', 'string', 'localhost'],
   dbport: [false, 'Database server port', 'number', 27017],
   dbname: [false, 'Database name', 'string', 'hipsell'],
-  noemail: ['m', 'Disable email sending']
+  noemail: ['e', 'Disable email sending'],
+
+  'server-uri': ['', 'Public facing server uri', 'string'],
+  'client-uri': ['u', 'Public facing client server uri', 'string'],
+  'compress-api-library': ['m', 'Enable compression of the api library']
 });
 
 cli.main(function(args, opts) {
+  //convert dashes into camel case
+  for (var arg in opts) if (opts.hasOwnProperty(arg)) {
+    var t = opts[arg];
+    delete opts[arg];
+    while ((i = arg.indexOf('-')) >= 0) {
+      m = arg.substr(i, 2);
+      arg = arg.replace(m, arg[i+1].toUpperCase());
+    }
+    opts[arg] = t;
+  }
+
   console.log('Hipsell Server');
   console.log('Running in mode ' + opts.mode);
   console.log('');
@@ -40,7 +55,7 @@ cli.main(function(args, opts) {
   //prep settings in the correct mode
   console.log('  Loading settings');
   settings = require('./settings');
-  settings.setMode(opts.mode);
+  settings.init(opts);
 
   //parse the api library, to make sure there aren't any errors
   console.log('  Checking API library');
@@ -57,7 +72,7 @@ cli.main(function(args, opts) {
   //set up database
   console.log('  Initializing Database');
   db = require('./db');
-  db.init(opts.dbhost, opts.dbport, opts.dbname, function() {
+  db.init(settings.dbhost, settings.dbport, settings.dbname, function() {
 
     //set up templating
     console.log('  Initializing Templating');
@@ -72,13 +87,13 @@ cli.main(function(args, opts) {
     //set up email
     console.log('  Initializing Email');
     email = require('./email')
-    email.init(opts.noemail);
+    email.init(settings.noemail);
 
     //set up http
-    console.log('  Initializing HTTP on ' + opts.host + ':' + opts.port);
+    console.log('  Initializing HTTP on ' + settings.host + ':' + settings.port);
     urls = require('./urls')
     var server = http.createServer(urls.dispatch);
-    server.listen(opts.port, opts.host);
+    server.listen(settings.port, settings.host);
 
     //set up client listeners
     console.log('  Initializing Client Listener');

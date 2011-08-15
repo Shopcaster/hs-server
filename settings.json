@@ -1,14 +1,17 @@
 {
-  "development": {
-    "serverUri": "http://dev.hipsell.com:8080",
-    "clientUri": "http://dev.hipsell.com:3000",
+  "default": {
+    "serverUri": null,
+    "clientUri": null,
     "compressApiLibrary": false,
-    "phoneNumbers": []
+    "phoneNumbers": [],
+    "noemail": true
   },
+
   "production": {
     "serverUri": "http://hipsell.com:8080",
     "clientUri": "http://hipsell.com",
     "compressApiLibrary": true,
+    "noemail": false,
     "phoneNumbers": [
       {"+13108959876": "(310) 895-9876"},
       {"+15032124751": "(503) 212-4751"},
@@ -21,13 +24,11 @@
   "staging": {
     "serverUri": "http://s.hipsell.com:8080",
     "clientUri": "http://s.hipsell.com",
-    "compressApiLibrary": false,
+    "noemail": false,
     "phoneNumbers": [ {"+17733624348": "(773) 362-4348"} ]
   },
   "test": {
     "serverUri": "http://127.0.0.1:7654",
-    "clientUri": false,
-    "compressApiLibrary": false,
-    "phoneNumbers": []
+    "clientUri": false
   }
 }
