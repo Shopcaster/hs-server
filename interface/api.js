@@ -81,7 +81,7 @@ zz.logging.outgoing = {
 //
 var log = function(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) {
   // This braindead implementation brought to you by IE.
-  (typeof console != 'undefined')
+  (typeof window.console != 'undefined')
     && console.log(a || '', b || '', c || '', d || '', e || '', f || '',
                    g || '', h || '', i || '', j || '', k || '', l || '',
                    m || '', n || '', o || '', p || '');
@@ -1267,7 +1267,7 @@ Query.prototype._ret = function(callback) {
     if (this._params) data.params = this._params;
 
     messaging.send('query', data, function(err, ids) {
-      if (err) console.log('Error querying ' + data.query);
+      if (err) log('Error querying ' + data.query);
       else callback(ids);
     });
 
