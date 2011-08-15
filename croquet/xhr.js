@@ -285,7 +285,7 @@ XHRTransport.prototype.doPoll = function(req, res) {
     }
 
     // End the response
-    res.end('ok');
+    res.end('');
 
     // Add a new DC timeout
     self.dcTimeouts[con.cid] = setTimeout(function() {
