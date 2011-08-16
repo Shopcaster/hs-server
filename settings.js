@@ -37,8 +37,8 @@ var init = function(overrides) {
 
   // Copy overrides into settings
   for (var i in overrides) if (overrides.hasOwnProperty(i))
-    exports[i] = overrides[i];
-
+    if (overrides[i] !== null)
+      exports[i] = overrides[i];
 };
 
 exports.init = init;
