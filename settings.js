@@ -8,8 +8,10 @@ try {
   process.exit(0);
 }
 
+var mode;
+
 var init = function(overrides) {
-  var mode = overrides.mode;
+  mode = overrides.mode;
   delete overrides.mode;
 
   // Load the defaults from the settings
@@ -42,3 +44,4 @@ var init = function(overrides) {
 };
 
 exports.init = init;
+exports.getMode = function() { return mode };

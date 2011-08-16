@@ -104,7 +104,7 @@ var send = function(type, to, subject, body, from, inReplyTo) {
   //
   // We also don't want to make the API call if we don't have email
   // sending enabled, as this will skew data.
-  if (type && !disabled)
+  if (type && !disabled && settings.analytics)
     mixpanel.trackEmail(type, to, body, doit);
   // If no type was sent we can forego tracking.
   else
@@ -153,10 +153,8 @@ var makeRoute = function(email, dest) {
   // Find out what mode we're in.
   var mode = settings.getMode();
 
-  // If it's `testing` or `development`, print to the console rather than
-  // setting up the actual route, as our endpoint is unlikely to be
-  // reachable
-  if (mode == 'test' || mode == 'development') {
+  // If email sending is disabled, we just print routes to the console.
+  if (disabled) {
     console.log('New email route from ' + email + mgSettings.server +' --> ' + dest);
     console.log('');
     return email + mgSettings.server;

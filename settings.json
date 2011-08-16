@@ -4,7 +4,8 @@
     "clientUri": null,
     "compressApiLibrary": false,
     "phoneNumbers": [],
-    "noemail": true
+    "noemail": true,
+    "analytics": false
   },
 
   "production": {
@@ -12,6 +13,7 @@
     "clientUri": "http://hipsell.com",
     "compressApiLibrary": true,
     "noemail": false,
+    "analytics": true,
     "phoneNumbers": [
       {"+13108959876": "(310) 895-9876"},
       {"+15032124751": "(503) 212-4751"},
