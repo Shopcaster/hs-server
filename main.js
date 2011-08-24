@@ -24,11 +24,11 @@ var cli = require('cli'),
 
 cli.parse({
   mode: [false, 'Server mode (development, production, staging, test)', 'string', 'lsettings.json'],
-  port: ['p', 'Listen on this port', 'number', 8080],
-  host: ['s', 'Listen on this hostname', 'string', '0.0.0.0'],
-  dbhost: [false, 'Database server hostname', 'string', 'localhost'],
-  dbport: [false, 'Database server port', 'number', 27017],
-  dbname: [false, 'Database name', 'string', 'hipsell'],
+  port: ['p', 'Listen on this port', 'number'],
+  host: ['s', 'Listen on this hostname', 'string'],
+  dbhost: [false, 'Database server hostname', 'string'],
+  dbport: [false, 'Database server port', 'number'],
+  dbname: [false, 'Database name', 'string'],
   noemail: ['e', 'Disable email sending'],
 
   'server-uri': ['', 'Public facing server uri', 'string'],
