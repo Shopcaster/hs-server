@@ -32,6 +32,7 @@ var validators = {
               location: 'array?',
               price: 'number?',
               sold: 'boolean?',
+              deleted: 'boolean?',
               accepted: 'ref?'},
 
   'offer': {amount: 'number?',
