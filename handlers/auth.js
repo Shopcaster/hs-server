@@ -72,6 +72,14 @@ var signup = function(email, callback) {
   user.bootstrap().genId(function() {
     auth.creator = user._id;
 
+    // Set the initial name based on the email address
+    user.name = email.match(/[^\w-_]/);
+    if (user.name) {
+      user.name = email.substr(0, user.name.index)
+    } else {
+      user.name = email;
+    }
+
     // Save the records, and return success when it's done.
     db.apply(auth, user, function() {
 
