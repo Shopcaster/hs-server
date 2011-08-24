@@ -443,6 +443,11 @@ var connection = new EventEmitter();
     zz.auth.emit('change');
   };
 
+  zz.auth.resetPassword = function(email) {
+    // Send the newpw message
+    messaging.send('newpw', {email: email});
+  };
+
   // Turn zz.auth into an event emitter by creating a new one and
   // monkey patching in all its functions
   with ({l: new EventEmitter}) {

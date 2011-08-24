@@ -19,14 +19,18 @@ var hashPassword = function(password, email) {
            .digest('hex').toUpperCase();
 };
 
-var createPassword = function(email) {
+var createPassword = function(email, exists) {
   var pwRaw = '';
   for (var i=0; i<6; i++)
     pwRaw += pwCharacters[Math.floor(Math.random() * pwCharacters.length)];
 
   // Send an email to the user
-  _email.send('New Account', email, 'Welcome to Hipsell',
-    templating['email/signup'].render({password: pwRaw}));
+  if (!exists)
+    _email.send('New Account', email, 'Welcome to Hipsell',
+      templating['email/signup'].render({password: pwRaw}));
+  else
+    _email.send('Password Reset', email, 'Password Reset',
+      templating['email/newpw'].render({password: pwRaw}));
 
   // Only store the hashed form
   return hashPassword(pwRaw, email);
@@ -290,9 +294,28 @@ var passwd = function(client, data, callback, errback) {
   callback(password);
 };
 
+var newpw = function(client, data, callback, errback) {
+  db.queryOne(models.Auth, {email: data.email.toLowerCase()}, function(err, obj) {
+
+    // Return error on failure
+    if (err) return errback('Database error');
+
+    // If the auth object doesn't exist, return true immmediately
+    if (!obj) return callback(true);
+
+    // Set the new password and save the result.  Note that
+    // the createPassword() function will automatically send an email.
+    obj.password = createPassword(data.email, true);
+    db.apply(obj, function() {
+      return callback(true);
+    });
+  })
+};
+
 // Handlers
 exports.auth = auth;
 exports.passwd = passwd;
+exports.newpw = newpw;
 
 // Misc
 exports.authUser = authUser;

@@ -1,0 +1,14 @@
+{{ include('_header') }}
+
+<p>Hey, you recently requested for your Hipsell password to be reset.
+Your new password is</p>
+
+<h3>{{ password }}</h3>
+
+<p>You can (and should!) change the password later via your
+<a href="{{ settings.clientUri }}/settings/password">account
+settings</a>.</p>
+
+<h4>&ndash; The Hipsell Team</h4>
+
+{{ include('_footer') }}
