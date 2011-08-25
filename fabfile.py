@@ -3,13 +3,13 @@ from __future__ import with_statement
 from fabric.api import *
 
 
-def d(): env.hosts = ['d.hipsell.com']
+def d(): env.hosts = ['174.129.30.16']
 develop = d
 
-def s(): env.hosts = ['s.hipsell.com']
+def s(): env.hosts = ['72.51.30.179']
 staging = s
 
-def p(): env.hosts = ['hipsell.com']
+def p(): env.hosts = ['72.51.30.180']
 production = p
 
 
