@@ -4,6 +4,7 @@ var staticServing = require('./static-serving'),
     templating = require('./templating'),
     crosspost = require('./crosspost/handlers'),
     phone = require('./phone/handlers'),
+    metrics = require('./metrics/urls'),
     fs = require('fs');
 
 // Serves an individual file
@@ -45,7 +46,10 @@ var urls = {
   '^/template/': templating.serve,
 
   //twilio stuff
-  '^/phone/': phone.server
+  '^/phone/': phone.serve,
+
+  //metrics
+  '^/metrics/': metrics.serve
 };
 
 var dispatch = function(req, res) {
