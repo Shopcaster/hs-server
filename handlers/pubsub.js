@@ -34,7 +34,7 @@ var sub = function(client, data, callback, errback) {
     obj._id = key.id;
     db.get(obj, function(err, exists) {
       if (err === true) return errback('Database error');
-      else if (!exists) return callback(false);
+      else if (!exists || obj.deleted) return callback(false);
 
       // Subscribe on the key
       var sub = function(fs) {

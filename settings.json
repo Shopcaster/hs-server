@@ -5,7 +5,12 @@
     "compressApiLibrary": false,
     "phoneNumbers": [],
     "noemail": true,
-    "analytics": false
+    "analytics": false,
+    "dbhost": "localhost",
+    "dbport": 27017,
+    "dbname": "hipsell",
+    "host": "localhost",
+    "port": 8080
   },
 
   "production": {

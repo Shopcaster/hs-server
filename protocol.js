@@ -9,18 +9,24 @@ var validate = require('./util/validation').validate,
 
 var validators = {
   'ping':   {},
-  'error':  {data: 'any'},
+
   'auth':   {email: 'string', password: 'string?'},
   'passwd': {old: 'string', password: 'string'},
+  'newpw':  {email: 'string'},
+
   'sub':    {key: 'string'},
   'unsub':  {key: 'string'},
+
   'create': {type: 'string', data: 'object'},
   'update': {key: 'string', diff: 'object'},
   'delete': {key: 'string'},
   'query':  {type: 'string', query: 'string?', sort: 'string?',
              offset: 'number?', limit: 'number?', params: 'object?'},
+
   'sub-presence': {user: 'string'},
-  'unsub-presence': {user: 'string'}
+  'unsub-presence': {user: 'string'},
+
+  'error':  {data: 'any'}
 };
 
 var handlers = {
@@ -28,6 +34,7 @@ var handlers = {
 
   'auth': auth.auth,
   'passwd': auth.passwd,
+  'newpw': auth.newpw,
 
   'sub': pubsub.sub,
   'unsub': pubsub.unsub,
