@@ -41,7 +41,7 @@ var send = function(uid, type, fs, other) {
 
     // Grab the client and send them the notification
     var client = presence.getClient(uid);
-    client.send('not', {message: messages[type], key: fs.getCollection() + ':' + fs._id});
+    client.send('not', {message: messages[type], key: fs._id, other: other._id});
   }
 };
 
