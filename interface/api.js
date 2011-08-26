@@ -1415,7 +1415,7 @@ for (var i=0; i<config.datatypes.length; i+=2) {
 // Notifications
 //
 messaging.on('not', function(data) {
-  zz.emit('notification', data.message, data.key);
+  zz.emit('notification', data.message, data.key, data.other);
 });
 
 // End global closure
