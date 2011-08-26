@@ -150,7 +150,7 @@ var serve = function(req, res) {
             //        functionality
 
             // Send a notification to the listing owner.
-            nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
+            nots.send(listing.creator, nots.Types.NewMessage, message, listing);
 
             // Fin.
           };
