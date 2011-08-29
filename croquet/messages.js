@@ -53,7 +53,7 @@ CDF.from = function(o) {
       return a;
 
     case 3: //object
-      var obj = [];
+      var obj = {};
       for (var i in o.v) if (o.v.hasOwnProperty(i))
         obj[i] = arguments.callee(o.v[i])
       return obj;

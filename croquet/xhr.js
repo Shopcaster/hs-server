@@ -123,6 +123,9 @@ XHRTransport.prototype._doDisconnect = function(req, res, cid) {
   if (this.connections[cid])
     this.disconnect(this.connections[cid]);
 
+  // Remove the DC timeout
+  this._stopDCTimeout(cid);
+
   // Give the all clear
   res.end('ok');
 };
