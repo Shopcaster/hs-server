@@ -150,7 +150,7 @@ XHRTransport.prototype._doSend = function(req, res, cid) {
       var msgs = _messages.parse(data);
 
       // Next we need to convert these into actual Message objects
-      for (var i=0; i<messages.length; i++)
+      for (var i=0; i<msgs.length; i++)
         messages.push(new Message(con, msgs[i].id, msgs[i].type, msgs[i].data));
 
     // We don't handle messages, unfortunately.  The messages list will
@@ -242,7 +242,7 @@ XHRTransport.prototype._doPoll = function(req, res, cid) {
       delete self.pollers[con.cid];
 
       // Remove this handler so as not to leak
-      req.removeListeners('close', arguments.callee);
+      req.removeListener('close', arguments.callee);
 
       // Start the DC timeout again
       self._startDCTimeout(cid);

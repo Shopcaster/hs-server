@@ -16,8 +16,11 @@ var croquet = {};
 
   // Our backoff function
   var backoff = function(n) {
+    // n = 0 is a problem
+    n = n || 1;
+
     // Log n base 1.2
-    Math.log(n) / Math.log(1.2);
+    return (Math.log(n) / Math.log(1.2)) || 1;
   };
 
   ///////////////////////////////////////
@@ -137,6 +140,8 @@ var croquet = {};
     this.pending = [];
 
     this._conAttempts = 0;
+    this._pollAttempts = 0;
+    this._sendAttempts = 0;
   };
   Connection.prototype = new EventEmitter();
   Connection.prototype.constructor = Connection;
@@ -201,50 +206,50 @@ var croquet = {};
     if (this.status == 'connecting' || this.status == 'connected')
       return;
 
-    // Begin the connect call
-    this._connect = this._xhr('GET', '/xhr/connect', function(xhr) {
-      delete self._connect;
+    // Set the status appropriately
+    self.status = 'connecting';
 
-      // If we succeeded in the connection, do the required setup work.
-      if (xhr.success) {
+    // The workhorse
+    var go = function() {
+      // Begin the connect call
+      self._connect = self._xhr('GET', '/xhr/connect', function(xhr) {
+        delete self._connect;
 
-        // Basic connection init
-        self._cid = xhr.responseText;
-        self.status = 'connected'
-        self.emit('connect');
+        // If we succeeded in the connection, do the required setup work.
+        if (xhr.success) {
 
-        // Start sending all pending messages every 20ms
-        self._startSendLoop();
+          // Basic connection init
+          self._cid = xhr.responseText;
+          self.status = 'connected'
+          self.emit('connect');
 
-        // Bootstrap the poll process
-        self._startPollLoop();
+          // Start sending all pending messages every 20ms
+          self._startSendLoop();
 
-        // Clear backoff nums
-        self._conAttempts = 0;
-        self._pollAttempts = 0;
-        self._sendAttempts = 0;
+          // Bootstrap the poll process
+          self._startPollLoop();
 
-      // If we failed, schedule another connection attempt using
-      // logarithmic backoff.
-      } else {
+          // Clear backoff nums
+          self._conAttempts = 0;
+          self._pollAttempts = 0;
+          self._sendAttempts = 0;
 
-        // If our status isn't 'connecting' then we should just accept
-        // the failure, as it's been canceled.
-        if (self.status != 'connecting') return;
+        // If we failed, schedule another connection attempt using
+        // backoff if we're still trying to connect.
+        } else {
 
-        // Increment the connection attempts counter and get a backoff
-        // time
-        var t = backoff(self._conAttempts++);
+          // If our status isn't 'connecting' then we should just accept
+          // the failure, as it's been canceled.
+          if (self.status != 'connecting') return;
 
-        // Log our intent
-        console.log('Error when connecting to server.  Retrying in ' + t + 's');
+          // Do a backoff before trying again
+          setTimeout(go, backoff(self._conAttempts++) * 1000);
+        }
+      });
+    };
 
-        // And when that wait time is over, do the connect again
-        setTimeout(function() {
-          self.connect();
-        }, 1000 * t);
-      }
-    });
+    // Bootstrap
+    go();
   };
   Connection.prototype.disconnect = function() {
     var self = this;
@@ -265,7 +270,7 @@ var croquet = {};
     }
 
     // Otherwise, we have to do an actual disconnect
-    this._disconnect = this._xhr('GET', '/xhr/disconnect?cid=' + this.cid, function(xhr) {
+    this._disconnect = this._xhr('GET', '/xhr/disconnect?cid=' + this._cid, function(xhr) {
       delete self._disconnect;
 
       // Do the DC cleanup
@@ -291,7 +296,7 @@ var croquet = {};
     this._kaTimeout = setTimeout(function() {
       delete self._kaTimeout;
 
-      this._ka = this._xhr('GET', '/xhr/send?cid=' + this.cid, '{messages: []}', function(xhr) {
+      this._ka = this._xhr('GET', '/xhr/send?cid=' + this._cid, '{messages: []}', function(xhr) {
         delete self._ka;
       });
 
@@ -321,7 +326,7 @@ var croquet = {};
   // Misc
   //////////////////////////////////
   Connection.prototype._setDisconnected = function() {
-    delete this.cid;
+    delete this._cid;
     this.status = 'disconnected';
     this._stopSendLoop();
     this._stopPollLoop();
@@ -336,10 +341,7 @@ var croquet = {};
   Connection.prototype._startPollLoop = function() {
     var self = this;
 
-    // Clear poll attempts to remove any backoff that may exist
-    this._pollAttempts = 0;
-
-    this._poll = this._xhr('GET', '/xhr/poll?cid=' + this.cid, function(xhr) {
+    this._poll = this._xhr('GET', '/xhr/poll?cid=' + this._cid, function(xhr) {
       delete self._poll;
 
       // Handle success
@@ -355,7 +357,7 @@ var croquet = {};
         }
 
         // Parse messages and raise the events
-        var messages = parse(xhr.responseText).messages;
+        var messages = parse(xhr.responseText);
         for (var i=0; i<messages.length; i++) {
           try {
             self.emit('message', messages[i]);
@@ -383,7 +385,7 @@ var croquet = {};
         if (self.status == 'connected') {
           setTimeout(function() {
             self._startPollLoop();
-          }, backoff(self._pollAttempts++);
+          }, backoff(self._pollAttempts++) * 1000);
         }
       }
     });
@@ -397,9 +399,6 @@ var croquet = {};
 
     // If the loop has already started, do nothing.
     if (this._sendTimeout) return;
-
-    // Clear send attempts to remove any backoff that may exist
-    this._sendAttempts = 0;
 
     // Otherwise, set up a timeout to fire sends within 50ms of eachother
     this._sendTimeout = setTimeout(function() {
@@ -417,7 +416,7 @@ var croquet = {};
         var data = stringify(messages);
 
         // Do the actual send
-        self._send = self._xhr('POST', '/xhr/send?cid=' + self.cid, data, function(xhr) {
+        self._send = self._xhr('POST', '/xhr/send?cid=' + self._cid, data, function(xhr) {
           delete self._send;
 
           // Handle success
@@ -443,7 +442,7 @@ var croquet = {};
               self.sendTimeout = setTimeout(function() {
                 delete self._sendTimeout;
                 self._startSendLoop();
-              }, backoff(self._sendAttempts++);
+              }, backoff(self._sendAttempts++) * 1000);
             }
           }
         });

@@ -8,7 +8,7 @@
 var CDF = {};
 CDF.to = function(o) {
   if (o === undefined)
-    return {t: 0, v: undefined}
+    return {t: 0}
 
   if (o === null
   || typeof o == 'number'
