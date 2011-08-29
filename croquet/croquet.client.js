@@ -142,6 +142,39 @@ var croquet = {};
     this._conAttempts = 0;
     this._pollAttempts = 0;
     this._sendAttempts = 0;
+
+    // Add an event listeners to onbeforeunload so that we have a chance
+    // to disconnect before the browser closes.
+    var self = this;
+    window.addEventListener('beforeunload', function() {
+
+      // Set the status to disconnected
+      self.status = 'disconnected';
+
+      // Kill any in-flight connecting
+      if (self._connect) self._connect.abort();
+
+      // If we have a connection id we need to disconnect
+      if (self._cid) {
+
+        // XDR version
+        if (typeof XDomainRequest != 'undefined') {
+          // Alas, XDR's don't do async.  We have to fire this off
+          // and hope for the best.
+          var xhr = new XDomainRequest();
+          xhr.open('GET', this.url + '/xhr/disconnect?cid=' + this._cid);
+          xhr.send();
+
+        // XHR version
+        } else {
+          // This HAS to be synchronous to ensure that it completed
+          // before we lose the browser.  Async may be killed in-flight.
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', this.url + '/xhr/disconnect?cid=' + this._cid, false);
+          xhr.send();
+        }
+      }
+    }, false);
   };
   Connection.prototype = new EventEmitter();
   Connection.prototype.constructor = Connection;
