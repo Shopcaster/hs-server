@@ -25,6 +25,8 @@ XHRTransport.prototype = new EventEmitter();
 XHRTransport.prototype.constructor = XHRTransport;
 
 XHRTransport.prototype._startDCTimeout = function(cid) {
+  var self = this;
+
   // If the DC timeout is already active, do nothing
   if (this.dcTimeouts[cid]) return false;
 
