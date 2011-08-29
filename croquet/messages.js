@@ -22,7 +22,7 @@ CDF.to = function(o) {
   if (o instanceof Array) {
     var a = [];
     for (var i=0; i<o.length; i++)
-      a.push(arguments.callee(o[i]);
+      a.push(arguments.callee(o[i]));
     return {t: 2, v: a};
   }
 

@@ -40,7 +40,7 @@ XHRTransport.prototype._stopDCTimeout = function(cid) {
 
   // Remove the timeout
   clearTimeout(this.dcTimeouts[cid]);
-  delete this.dcTimeouts[cid]);
+  delete this.dcTimeouts[cid];
   return true;
 };
 
