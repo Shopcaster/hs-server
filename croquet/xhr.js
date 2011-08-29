@@ -1,139 +1,10 @@
-/*
-
-Message format:
-
-[cid]|[mid]|[type]|[data...]
-
-Where
-  cid = Client ID
-  mid = message ID
-  type = message type
-  data = json
-
-Send format:
-
-[message1 length]|[message1][message2 length]|[message2] ...
-
-Poll format:
-
-[message1 length]|[message1][message2 length]|[message 2]
-
-message = [type]|[data...]
-
-*/
-
 var querystring = require('querystring'),
-    EventEmitter = require('events').EventEmitter,
     _url = require('url'),
+    EventEmitter = require('events').EventEmitter,
     Connection = require('./connection').Connection,
     Message = require('./connection').Message,
+    _messages = require('./messages'),
     cors = require('../util/cors');
-
-var convertData = function(type, data) {
-  switch(type) {
-    case 's':
-      return data;
-    case 'd':
-      return new Date(parseFloat(data));
-    case 'i':
-      return parseInt(data);
-    case 'f':
-      return parseFloat(data);
-    case 'n':
-      return null;
-    case 'a':
-      return data;
-    case 'o':
-      return convertObj(data);
-    case 'b':
-      return data;
-    case 'u':
-    default:
-      return undefined;
-  }
-};
-var convertObj = function(obj) {
-  for (var i in obj) if (obj.hasOwnProperty(i)) {
-    var d = obj[i];
-    obj[i.substr(1)] = convertData(i.substr(0, 1), d);
-    delete obj[i];
-  }
-
-  return obj;
-};
-
-var parseMessage = function(message) {
-  var a = 0,
-      b = 0;
-
-  var parsed = {};
-
-  var get = function(field) {
-    var i = message.indexOf('|');
-    if (i < 0) throw new Error('Invalid message');
-    parsed[field] = message.substr(0, i);
-    message = message.substr(i+1);
-  };
-
-  // Parse out the segments
-  try {
-    get('cid');
-    get('mid');
-    get('type');
-    parsed.data = message;
-  } catch (err) {
-    return null;
-  }
-
-  // Convert the x-www-form-urlencoded body into an obj
-  parsed.data = JSON.parse(parsed.data);
-
-  // Handle data formats
-  convertObj(parsed.data);
-
-  return parsed;
-};
-
-var convertDataDown = function(data) {
-  var ndata = {};
-
-  for (var i in data) if (data.hasOwnProperty(i)) {
-    var d = data[i];
-    var t = 'u';
-
-    if (d === null) {
-      t = 'n';
-    } else if (d === undefined) {
-      t = 'u';
-    } else if (d instanceof Date) {
-      t = 'd';
-      d = +d;
-    } else if (typeof d == 'string') {
-      t = 's';
-    } else if (typeof d == 'number') {
-      t = 'f';
-    } else if (d instanceof Array) {
-      t = 'a';
-    } else if (typeof d == 'object') {
-      t = 'o';
-      d = convertDataDown(d);
-    } else if (typeof d == 'boolean') {
-      t = 'b';
-    }
-
-    ndata[t + i] = d;
-  }
-
-  return ndata;
-};
-var serializeData = function(data) {
-  data = convertDataDown(data);
-  return JSON.stringify(data);
-};
-var serializeMessage = function(type, data) {
-  // Serialize it
-  return type.replace(/[^\w-]/, '') + '|' + serializeData(data);
-};
 
 var XHRTransport = function(server, url) {
   this.server = server;
@@ -151,33 +22,68 @@ var XHRTransport = function(server, url) {
   server.on('close', function() { self.connections = {} });
 };
 XHRTransport.prototype = new EventEmitter();
+XHRTransport.prototype.constructor = XHRTransport;
+
+XHRTransport.prototype._startDCTimeout = function(cid) {
+  // If the DC timeout is already active, do nothing
+  if (this.dcTimeouts[cid]) return false;
+
+  // Set the timeout
+  this.dcTimeouts[cid] = setTimeout(function() {
+    self.disconnect(self.connections[cid]);
+  }, 10 * 60 * 1000); // 10m
+  return true;
+};
+XHRTransport.prototype._stopDCTimeout = function(cid) {
+  // If there's no DC timeout active for this cid, do nothing
+  if (!this.dcTimeouts[cid]) return false;
+
+  // Remove the timeout
+  clearTimeout(this.dcTimeouts[cid]);
+  delete this.dcTimeouts[cid]);
+  return true;
+};
+
 XHRTransport.prototype.request = cors.wrap(function(req, res) {
 
-  // The polling endpoint is a bit of a special case, as it /must/ be
-  // accessible via GET, and therefore requires info to be sent in
-  // its query params.
-  if (req.url.substr(0, this.url.length + 9) == this.url + '/xhr/poll')
-    return this.doPoll(req, res);
+  // Parse the url into something a bit more usable
+  var url = _url.parse(req.url);
+  var query = querystring.parse(url.query);
 
-  switch (req.url) {
+  // Pull the cid from the querystring
+  var cid = query.cid;
+
+  // Match on just the path
+  switch (url.pathname) {
+
     // Handle new clients
     case this.url + '/xhr/connect':
-      this.doConnect(req, res);
-      break;
-
-    // Handle message sends
-    case this.url + '/xhr/send':
-      this.doSend(req, res);
+      this._doConnect(req, res, cid);
       break;
 
     // Handle friendly disconnects
     case this.url + '/xhr/disconnect':
-      this.doDisconnect(req, res);
+      this._doDisconnect(req, res, cid);
+      break;
+
+    // Handle message sends
+    case this.url + '/xhr/send':
+      this._doSend(req, res, cid);
+      break;
+
+    // Handling polling
+    case this.url + '/xhr/poll':
+      this._doPoll(req, res, cid);
+      break;
+
+    // Handle keepalive
+    case this.url + '/xhr/keepalive':
+      this._doKeepAlive(req, res, cid);
       break;
   }
 });
 
-XHRTransport.prototype.doConnect = function(req, res) {
+XHRTransport.prototype._doConnect = function(req, res) {
   var self = this;
 
   // Generate a unique clientid.  We add a timestamp so that we can
@@ -200,12 +106,26 @@ XHRTransport.prototype.doConnect = function(req, res) {
   res.end(cid);
 
   // Prep the DC timeout for this connection
-  this.dcTimeouts[cid] = setTimeout(function() {
-    self.disconnect(con);
-  }, 1000 * 30); // 30 second
+  this._startDCTimeout(cid);
+};
+XHRTransport.prototype._doDisconnect = function(req, res, cid) {
+
+  // Begin the response right away
+  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
+                      'Cache-Control': 'no-cache'});
+
+  // Missing cid = danger will robinson
+  if (!cid) return res.end('cid');
+
+  // Do the disconnect
+  if (this.connections[cid])
+    this.disconnect(this.connections[cid]);
+
+  // Give the all clear
+  res.end('ok');
 };
 
-XHRTransport.prototype.doSend = function(req, res) {
+XHRTransport.prototype._doSend = function(req, res, cid) {
   var self = this;
 
   // Grab the data
@@ -213,32 +133,30 @@ XHRTransport.prototype.doSend = function(req, res) {
   req.on('data', function(c) { data += c });
   req.on('end', function() {
 
-    // We hold all our messages here, and only send them once they're
-    // all parsed.
+    // Being the response
+    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
+                        'Cache-Control': 'no-cache'});
+
+    // Make sure we've got a valid cid
+    if (!cid) return res.end('cid');
+    if (!self.connections[cid]) return res.end('dc');
+    var con = self.connections[cid];
+
+    // Parse out the messages
     var messages = [];
-
-    // Separate out the individual messages
     try {
-      while (data.length) {
 
-        // Parse out the message
-        var i = data.indexOf('|');
-        var length = parseInt(data.substr(0, i));
-        var message = data.substr(i + 1, length);
+      // First, use the message parser
+      var msgs = _messages.parse(data);
 
-        // Parse the message itself
-        var msg = parseMessage(message);
+      // Next we need to convert these into actual Message objects
+      for (var i=0; i<messages.length; i++)
+        messages.push(new Message(con, msgs[i].id, msgs[i].type, msgs[i].data));
 
-        // Queue the message
-        var con = self.connections[msg.cid];
-        messages.push(new Message(con, msg.mid, msg.type, msg.data));
-
-        // Prepare to read the next message
-        data = data.substr(i + 1 + length);
-      }
-    // We don't actually handle errors, unfortunately.  We just parse
-    // until a failure, and then ignore the rest.
-    } catch (err) {};
+    // We don't handle messages, unfortunately.  The messages list will
+    // always be valid and a parsing error will simply cause us to drop
+    // some messages, which is fine.
+    } catch (err) {}
 
     // Send the messages on to the connections
     for (var i=0; i<messages.length; i++) {
@@ -246,30 +164,53 @@ XHRTransport.prototype.doSend = function(req, res) {
         messages[i].connection.emit('message', messages[i]);
 
       // If there was an error while handling the message, ignore it
-      // and keep on sending.
+      // and keep on sending.  This way, an event handler can't stop
+      // everything be raising an uncaught exception.
       } catch (err) {}
     }
 
-    // Send a response to the client
-    res.writeHead(200, {'Cache-Control': 'no-cache'});
+    // Let the client know everything worked.
     res.end('ok');
 
+    // Reset the DC timeout if one's running
+    if (self._stopDCTimeout(cid))
+      self._startDCTimeout(cid);
   });
 };
 
-XHRTransport.prototype.doPoll = function(req, res) {
+XHRTransport.prototype._doPoll = function(req, res, cid) {
   var self = this;
 
-  // The DC functions
-  var wipeout = function() {
-    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'}); // `Gone`
+  // Make sure CID is valid
+  if (!cid) {
+    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
+                        'Cache-Control': 'no-cache'});
+    res.end('cid');
+    return;
+  }
+
+  // Make sure the connection is valid
+  var con = this.connections[cid];
+  if (!con) {
+    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
+                        'Cache-Control': 'no-cache'});
     res.end('dc');
-  };
+    return;
+  }
 
-  // The sending function
-  var send = function() {
+  // Wipe out the disconnect timeout
+  this._stopDCTimeout(cid);
 
-    var messages = Array.prototype.slice.call(arguments);
+  // If we have stuff to send, do it
+  if (con.pending.length) {
+
+    // Begin the response
+    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
+                        'Cache-Control': 'no-cache'});
+
+    // Grab the messages from the connection
+    var messages = con.pending;
+    con.pending = [];
 
     // We have to listen on close, as this will signify that we failed
     // to send successfully, and we should put the messages back into
@@ -279,101 +220,72 @@ XHRTransport.prototype.doPoll = function(req, res) {
     });
 
     // Serialize and send the messages
-    for (var i=0; i<messages.length; i++) {
-      var msg = serializeMessage(messages[i][0], messages[i][1]);
-      res.write(msg.length + '|' + msg);
-    }
+    res.end(_messages.stringify(messages));
 
-    // End the response
-    res.end('');
-
-    // Add a new DC timeout
-    self.dcTimeouts[con.cid] = setTimeout(function() {
-      self.disconnect(con);
-    }, 1000 * 30); // 30 seconds
-  };
+    // Start the DC timeout
+    this._startDCTimeout(cid);
 
 
-  // Fetch the query params
-  var params = querystring.parse(_url.parse(req.url).query);
-  if (!params || !params.cid) {
-    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8',
-                        'Cache-Control': 'no-cache'});
-    res.end('Missing cid query param');
-    return;
-  }
-
-  // Get the connection
-  var con = this.connections[params.cid];
-  if (!con) return wipeout();
-
-  // Wipe out the disconnect timeout
-  clearTimeout(this.dcTimeouts[con.cid]);
-  delete this.dcTimeouts[con.cid];
-
-  // Send a success header, so that the client knows it made the
-  // connection successfully
-  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
-                      'Cache-Control': 'no-cache'});
-
-  // If the connection has pending messages to send, do it
-  if (con.pending.length) {
-    var msgs = con.pending;
-    con.pending = [];
-    send.apply(this, msgs);
-
-  // Otherwise, wait for messages
+  // Otherwise, we need to delay the response by pushing this function
+  // curried.
   } else {
-    this.pollers[con.cid] = [send, function() { res.end('ok') }];
-    // If the request gets closed, nuke the poller
+    // Set up the curried form
+    var f = arguments.callee;
+    this.pollers[con.cid] = function() {
+      return f.call(self, req, res, cid);
+    };
+
+    // We have some cleanup to do if the connection closes prematurely
     req.on('close', function() {
+
+      // Remove from pollers
       delete self.pollers[con.cid];
-      req.removeListener('close', arguments.callee);
+
+      // Remove this handler so as not to leak
+      req.removeListeners('close', arguments.callee);
+
+      // Start the DC timeout again
+      self._startDCTimeout(cid);
     });
   }
 };
+XHRTransport.prototype._doKeepAlive = function(req, res, cid) {
 
-XHRTransport.prototype.doDisconnect = function(req, res) {
-  var self = this;
+  // Restart the dc timeout
+  if (this._stopDCTimeout(cid))
+    this._startDCTimeout(cid);
 
-  // The body just contains the client ID, so fetch that
-  var cid = '';
-  req.on('data', function(c) { cid += c });
-  req.on('end', function() {
-
-    // Shut down the connection
-    if (self.connections[cid])
-      self.disconnect(self.connections[cid]);
-
-    // Return with success
-    res.writeHead(200, {'Cache-Control': 'no-cache'});
-    res.end('ok');
-  });
+  // Return success
+  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
+                      'Cache-Control': 'no-cache'});
+  res.end('ok');
 };
 
 // Notifies the transport that the specified client has data to send.
 XHRTransport.prototype.requestSend = function(con) {
   var self = this;
 
-  // If there's an active long poll, fill it up.
+  // We wait till the next tick in order to batch messages and reduce
+  // the number of polling requests required.
   process.nextTick(function() {
+
+    // If there's a live poller we want to use that to send the message
+    // right away.
     if (self.pollers[con.cid]) {
-      var msgs = con.pending;
-      con.pending = [];
-      self.pollers[con.cid][0].apply(self, msgs);
+      self.pollers[con.cid]();
       delete self.pollers[con.cid];
     }
+    // Otherwise, we just just kick back and wait for then ext poll
+    // request.  This will automatically pull data from the pending
+    // messages, and all is well.
   });
-
-  // Otherwise, we just kick back and wait for the next connection.
-
 };
 // Disconnects a connection
 XHRTransport.prototype.disconnect = function(con) {
 
   // Disconnect a waiting poller
   if (this.pollers[con.cid])
-    this.pollers[con.cid][1]();
+    this.pollers[con.cid]();
 
   // Delete the connection from the list
   delete this.connections[con.cid];

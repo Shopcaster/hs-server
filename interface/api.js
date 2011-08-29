@@ -286,7 +286,7 @@ var connection = new EventEmitter();
     if (ready) {
       callback();
     } else {
-      if (!con.connected) con.connect();
+      con.connect();
       inits.push(callback);
     }
   };
