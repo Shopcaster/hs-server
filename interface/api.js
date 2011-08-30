@@ -286,7 +286,7 @@ var connection = new EventEmitter();
     if (ready) {
       callback();
     } else {
-      if (!con.connected) con.connect();
+      con.connect();
       inits.push(callback);
     }
   };
@@ -460,11 +460,6 @@ var connection = new EventEmitter();
   zz.auth.curUser = function() {
     return curUser;
   };
-
-  // When the browser window closes do a disconnect.  This will
-  // force the server to treat this user as offline, which makes
-  // presence function better.
-  window.onbeforeunload = connection.disconnect;
 })();
 
 //

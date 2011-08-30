@@ -49,7 +49,7 @@ Connection.prototype.send = function(type, data) {
     throw new Error('Connection is disconnected');
 
   // Add the message to the pending list
-  this.pending.push([type, data]);
+  this.pending.push({type: type, data: data});
 
   // If the pending list was previously empty, tell the transport
   // that it should push data.

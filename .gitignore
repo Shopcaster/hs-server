@@ -2,4 +2,5 @@ node_modules/
 lsettings.json
 *.pyc
 fabfile.pyc
+npm-debug.log
 
