@@ -63,9 +63,14 @@ var create = function(client, data, callback, errback) {
             listing: listing
           });
 
+          // If it's from Kijiji we have to repond in a roundabout fashion
+          var to = convo.iskj
+            ? to = '"Kijiji Reply (from ' + convo.email + ')" <post@kjiji.ca>'
+            : convo.email;
+
           // Send it
           email.send('Email Response',                  //type
-                     convo.email,                       //to
+                     to,                                //to
                      'Re: ' + convo.subject,            //subject
                      body,                              //body
                      'Hipsell <' + listing.email + '>', //from

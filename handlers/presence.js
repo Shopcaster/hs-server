@@ -33,8 +33,12 @@ var sub = function(client, data, callback, errback) {
 
 var unsub = function(client, data, callback, errback) {
 
-  presence.events.removeListener(data.user, client.state.presenceSubs[data.user]);
-  delete client.state.presenceSubs[data.user];
+  if (client.state.presenceSubs[data.user]) {
+    presence.events.removeListener(data.user, client.state.presenceSubs[data.user]);
+    delete client.state.presenceSubs[data.user];
+  } else {
+    console.log('Warning: trying to unsub-presence with no actual sub');
+  }
 
   callback(true);
 };

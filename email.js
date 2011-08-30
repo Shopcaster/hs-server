@@ -104,8 +104,6 @@ var send = function(type, to, subject, body, from, inReplyTo) {
   //
   // We also don't want to make the API call if we don't have email
   // sending enabled, as this will skew data.
-  console.log(type, disabled, settings.analytics);
-  console.log(settings);
   if (type && settings.analytics)
     mixpanel.trackEmail(type, to, body, doit);
   // If no type was sent we can forego tracking.
