@@ -34,7 +34,7 @@ XHRTransport.prototype._startDCTimeout = function(cid) {
   // Set the timeout
   this.dcTimeouts[cid] = setTimeout(function() {
     self.disconnect(self.connections[cid]);
-  }, 10 * 60 * 1000); // 10m
+  }, 1 * 60 * 1000); // 1m
   return true;
 };
 XHRTransport.prototype._stopDCTimeout = function(cid) {
