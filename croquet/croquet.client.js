@@ -325,27 +325,31 @@ var croquet = {};
     this._stopPollLoop();
     this._stopSendLoop();
 
-    // Do a periodic empty send to force the keep alive
-    this._kaTimeout = setTimeout(function() {
-      delete self._kaTimeout;
-
-      this._ka = this._xhr('GET', '/xhr/send?cid=' + this._cid, '{messages: []}', function(xhr) {
-        delete self._ka;
+    // The pause functionality
+    var p = function() {
+      delete self._pauseTimeout;
+      self._pause = self._xhr('GET', '/xhr/pause?cid=' + this._cid, function(xhr) {
+        delete self._pause;
       });
+    };
 
-    }, 1 * 60 * 1000); // Once every minute
+    // Bootstrap the pause!
+    p();
+
+    // Do a periodic empty send to force the keep alive
+    this._pauseTimeout = setTimeout(p, 1 * 60 * 1000); // Once every minute
   }
   Connection.prototype.resume = function() {
     if (this.status != 'paused') return;
 
     // Remove the keep alive stuff
-    if (this._kaTimeout) {
-      clearTimeout(this._kaTimeout);
-      delete this._kaTimeout;
+    if (this._pauseTimeout) {
+      clearTimeout(this._pauseTimeout);
+      delete this._pauseTimeout;
     }
-    if (this._ka) {
-      this._ka.abort();
-      delete this._ka;
+    if (this._pause) {
+      this._pause.abort();
+      delete this._pause;
     }
 
     // Resume the connection

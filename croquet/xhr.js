@@ -13,6 +13,7 @@ var XHRTransport = function(server, url) {
   this.dcTimeouts = {};
   this.curId = 0;
   this.pollers = {};
+  this.paused = {};
 
   var self = this;
 
@@ -79,8 +80,8 @@ XHRTransport.prototype.request = cors.wrap(function(req, res) {
       break;
 
     // Handle keepalive
-    case this.url + '/xhr/keepalive':
-      this._doKeepAlive(req, res, cid);
+    case this.url + '/xhr/pause':
+      this._doPause(req, res, cid);
       break;
   }
 });
@@ -203,6 +204,13 @@ XHRTransport.prototype._doPoll = function(req, res, cid) {
     return;
   }
 
+  // Unpause us if we're paused
+  if (this.paused[cid]) {
+    delete this.paused[cid];
+    this.emit('resume', con);
+    con.emit('resume');
+  }
+
   // Wipe out the disconnect timeout
   this._stopDCTimeout(cid);
 
@@ -254,7 +262,24 @@ XHRTransport.prototype._doPoll = function(req, res, cid) {
     });
   }
 };
-XHRTransport.prototype._doKeepAlive = function(req, res, cid) {
+XHRTransport.prototype._doPause = function(req, res, cid) {
+
+  // Make sure the cid actually points to something valid
+  var con = this.connections[cid];
+  if (!con) {
+    res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
+                        'Cache-Control': 'no-cache'});
+    res.end('dc');
+  }
+
+  // Ensure the paused flag is set on this cid
+  if (!this.paused[cid]) {
+    // Set it
+    this.paused[cid] = true;
+    // Fire the paused event on the connection
+    this.emit('pause', con);
+    con.emit('pause');
+  }
 
   // Restart the dc timeout
   if (this._stopDCTimeout(cid))
@@ -288,12 +313,15 @@ XHRTransport.prototype.requestSend = function(con) {
 // Disconnects a connection
 XHRTransport.prototype.disconnect = function(con) {
 
+  // Delete the connection from the list
+  delete this.connections[con.cid];
+
+  // Unpause the connection if it happens to be paused
+  delete this.paused[cid];
+
   // Disconnect a waiting poller
   if (this.pollers[con.cid])
     this.pollers[con.cid]();
-
-  // Delete the connection from the list
-  delete this.connections[con.cid];
   delete this.pollers[con.cid];
 
   // Fire the relevant events

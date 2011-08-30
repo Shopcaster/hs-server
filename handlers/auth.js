@@ -255,6 +255,14 @@ var auth = function(client, data, callback, errback, force) {
         }
       });
 
+      // On pause/resume, update presence
+      client.on('pause', function() {
+        presence.away(client);
+      });
+      client.on('resume', function() {
+        presence.online(client);
+      });
+
       // Notify success!
       callback({
         password: auth.password,

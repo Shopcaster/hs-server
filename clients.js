@@ -50,6 +50,13 @@ init = function(server, handler) {
     con.on('disconnect', function() {
       client.emit('disconnect');
     });
+    //update presence on pause/resume
+    con.on('pause', function() {
+      client.emit('pause');
+    });
+    con.on('resume', function() {
+      client.emit('resume');
+    });
   });
 };
 
