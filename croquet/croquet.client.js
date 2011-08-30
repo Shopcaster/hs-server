@@ -307,11 +307,13 @@ var croquet = {};
     }
 
     // Otherwise, we have to do an actual disconnect
-    this._disconnect = this._xhr('GET', '/xhr/disconnect?cid=' + this._cid, function(xhr) {
+    var cid = this._cid; // Cache the cid so we only call _setDisconnected once per cid
+    this._disconnect = this._xhr('GET', '/xhr/disconnect?cid=' + cid, function(xhr) {
       delete self._disconnect;
 
-      // Do the DC cleanup
-      self._setDisconnected();
+      // Do the DC cleanup if nobody else did.
+      if (self._cid == cid)
+        self._setDisconnected();
     });
   };
   Connection.prototype.send = function(id, type, data) {
@@ -392,7 +394,11 @@ var croquet = {};
   Connection.prototype._startPollLoop = function() {
     var self = this;
 
-    this._poll = this._xhr('GET', '/xhr/poll?cid=' + this._cid, function(xhr) {
+    // Cache the cid so that if the poll requests returns DC, we can tell
+    // if we've already done the disconnect logic for this cid.
+    var cid = this._cid;
+
+    this._poll = this._xhr('GET', '/xhr/poll?cid=' + cid, function(xhr) {
       delete self._poll;
 
       // Handle success
@@ -402,9 +408,13 @@ var croquet = {};
         self._pollAttempts = 0;
 
         // If the responsetext is just 'dc', we need to do a disconnect
-        // and bail out.  Otherwise, we continue as per usual.
+        // and bail out.  Otherwise, we just bail, knowing that some
+        // other code dealt with the DC.
         if (xhr.responseText == 'dc') {
-          return self._setDisconnected();
+          if (cid == self._cid)
+            self._setDisconnected();
+
+          return;
         }
 
         // Parse messages and raise the events
