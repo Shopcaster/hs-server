@@ -101,7 +101,7 @@ var parse = function(str) {
     ret.push(new Message(msgs[i].type, CDF.from(msgs[i].data), msgs[i].id));
 
   // And we're done
-  return ret
+  return ret;
 };
 
 exports.parse = parse;

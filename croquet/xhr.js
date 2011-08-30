@@ -270,6 +270,7 @@ XHRTransport.prototype._doPause = function(req, res, cid) {
     res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8',
                         'Cache-Control': 'no-cache'});
     res.end('dc');
+    return;
   }
 
   // Ensure the paused flag is set on this cid

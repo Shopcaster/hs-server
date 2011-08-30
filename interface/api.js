@@ -276,9 +276,27 @@ var connection = new EventEmitter();
     holdDisconnect = true;
     con.disconnect();
   };
+  connection.pause = function() {
+    con.pause();
+  };
+  connection.resume = function() {
+    con.resume();
+  };
 
   // Register the message handler
   con.on('message', messaging.handleMessage);
+
+  // Forward pause/resume events
+  con.on('pause', function() {
+    if (zz.logging.connection)
+      log('Pause');
+    connection.emit('pause');
+  });
+  con.on('resume', function() {
+    if (zz.logging.connection)
+      log('Resume');
+    connection.emit('resume');
+  });
 
   // Our initialization/bootstrap function.
   zz.init = function(callback) {
@@ -493,18 +511,36 @@ zz.recordError = function(err) {
   var setOffline = function() {
     zz.presence.status = 'offline';
     zz.presence.emit('me', 'offline');
+
+    // If the current user is me, send the presence update for them
+    var u = zz.auth.curUser();
+    if (u && u._id && subs.hasOwnProperty(u._id))
+      zz.presence.emit(u._id, 'offline');
   };
   var setOnline = function() {
     zz.presence.status = 'online';
     zz.presence.emit('me', 'online');
+
+    // If the current user is me, send the presence update for them
+    var u = zz.auth.curUser();
+    if (u && u._id && subs.hasOwnProperty(u._id))
+      zz.presence.emit(u._id, 'online');
   };
   var setAway = function() {
-    setOffline();
+    zz.presence.status = 'away';
+    zz.presence.emit('me', 'away');
+
+    // If the current user is me, send the presence update for them
+    var u = zz.auth.curUser();
+    if (u && u._id && subs.hasOwnProperty(u._id))
+      zz.presence.emit(u._id, 'away');
   };
 
   // Set up events
   connection.on('disconnect', setOffline);
   connection.on('connect', setOnline);
+  connection.on('pause', setAway);
+  connection.on('resume', setOnline);
 
   zz.presence.offline = function() {
     if (zz.presence.status == 'offline') return;
@@ -513,12 +549,16 @@ zz.recordError = function(err) {
 
   zz.presence.online = function() {
     if (zz.presence.status == 'online') return;
-    connection.connect();
+    if (zz.presence.status == 'away')
+      connection.resume();
+    else
+      connection.connect();
   };
 
   zz.presence.away = function() {
     // Eventually we'll add real away support
-    zz.presence.offline();
+    if (zz.presence.status == 'away') return;
+    connection.pause();
   };
 
   // Register the presence handler

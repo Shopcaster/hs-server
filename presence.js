@@ -59,7 +59,7 @@ var away = function(client) {
   away[uid] = true;
 
   //fire the event for the userid
-  events.emit(uid, UserState.online);
+  events.emit(uid, UserState.away);
 };
 
 var getState = function(uid) {

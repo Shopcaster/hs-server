@@ -131,7 +131,7 @@ var croquet = {};
       ret.push(new Message(msgs[i].type, CDF.from(msgs[i].data), msgs[i].id));
 
     // And we're done
-    return ret
+    return ret;
   };
 
   var Connection = function(url) {
@@ -146,7 +146,7 @@ var croquet = {};
     // Add an event listeners to onbeforeunload so that we have a chance
     // to disconnect before the browser closes.
     var self = this;
-    /*window.addEventListener('beforeunload', function() {
+    window.addEventListener('beforeunload', function() {
 
       // Set the status to disconnected
       self.status = 'disconnected';
@@ -174,7 +174,7 @@ var croquet = {};
           xhr.send();
         }
       }
-    }, false);*/
+    }, false);
   };
   Connection.prototype = new EventEmitter();
   Connection.prototype.constructor = Connection;
@@ -288,8 +288,12 @@ var croquet = {};
     var self = this;
 
     // If we're not connected or connecting, there's no work to do.
-    if (this.status != 'connected' && this.status != 'connecting')
+    if (this.status != 'connected' && this.status != 'connecting' && this.status != 'paused')
       return;
+
+    // Go back online if we're paused
+    if (this.status == 'paused')
+      this.resume();
 
     // Mark us as disconnecting
     this.status = 'disconnecting';
@@ -311,13 +315,14 @@ var croquet = {};
     });
   };
   Connection.prototype.send = function(id, type, data) {
-    if (this.status != 'connected')
+    if (this.status != 'connected' && this.status != 'paused')
       throw new Error('Cannot send messages on a disconnected connection');
 
     this.pending.push(new Message(type, data, id));
   };
   Connection.prototype.pause = function() {
-    if (this.status == 'paused') return;
+    if (this.status == 'paused' || this.status == 'disconnecting' || this.status == 'disconnected')
+      return;
 
     var self = this;
 
@@ -326,10 +331,14 @@ var croquet = {};
     this._stopSendLoop();
 
     // The pause functionality
+    var didEmit = false;
     var p = function() {
       delete self._pauseTimeout;
-      self._pause = self._xhr('GET', '/xhr/pause?cid=' + this._cid, function(xhr) {
+      self._pause = self._xhr('GET', '/xhr/pause?cid=' + self._cid, function(xhr) {
         delete self._pause;
+
+        if (!didEmit) self.emit('pause');
+        didEmit = true;
       });
     };
 
@@ -356,6 +365,9 @@ var croquet = {};
     this.status = 'connected';
     this._startPollLoop();
     this._startSendLoop();
+
+    // Emit the relevant event
+    this.emit('resume');
   }
 
 
@@ -363,6 +375,8 @@ var croquet = {};
   // Misc
   //////////////////////////////////
   Connection.prototype._setDisconnected = function() {
+    if (this.status == 'disconnected') return;
+
     delete this._cid;
     this.status = 'disconnected';
     this._stopSendLoop();
