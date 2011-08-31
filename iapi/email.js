@@ -38,8 +38,9 @@ var serve = function(req, res) {
 
     // Check to see if this is from Craigslist or Kijiji
     var fromCraig = !! fields.sender.match(/noreply@craigslist.org/);
-    var fromKijiji = !! fields.sender.match(/donotreply@kijiji.ca/)
-                     || !! fields.from.match(/Kijiji Canada/);
+    var fromKijiji = !! fields.sender.match(/@kijiji.ca/)
+                     || !! fields.from.match(/Kijiji Canada/)
+                     || !! fields.from.match(/@kijiji.ca/);
 
     // If it looks like a kijiji or craigslist activation email, send
     // it to crosspost@hipsell.com and finish.
@@ -49,9 +50,16 @@ var serve = function(req, res) {
                  'crosspost@hipsell.com',
                  'Activation Email For: ' + fields.subject,
                  '<h4>Original Sender: ' + fields.from +
-                 '</h4><p>' + (fields['body-html'] || fields['body-html']) + '</p>');
+                 '</h4><p>' + (fields['body-html'] || fields['body-plain']) + '</p>');
 
       // Bail out.
+      return doResp(res, 200, 'OK');
+    // Handle ad removed messages by forwarding them to the crossposter.
+    } else if (fromKijiji && fields.subject.match(/^Your Kijiji Ad was removed/)) {
+      email.send(null,
+                 'crosspost@hipsell.com',
+                 'Kijiji Ad Removed!',
+                 '<p>' + (fields['body-html'] || fields['body-plain']) + '</p>');
       return doResp(res, 200, 'OK');
     }
 
@@ -79,9 +87,17 @@ var serve = function(req, res) {
         return;
       }
 
+      // Kijiji email replies are a little odd, so we have to handle
+      // them as special cases.
+      var isKijijiReply = fromKijiji && !!fields.from.match(/^"Kijiji Reply/);
+
       // Try to fetch the auth object for this user
       var auth = new models.Auth();
-      auth._id = fields.from.match(/[^\s<"]+@[^\s>"]+/)[0];
+      if (isKijijiReply)
+        auth._id = fields.from.match(/ (\S*)\)"/)[1];
+      else
+        auth._id = fields.from.match(/[^\s<"]+@[^\s>"]+/)[0];
+
       db.get(auth, function(err, exists) {
 
         // Treat error the same as a not exists case
@@ -143,14 +159,18 @@ var serve = function(req, res) {
             if (!message.creator) message.email = auth._id;
             message.convo = convo._id;
             message.offer = null;
-            message.message = emailUtil.preprocess(fields['body-plain'], true);
-            message.message = emailUtil.chopPlain(message.message);
+            if (isKijijiReply) {
+              message.message = emailUtil.stripKijijiReply(fields['body-plain']);
+            } else {
+              message.message = emailUtil.preprocess(fields['body-plain'], true);
+              message.message = emailUtil.chopPlain(message.message);
+            }
             db.apply(message);
             // TODO - check out Mailgun's sig/quote stripping
             //        functionality
 
             // Send a notification to the listing owner.
-            nots.send(listing.creator, nots.Types.NewMessage, fs, listing);
+            nots.send(listing.creator, nots.Types.NewMessage, message, listing);
 
             // Fin.
           };
@@ -167,6 +187,9 @@ var serve = function(req, res) {
               convo.email = auth._id;
               convo.subject = fields.subject;
             }
+            // Mark it as coming from Kijiji if it's a Kijiji reply
+            if (isKijijiReply)
+              convo.iskj = true;
             db.apply(convo, finish);
           } else {
             finish();

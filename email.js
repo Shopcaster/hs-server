@@ -104,7 +104,7 @@ var send = function(type, to, subject, body, from, inReplyTo) {
   //
   // We also don't want to make the API call if we don't have email
   // sending enabled, as this will skew data.
-  if (type && !disabled && settings.analytics)
+  if (type && settings.analytics)
     mixpanel.trackEmail(type, to, body, doit);
   // If no type was sent we can forego tracking.
   else
@@ -160,12 +160,10 @@ var makeRoute = function(email, dest) {
     return email + mgSettings.server;
   }
 
-  // Add suffixes specific to server mode, to ensure uniqueness.
-  if (mode == 'production') {
-    // Do nothing for production, so that they're the prettiest.
-  } else if (mode == 'staging') {
-    email = email + '-stg';
-  }
+  // Add suffixes to any server mode other than production, to prevent
+  // clobbering the routes.
+  if (mode != 'production')
+    email = email + '-' + mode;
 
   // Add the domain to the email address to use.
   email = email + '@' + mgSettings.server;

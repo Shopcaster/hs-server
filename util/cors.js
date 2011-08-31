@@ -9,7 +9,7 @@ var wrap = function(f) {
       res.writeHead(200, {'Access-Control-Allow-Origin': '*',
                           'Access-Control-Allow-Method': req.headers['access-control-request-method'],
                           'Access-Control-Allow-Headers': req.headers['access-control-request-headers']});
-      res.end('');
+      res.end();
       return;
     }
 

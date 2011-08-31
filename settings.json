@@ -34,6 +34,11 @@
     "noemail": false,
     "phoneNumbers": [ {"+17733624348": "(773) 362-4348"} ]
   },
+  "development": {
+    "serverUri": "http://d.hipsell.com:8080",
+    "clientUri": "http://d.hipsell.com",
+    "noemail": false
+  },
   "test": {
     "serverUri": "http://127.0.0.1:7654",
     "clientUri": false

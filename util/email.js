@@ -50,5 +50,31 @@ var chopPlain = function(email) {
   return output.join('\n');
 };
 
+var stripKijijiReply = function(email) {
+  // Split into lines for easier processing
+  var lines = email.split(/\r?\n/);
+
+  // The lines of content we want
+  var content = [];
+
+  // Push all lines between 'From: ...' and 'You can respond to ...'
+  var on = false;
+  for (var i=0; i<lines.length; i++) {
+    var line = lines[i];
+    if (on && line) {
+      if (line.match(/^You can respond to /))
+        break;
+      else if (line.length > 0)
+        content.push(line);
+    } else if (line.match(/^From: /)) {
+      on = true;
+    }
+  }
+
+  // Merge the lines again and return the message
+  return content.join('\n');
+};
+
 exports.preprocess = preprocess;
 exports.chopPlain = chopPlain;
+exports.stripKijijiReply = stripKijijiReply;
