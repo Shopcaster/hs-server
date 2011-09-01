@@ -62,18 +62,41 @@ var signup = function(req, res) {
   }
 
   // Read the body
-  var data = '';
-  req.on('data', function(c) { data += c });
+  var email = '';
+  req.on('data', function(c) { email += c });
   req.on('end', function() {
 
     // Make sure we actually have an email in the body data
-    if (!data) {
+    if (!email || email.indexOf('@') == -1) {
       res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
       res.end('Bad Request');
       return;
     }
 
-    // TODO - actually do the login
+    // Check to see if the user exists
+    auth.authUser(email, '', function(err, badPw, obj) {
+
+      // Handle database errors with a 500
+      if (err) {
+        res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
+        res.end(err.message || err);
+        return;
+      }
+
+      // If we were passed back an auth object, we need to tell the
+      // user that the email has already been registered.
+      if (obj) {
+        res.writeHead(409, {'Content-Type': 'text/plain; charset=utf-8'});
+        res.end('Email already registered');
+        return;
+      }
+
+      // Otherwise, we're ok to sign up the user
+      auth.signup(email, function(obj, user) {
+        res.writeHead(201, {'Content-Type': 'text/plain; charset=utf-8'});
+        res.end(obj.password);
+      });
+    });
   });
 };
 
