@@ -105,4 +105,9 @@ var serve = cors.wrap(function(req, res) {
   });
 });
 
+var serve2 = function(req, res) {
+  // TODO...
+};
+
 exports.serve = serve;
+exports.serve2 = serve2;

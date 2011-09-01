@@ -9,7 +9,9 @@ var serve = function(req, res) {
   var url = req.url.substr(6);
 
   if (url.match(/^listings/)) return listings.serve(req, res);
+  if (url.match(/^listing/)) return listings.serve2(req, res);
   if (url.match(/^auth/)) return auth.serve(req, res);
+  if (url.match(/^signup/)) return auth.signup(req, res);
   if (url.match(/^email\/\w+\/\d+$/)) return email.serve(req, res);
   if (url.match(/^social\/share/)) return share.serve(req, res);
   if (url.match(/^social\/connect/)) return connect.serve(req, res);

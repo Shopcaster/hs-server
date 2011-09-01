@@ -8,10 +8,12 @@ var sub = function(client, data, callback, errback) {
     client.state.presenceSubs = {};
 
     //clear all presence subscriptions when the user disconnects
-    for (var i in client.state.presenceSubs) if (client.state.presenceSubs.hasOwnProperty(i)) {
-      unsub(client, {user: i}, function() {}, function() {});
-      delete client.state.presenceSubs;
-    }
+    client.on('disconnect', function() {
+      for (var i in client.state.presenceSubs) if (client.state.presenceSubs.hasOwnProperty(i)) {
+        unsub(client, {user: i}, function() {}, function() {});
+        delete client.state.presenceSubs;
+      }
+    });
   }
 
   //if the client is already sub'd on this presence, bail

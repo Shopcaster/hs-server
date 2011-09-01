@@ -6,6 +6,8 @@ var querystring = require('querystring'),
     _messages = require('./messages'),
     cors = require('../util/cors');
 
+// TODO - proper shutdown, and shutdown()
+
 var XHRTransport = function(server, url) {
   this.server = server;
   this.url = url;
@@ -83,8 +85,66 @@ XHRTransport.prototype.request = cors.wrap(function(req, res) {
     case this.url + '/xhr/pause':
       this._doPause(req, res, cid);
       break;
+
+    // Special debug endpoint
+    case this.url + '/xhr/_debug':
+      this._doDebug(req, res);
+      break;
   }
 });
+
+XHRTransport.prototype._doDebug = function(req, res) {
+  var output = '' +
+  '<!doctype html><html>' +
+    '<head>' +
+      '<title>Croquet Debug Info</title>' +
+      '<style>' +
+        'th, td {border: 1px solid black; padding: 3px;}' +
+      '</style>' +
+    '</head>' +
+    '<body>' +
+      '<h2>Basic Info</h2>' +
+      '<h4>Base URL: ' + this.url + '</h4>' +
+      '<h2>Active Connections</h2>' +
+      '<table>' +
+        '<tr>' +
+          '<th>Connection ID</th>' +
+          '<th>State</th>' +
+          '<th>Connection Duration</th>' +
+          '<th>Has Active Poller</th>' +
+          '<th>Has Active DC Timeout</th>' +
+        '</tr>';
+
+  var td = function(str) {
+    output += '<td>' + str + '</td>';
+  };
+  for (var i in this.connections) if (this.connections.hasOwnProperty(i)) {
+    output += '<tr>';
+
+    // CID
+    td(i);
+    // State
+    td(this.paused[i] ? 'Paused' : 'Online');
+    // Connection Duration
+    td(((+new Date()) - parseInt(i.split(':')[1])) / (1000 * 60) + ' minutes');
+    // Has Active Poller
+    td(this.pollers[i] ? 'Yes' : 'No');
+    // Has Active DC Timeout
+    td(this.dcTimeouts[i] ? 'Yes' : 'No');
+
+    output += '</tr>';
+  }
+
+
+  output += '' +
+      '</table>' +
+    '</body>' +
+  '</html>';
+
+  // Simply write the table to the output
+  res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+  res.end(output);
+};
 
 XHRTransport.prototype._doConnect = function(req, res) {
   var self = this;
