@@ -3,7 +3,7 @@ var EventEmitter = require('events').EventEmitter,
 
 // Transports
 var xhr = require('./xhr');
-var udp = require('./udp');
+//var udp = require('./udp');
 
 var Croquet = function(server, url) {
   this.server = server;
@@ -13,7 +13,7 @@ var Croquet = function(server, url) {
   // Initialize xhr transport
   this.transports.push(new xhr.Transport(server, url));
   // Initialize udp transport
-  this.transports.push(new udp.Transport());
+  //this.transports.push(new udp.Transport());
 
   // Listen for connections
   var self = this;
