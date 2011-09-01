@@ -16,7 +16,7 @@ var mailgun = require('mailgun'),
 var mgSettings = {
   apiKey: 'key-61mtr1g-$cdqvb8_v4',
   sender: 'Hipsell <feedback@hipsell.com>',
-  server: 'hipsell.me'
+  server: 'hipsell.net'
 };
 
 // Our Mailgun library requires an object to be instantiated, and all

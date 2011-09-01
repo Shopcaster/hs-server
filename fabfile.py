@@ -21,6 +21,10 @@ pulls = {
   'staging': 'git pull origin master',
   'dev': 'git pull origin develop'
 }
+users = {
+  'production': 'web',
+  'staging': 'web'
+}
 
 @task
 def deploy(mode):
@@ -29,7 +33,11 @@ def deploy(mode):
     raise Error('Bad mode %s' % mode)
 
   # Set the host lists
-  with settings(host_string=','.join(hosts[mode])):
+  kwargs = {}
+  kwargs['host_string'] = ','.join(hosts[mode])
+  if mode in users:
+    kwargs['user'] = users[mode]
+  with settings(**kwargs):
 
     # Do the deploy
     with cd(locations[mode]):
