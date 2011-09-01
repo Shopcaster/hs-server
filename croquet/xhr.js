@@ -6,6 +6,8 @@ var querystring = require('querystring'),
     _messages = require('./messages'),
     cors = require('../util/cors');
 
+// TODO - proper shutdown, and shutdown()
+
 var XHRTransport = function(server, url) {
   this.server = server;
   this.url = url;

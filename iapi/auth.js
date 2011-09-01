@@ -2,7 +2,6 @@ var querystring = require('querystring'),
     cors = require('../util/cors'),
     auth = require('../handlers/auth');
 
-
 var serve = cors.wrap(function(req, res) {
 
   //only serve up GETs, since this endpoint just /checks/ auth
@@ -53,4 +52,30 @@ var serve = cors.wrap(function(req, res) {
 
 });
 
+var signup = function(req, res) {
+
+  // Expect a POST
+  if (req.method != 'POST') {
+    res.writeHead(405, {'Content-Type': 'text/html; charset=utf-8'});
+    res.end('Method Not Allowed');
+    return;
+  }
+
+  // Read the body
+  var data = '';
+  req.on('data', function(c) { data += c });
+  req.on('end', function() {
+
+    // Make sure we actually have an email in the body data
+    if (!data) {
+      res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
+      res.end('Bad Request');
+      return;
+    }
+
+    // TODO - actually do the login
+  });
+};
+
 exports.serve = serve;
+exports.signup = signup;
