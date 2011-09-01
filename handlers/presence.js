@@ -13,7 +13,7 @@ var sub = function(client, data, callback, errback) {
         unsub(client, {user: i}, function() {}, function() {});
         delete client.state.presenceSubs;
       }
-    }
+    });
   }
 
   //if the client is already sub'd on this presence, bail
