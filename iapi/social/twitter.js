@@ -16,12 +16,17 @@ var api = function(auth, path, method, data, callback) {
   if (data)
     headers = {'Content-Length': Buffer.byteLength(data)};
 
+  // Build our oauth token
   var token = undefined;
   if (auth && auth.twitter_token && auth.twitter_secret)
     token = new oauth.Token(auth.twitter_token, auth.twitter_secret);
 
+  // Force JSON mode
+  path = path.split('?');
+  path = path[0] + '.json' + (path.length > 1 ? '?' + path[1] : '');
+
   var options = {
-    path: path + '.json',
+    path: path,
     method: method,
     headers: headers,
     token: token
@@ -164,4 +169,5 @@ var callback = function(req, res) {
 };
 
 exports.connect = connect;
+exports.api = api;
 exports.callback = callback;

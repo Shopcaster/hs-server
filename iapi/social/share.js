@@ -17,7 +17,7 @@ var facebook = function(auth, listing, reauth, success, fail) {
   // redirecting to the Facebook connect URL, and specifying the share
   // URL (with all the relevant data) as the return url.
   if (!auth.fb)
-    reauth();
+    return reauth();
 
   // Prepare the wall post
   var data = {};
@@ -59,7 +59,7 @@ var twitter = function(auth, listing, reauth, success, fail) {
   // redirecting to the Twitter connect URL, and specifying the share
   // URL (with all the relevant data) as the return url.
   if (!auth.twitter_token || !auth.twitter_secret)
-    reauth();
+    return reauth();
 
   // Prepare the tweet
   var data = {};
@@ -84,25 +84,22 @@ var twitter = function(auth, listing, reauth, success, fail) {
   data = querystring.stringify(data);
 
   // Post the tweet
-  _twitter.api(auth, '/1/statuses/update?' + data, 'POST', null, function(err, result) {
+  _twitter.api(auth, '/1/statuses/update', 'POST', data, function(err, result) {
 
     // Handle errors
     switch(err) {
 
       // No problems
       case undefined:
-        success();
-        break;
+        return success();
 
       // Bad auth
       case 401:
-        reauth();
-        break;
+        return reauth();
 
       // Some other error we can't recover from
       default:
-        fail();
-        break;
+        return fail();
     }
   });
 
