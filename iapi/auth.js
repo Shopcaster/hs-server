@@ -93,7 +93,8 @@ var signup = function(req, res) {
 
       // Otherwise, we're ok to sign up the user
       auth.signup(email, function(obj, user) {
-        res.writeHead(201, {'Content-Type': 'text/plain; charset=utf-8'});
+        res.writeHead(201, {'Content-Type': 'text/plain; charset=utf-8',
+                            'Content-Length': Buffer.byteLength(obj.password)});
         res.end(obj.password);
       });
     });
