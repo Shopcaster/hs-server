@@ -1,4 +1,5 @@
 var querystring = require('querystring'),
+    formidable = reqiure('formidable'),
     cors = require('../util/cors'),
     models = require('../models'),
     listings = require('../handlers/data-handling/listing'),
@@ -105,9 +106,31 @@ var serve = cors.wrap(function(req, res) {
   });
 });
 
-var serve2 = function(req, res) {
-  // TODO...
-};
+var serve2 = cors.wrap(function(req, res) {
+
+  // We only serve POSTs here.
+  if (req.method != 'POST') {
+    res.writeHead(405, {'Content-Type': 'text/html; charset=utf-8'});
+    res.end('Method Not Allowed');
+    return;
+  }
+
+  // Parse the incoming form
+  var form = new formidable.IncomingForm();
+  form.parse(req, function(err, fields, files) {
+
+    // Make sure all the required data is there
+    if (!fields.email || !fields.password || !fields.description
+    || !fields.price || !fields.latitude || !fields.longitude
+    || !files.photo) {
+      res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+      res.end('Missing required field');
+    }
+
+
+
+  });
+});
 
 exports.serve = serve;
 exports.serve2 = serve2;
