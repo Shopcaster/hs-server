@@ -1,5 +1,5 @@
 var querystring = require('querystring'),
-    formidable = reqiure('formidable'),
+    formidable = require('formidable'),
     cors = require('../util/cors'),
     models = require('../models'),
     listings = require('../handlers/data-handling/listing'),
@@ -123,11 +123,73 @@ var serve2 = cors.wrap(function(req, res) {
     if (!fields.email || !fields.password || !fields.description
     || !fields.price || !fields.latitude || !fields.longitude
     || !files.photo) {
-      res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+      res.writeHead(400, {'Content-Type': 'text/plain; charset=utf-8'});
       res.end('Missing required field');
     }
 
+    // Make sure auth is OK
+    auth.authUser(fields.email, fields.password, function(err, badPw, obj) {
 
+      // Bail out on error
+      if (err) {
+        res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
+        res.end('Database error');
+        return;
+      }
+
+      // 403 'em on bad password or nonexistant user
+      if (badPw || !obj) {
+        res.writeHead(403, {'Content-Type': 'text/plain; charset=utf-8'});
+        res.end('Bad login info');
+        return;
+      }
+
+      // Prepare the listing
+      var listing = new models.Listing();
+      listing.description = fields.description;
+      listing.price = parseInt(fields.price);
+      listing.sold = false;
+      listing.creator = obj.creator;
+      listing.accepted = null;
+
+      // Bootstrap the listing so that we have an ID to use later
+      listing.bootstrap().genId(function() {
+
+        // Create the listing image
+        listings.createImg(files.photo, function(err, id) {
+
+          // Bail out on errors
+          if (err) {
+            res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
+            res.end('Error converting photo');
+            return;
+          }
+
+          // Set the image on the listing
+          listing.photo = id;
+
+          // Set up the email autoresponder
+          listing.email = email.makeRoute(listing._id.replace('/', '-'), '/iapi/email/' + listing._id);
+
+          // And finally, save the listing
+          db.apply(listing, function() {
+            // FIXME - error handling?
+
+            // Tell the client we succeeded
+            res.writeHead(201, {'Content-Type': 'text/plain; charset=utf-8'});
+            res.end(listing._id);
+
+            // Notify the user that their listing was posted
+            email.send('Listing Created', fields.email, 'We\'ve Listed Your Item',
+              templating['email/listing_created'].render({id: listing._id}));
+
+            // Notify Hipsell that the listing was posted
+            email.send(null, 'crosspost@hipsell.com', 'New Listing',
+              templating['email/listing_created_cc'].render({id: listing._id}));
+          });
+        });
+      });
+    });
 
   });
 });
