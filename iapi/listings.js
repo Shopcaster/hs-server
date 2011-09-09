@@ -151,6 +151,7 @@ var serve2 = cors.wrap(function(req, res) {
       listing.sold = false;
       listing.creator = obj.creator;
       listing.accepted = null;
+      listing.location = [parseFloat(fields.latitude), parseFloat(fields.longitude)];
 
       // Bootstrap the listing so that we have an ID to use later
       listing.bootstrap().genId(function() {
