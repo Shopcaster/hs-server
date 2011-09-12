@@ -156,37 +156,48 @@ var serve2 = cors.wrap(function(req, res) {
       // Bootstrap the listing so that we have an ID to use later
       listing.bootstrap().genId(function() {
 
-        // Create the listing image
-        listings.createImg(files.photo, function(err, id) {
+        // Read the contents of the saved image into memory
+        fs.readFile(files.photo, function(err, data) {
 
-          // Bail out on errors
+          // Bail on errors
           if (err) {
-            res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
-            res.end('Error converting photo');
+            res.writeHead({'Content-Type': 'text/plain; charset=utf-8'});
+            res.end('Error reading photo');
             return;
           }
 
-          // Set the image on the listing
-          listing.photo = id;
+          // Create the listing image
+          listings.createImg(data, function(err, id) {
 
-          // Set up the email autoresponder
-          listing.email = email.makeRoute(listing._id.replace('/', '-'), '/iapi/email/' + listing._id);
+            // Bail out on errors
+            if (err) {
+              res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
+              res.end('Error converting photo');
+              return;
+            }
 
-          // And finally, save the listing
-          db.apply(listing, function() {
-            // FIXME - error handling?
+            // Set the image on the listing
+            listing.photo = id;
 
-            // Tell the client we succeeded
-            res.writeHead(201, {'Content-Type': 'text/plain; charset=utf-8'});
-            res.end(listing._id);
+            // Set up the email autoresponder
+            listing.email = email.makeRoute(listing._id.replace('/', '-'), '/iapi/email/' + listing._id);
 
-            // Notify the user that their listing was posted
-            email.send('Listing Created', fields.email, 'We\'ve Listed Your Item',
-              templating['email/listing_created'].render({id: listing._id}));
+            // And finally, save the listing
+            db.apply(listing, function() {
+              // FIXME - error handling?
 
-            // Notify Hipsell that the listing was posted
-            email.send(null, 'crosspost@hipsell.com', 'New Listing',
-              templating['email/listing_created_cc'].render({id: listing._id}));
+              // Tell the client we succeeded
+              res.writeHead(201, {'Content-Type': 'text/plain; charset=utf-8'});
+              res.end(listing._id);
+
+              // Notify the user that their listing was posted
+              email.send('Listing Created', fields.email, 'We\'ve Listed Your Item',
+                templating['email/listing_created'].render({id: listing._id}));
+
+              // Notify Hipsell that the listing was posted
+              email.send(null, 'crosspost@hipsell.com', 'New Listing',
+                templating['email/listing_created_cc'].render({id: listing._id}));
+            });
           });
         });
       });
