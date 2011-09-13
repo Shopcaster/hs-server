@@ -17,8 +17,6 @@ var serve = cors.wrap(function(req, res) {
   var query = _url.parse(req.url).query;
   query = query ? querystring.parse(query) : {};
 
-  console.log(url, query);
-
   // If we have a return path, the error/success functions do redirects
   if (query['return']) {
 

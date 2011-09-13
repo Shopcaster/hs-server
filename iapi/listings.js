@@ -95,7 +95,7 @@ var serve = cors.wrap(function(req, _finish) {
   });
 });
 
-var serve2 = cors.wrap(function(req, res) {
+var serve2 = function(req, finish) {
 
   // We only serve POSTs here.
   if (req.method != 'POST') return finish(405, 'Method not allowed');
@@ -169,7 +169,7 @@ var serve2 = cors.wrap(function(req, res) {
     });
 
   });
-});
+};
 
 exports.serve = serve;
 exports.serve2 = serve2;
