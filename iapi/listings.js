@@ -104,6 +104,12 @@ var serve2 = function(req, finish) {
   var form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
 
+    // Handle errors
+    if (err) {
+      console.log(err.message || err);
+      return finish(400, 'Bad multipart data');
+    }
+
     // Make sure all the required data is there
     if (!fields.email || !fields.password || !fields.description
     || !fields.price || !fields.latitude || !fields.longitude
