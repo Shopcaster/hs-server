@@ -9,12 +9,15 @@ var querystring = require('querystring'),
     avatar = require('./avatar');
 
 var serve = cors.wrap(function(req, res) {
+
+  // Strip the leading /iapi/ for easier dispatching
   var url = req.url.substr(6);
 
-
   // Grab the query
-  var query = _url.parse(url).query;
-  query = query ? querystring.parse(url.query) : {};
+  var query = _url.parse(req.url).query;
+  query = query ? querystring.parse(query) : {};
+
+  console.log(url, query);
 
   // If we have a return path, the error/success functions do redirects
   if (query['return']) {
@@ -45,7 +48,7 @@ var serve = cors.wrap(function(req, res) {
       ret.search = '?' + ret.query;
 
       // Write the response
-      res.writeHead(303, {'Location': _url.format(url)});
+      res.writeHead(303, {'Location': _url.format(ret)});
       res.end();
     };
 

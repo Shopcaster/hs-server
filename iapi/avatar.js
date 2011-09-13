@@ -18,7 +18,7 @@ var serve = cors.wrap(function(req, finish) {
   form.parse(req, function(err, fields, files) {
 
     // Make sure the fields we need are there
-    if (!fields.email || !fields.password || !fields.return || !files.avatar)
+    if (!fields.email || !fields.password || !files.avatar)
       return finish(400, 'Missing Field');
 
     // Grab the user.
