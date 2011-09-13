@@ -50,26 +50,29 @@ var graph = function(auth, path, method, data, callback) {
   });
 };
 
-var callback = function(req, res) {
+var callback = function(req, finish) {
   var args = querystring.parse(url.parse(req.url).query);
-
-  // Handle errors
-  if (args.error) return common.error(res, session.ret, args.error);
 
   // Verify that the session is valid and hasn't expired
   if (!common.sessions[args.state]) {
     console.log('Client return from Facebook auth callback with invalid session');
     console.log('');
 
-    res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
-    res.end('Invalid session.');
-
-    return;
+    return finish(500, 'Invalid session');
   }
 
   // Fetch the session
   var session = common.sessions[args.state];
   delete common.sessions[args.state];
+
+  // From here on, we have to use common's return functions rather than
+  // using finish directly.  We have to do a manual redirect due to
+  // the way oauth flow works; the original request had the `return`
+  // query param set, but this redirect from Facebook doesn't.  Instead,
+  // we use the return url stored in the session.
+
+  // Handle errors
+  if (args.error) return common.error(args.error, session.ret, finish);
 
   // Now that we have an authorization code, we can get an access
   // token to the API
@@ -87,7 +90,7 @@ var callback = function(req, res) {
       if (data) console.log(data);
       console.log('');
 
-      return common.error('Unexpected error', session.ret, res);
+      return common.error('Unexpected error', session.ret, finish);
     }
 
     // Parse the data
@@ -108,7 +111,7 @@ var callback = function(req, res) {
         if (data) console.log(data);
         console.log('');
 
-        return common.error('Unable to fetch user data', session.ret, res);
+        return common.error('Unable to fetch user data', session.ret, finish);
       }
 
       // Parse the data
@@ -119,7 +122,7 @@ var callback = function(req, res) {
         console.log(data);
         console.log('');
 
-        return common.error('Bad data from Facebook', session.ret, res);
+        return common.error('Bad data from Facebook', session.ret, finish);
       }
 
       // Store the link in the user's profile
@@ -129,13 +132,13 @@ var callback = function(req, res) {
       db.apply(user);
 
       // Redirect back to the client
-      return common.success('true', session.ret, res);
+      return common.success('true', session.ret, finish);
     });
   });
 };
 
 // Connects a user's account to a Facebook account
-var connect = function(req, res) {
+var connect = function(req, finish) {
 
   // Query args contains relevant info
   var args = querystring.parse(url.parse(req.url).query);
@@ -144,10 +147,10 @@ var connect = function(req, res) {
   auth.authUser(args.email, args.password, function(err, bad, obj) {
 
     // Handle errors with, well, errors.
-    if (err) return common.error('Unexpected server error', args['return'], res);
+    if (err) return finish(500, 'Unexpected server error');
 
     // If the auth was incorrect or missing, throw out a 403
-    if (bad || !obj) return common.error('Incorrect login', args['return'], res);
+    if (bad || !obj) return finish(403, 'Incorrect login');
 
     // Set up the "session"
     var s = new common.Session();
@@ -161,8 +164,7 @@ var connect = function(req, res) {
               '&state=' + s.id +
               '&scope=' + 'publish_stream';
 
-    res.writeHead(302, {'Location': url});
-    res.end();
+    finish(303, url);
   });
 
 };

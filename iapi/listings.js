@@ -8,14 +8,10 @@ var querystring = require('querystring'),
     email = require('../email'),
     auth = require('../handlers/auth');
 
-var serve = cors.wrap(function(req, res) {
+var serve = cors.wrap(function(req, _finish) {
 
   // We only serve POSTs here.
-  if (req.method != 'POST') {
-    res.writeHead(405, {'Content-Type': 'text/html; charset=utf-8'});
-    res.end('Method Not Allowed');
-    return;
-  }
+  if (req.method != 'POST') return _finish(405, 'Method not allowed');
 
   //collect the data
   var data = '';
@@ -45,10 +41,7 @@ var serve = cors.wrap(function(req, res) {
           //resize the image
           listings.createImg(q.photo, function(err, id) {
             //handle errors
-            if (err) {
-              res.writeHead(500, {'Content-Type': 'text/plain'});
-              return res.end('Server Error');
-            }
+            if (err) return _finish(500, 'Server error');
 
             //set the photo field
             fs.photo = id;
@@ -63,10 +56,8 @@ var serve = cors.wrap(function(req, res) {
             db.apply(fs, function() {
 
               // Tell the client we succeeded
-              res.writeHead(201, {'Content-Type': 'application/json'});
-
-              res.end('{"listing": "' + fs._id + '", ' +
-                      '"password": "' + obj.password + '"}');
+              _finish(201, '{"listing": "' + fs._id + '", ' +
+                           '"password": "' + obj.password + '"}');
 
               // Generate the message
               var msg = templating['email/listing_created'].render({id: fs._id});
@@ -86,8 +77,7 @@ var serve = cors.wrap(function(req, res) {
 
       //500 on db error
       if (err) {
-        res.writeHead(500, {'Content-Type': 'text/plain'});
-        return res.end('Server Error');
+        return _finish(500, 'Server error');
       // If there was no user for this email, create one
       } else if (!obj) {
         auth.signup(q.email, function(auth, user) {
@@ -97,8 +87,7 @@ var serve = cors.wrap(function(req, res) {
         });
       //403 if passwords don't match, or if the user doesn't exist
       } else if (obj.password !== q.password) {
-        res.writeHead(403, {'Content-Type': 'text/plain'});
-        return res.end('Forbidden');
+        return _finish(403, 'Forbidden');
       } else {
         finish();
       }
@@ -109,11 +98,7 @@ var serve = cors.wrap(function(req, res) {
 var serve2 = cors.wrap(function(req, res) {
 
   // We only serve POSTs here.
-  if (req.method != 'POST') {
-    res.writeHead(405, {'Content-Type': 'text/html; charset=utf-8'});
-    res.end('Method Not Allowed');
-    return;
-  }
+  if (req.method != 'POST') return finish(405, 'Method not allowed');
 
   // Parse the incoming form
   var form = new formidable.IncomingForm();
@@ -122,27 +107,16 @@ var serve2 = cors.wrap(function(req, res) {
     // Make sure all the required data is there
     if (!fields.email || !fields.password || !fields.description
     || !fields.price || !fields.latitude || !fields.longitude
-    || !files.photo) {
-      res.writeHead(400, {'Content-Type': 'text/plain; charset=utf-8'});
-      res.end('Missing required field');
-    }
+    || !files.photo) return finish(400, 'Missing required field');
 
     // Make sure auth is OK
     auth.authUser(fields.email, fields.password, function(err, badPw, obj) {
 
       // Bail out on error
-      if (err) {
-        res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
-        res.end('Database error');
-        return;
-      }
+      if (err) return finish(500, 'Database error');
 
       // 403 'em on bad password or nonexistant user
-      if (badPw || !obj) {
-        res.writeHead(403, {'Content-Type': 'text/plain; charset=utf-8'});
-        res.end('Bad login info');
-        return;
-      }
+      if (badPw || !obj) return finish(403, 'Bad credentials');
 
       // Prepare the listing
       var listing = new models.Listing();
@@ -160,21 +134,13 @@ var serve2 = cors.wrap(function(req, res) {
         fs.readFile(files.photo.path, function(err, data) {
 
           // Bail on errors
-          if (err) {
-            res.writeHead({'Content-Type': 'text/plain; charset=utf-8'});
-            res.end('Error reading photo');
-            return;
-          }
+          if (err) return finish(500, 'Error reading photo');
 
           // Create the listing image
           listings.createImg(data, function(err, id) {
 
             // Bail out on errors
-            if (err) {
-              res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
-              res.end('Error converting photo');
-              return;
-            }
+            if (err) return finish(500, 'Error processing photo');
 
             // Set the image on the listing
             listing.photo = id;
@@ -187,8 +153,7 @@ var serve2 = cors.wrap(function(req, res) {
               // FIXME - error handling?
 
               // Tell the client we succeeded
-              res.writeHead(201, {'Content-Type': 'text/plain; charset=utf-8'});
-              res.end(listing._id);
+              finish(201, listing._id);
 
               // Notify the user that their listing was posted
               email.send('Listing Created', fields.email, 'We\'ve Listed Your Item',
