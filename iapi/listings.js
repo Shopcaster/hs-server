@@ -157,7 +157,7 @@ var serve2 = cors.wrap(function(req, res) {
       listing.bootstrap().genId(function() {
 
         // Read the contents of the saved image into memory
-        fs.readFile(files.photo, function(err, data) {
+        fs.readFile(files.photo.path, function(err, data) {
 
           // Bail on errors
           if (err) {
