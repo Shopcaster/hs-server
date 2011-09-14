@@ -14,7 +14,13 @@ var Session = function() {
 };
 Session.prototype = {};
 
-var doReturn = function(arg, message, r, res) {
+// These exist to solve a redirect problem with oauth.  The regular
+// flow doesn't quite fit into the oauth approach, so we have to
+// hack it.
+var error = function(message, r, finish) { return doReturn('error', message, r, finish) };
+var success = function(message, r, finish) { return doReturn('success', message, r, finish) };
+
+var doReturn = function(arg, message, r, finish) {
   var url = _url.parse(r);
 
   // Update the query
@@ -23,12 +29,8 @@ var doReturn = function(arg, message, r, res) {
   url.query = querystring.stringify(url.query);
   url.search = '?' + url.query;
 
-  res.writeHead(302, {'Location': _url.format(url)});
-  res.end('');
-  return;
+  finish(303, _url.format(url));
 };
-var error = function(message, r, res) { return doReturn('error', message, r, res) };
-var success = function(message, r, res) { return doReturn('success', message, r, res) };
 
 exports.error = error;
 exports.success = success;

@@ -8,20 +8,16 @@ var types = {
 };
 
 
-var serve = function(req, res) {
+var serve = function(req, finish) {
   // Find the relevant type
   var type = querystring.parse(url.parse(req.url).query).type;
 
   // If type is bad, we bail
-  if (!type || !types.hasOwnProperty(type)) {
-    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
-    res.end('Bad type');
-    return;
-  }
+  if (!type || !types.hasOwnProperty(type)) return finish(400, 'Bad type');
 
   // Dispatch
-  if (req.url.match(/connect\/callback/)) return types[type].callback(req, res);
-  if (req.url.match(/connect/)) return types[type].connect(req, res);
+  if (req.url.match(/connect\/callback/)) return types[type].callback(req, finish);
+  if (req.url.match(/connect/)) return types[type].connect(req, finish);
 };
 
 exports.serve = serve;

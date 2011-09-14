@@ -69,7 +69,7 @@ var api = function(auth, path, method, data, callback) {
 
 };
 
-var connect = function(req, res) {
+var connect = function(req, finish) {
 
   // Query params contain user info and such
   var args = querystring.parse(url.parse(req.url).query);
@@ -77,10 +77,8 @@ var connect = function(req, res) {
   // Make sure the user supplied a valid email/password combo
   auth.authUser(args.email, args.password, function(err, bad, obj) {
 
-    // Handle errors with, well, errors
-    if (err) return common.error('Incorrect login', args['return'], res);
-    // If the auth was incorrect or missing, bail
-    if (bad || !obj) return common.error('Incorrect login', args['return'], res);
+    // Handle errors the same way we handle incorrect/missing auth.
+    if (err || bad || !obj) return finish(403, 'Bad credentials');
 
     // Set up the "session"
     var s = new common.Session();
@@ -97,19 +95,18 @@ var connect = function(req, res) {
         console.log(err.stack);
         console.log('');
 
-        return common.error('Error fetching Twitter request token', args['return'], res);
+        return finish(500, 'Error fetching Twitter request token');
       }
 
       // Send the user to the authorization page
       var url = 'http://api.twitter.com/oauth/authorize?oauth_token=' + token.token;
-      res.writeHead(302, {'Location': url});
-      res.end();
+      finish(302, url);
     });
   });
 };
 
 // OAuth verification callback
-var callback = function(req, res) {
+var callback = function(req, finish) {
   var args = querystring.parse(url.parse(req.url).query);
 
   // Verify that the session is valid and hasn't expired
@@ -117,16 +114,20 @@ var callback = function(req, res) {
     console.log('Client returned from Twitter auth callback with invalid session');
     console.log('');
 
-    res.writeHead(500, {'Content-Type': 'text/html; charset=utf-8'});
-    res.end('Invalid session.');
-    return;
+    return finish(500, 'Invalid session');
   }
 
   // Fetch the session
   var session = common.sessions[args.state];
   delete common.sessions[args.state];
 
-  // TODO - handle errors?
+  // From here on, we have to use common's return functions rather than
+  // using finish directly.  We have to do a manual redirect due to
+  // the way oauth flow works; the original request had the `return`
+  // query param set, but this redirect from Twitter doesn't.  Instead,
+  // we use the return url stored in the session.
+
+  // TODO - handle errors from the oauth redirect (in the get args?)
 
   // Build the token
   var token = new oauth.Token(args.oauth_token);
@@ -135,7 +136,7 @@ var callback = function(req, res) {
   client.accessToken('/oauth/access_token', token, function(err, token) {
 
     // Handle errors
-    if (err) return common.error('Failed to authenticate with Twitter', session.ret, res);
+    if (err) return common.error('Failed to authenticate with Twitter', session.ret, finish);
 
     // Save the oauth token on the user's record
     session.auth.twitter_token = token.token;
@@ -152,7 +153,7 @@ var callback = function(req, res) {
         if (data) console.log(data);
         console.log('');
 
-        return common.error('Unable to fetch user data', session.ret, res);
+        return common.error('Unable to fetch user data', session.ret, finish);
       }
 
       // Store the link in the user's profile
@@ -162,7 +163,7 @@ var callback = function(req, res) {
       db.apply(user);
 
       // Redirect back to the client
-      return common.success('true', session.ret, res);
+      return common.success('true', session.ret, finish);
     });
   });
 

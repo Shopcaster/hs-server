@@ -1,6 +1,5 @@
 var _url = require('url'),
     querystring = require('querystring'),
-    common = require('./common'),
     _facebook = require('./facebook'),
     _twitter = require('./twitter'),
     cors = require('../../util/cors'),
@@ -105,34 +104,23 @@ var twitter = function(auth, listing, reauth, success, fail) {
 
 };
 
-var serve = cors.wrap(function(req, res) {
+var serve = function(req, finish) {
 
   // Parse out the url
   var url = _url.parse(req.url);
 
   // Make sure there was a query
-  if (!url.query) {
-    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
-    res.end('Bad Request');
-    return;
-  }
+  if (!url.query) return finish(400, 'Bad request');
 
   // Parse the query
   url.query = querystring.parse(url.query);
 
-  // Make sure the return url was supplied
-  if (!url.query.return) {
-    res.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
-    res.end('No return URL supplied');
-    return;
-  }
-
   // Helper functions
   var fail = function(m) {
-    return common.error(m, url.query.return, res);
+    return finish(500, m);
   };
   var succeed = function() {
-    return common.success('true', url.query.return, res);
+    return finish(200);
   };
 
   // Because we use this URL as the return url for registration, we
@@ -193,8 +181,7 @@ var serve = cors.wrap(function(req, res) {
         });
 
         // Do the redirect
-        res.writeHead('303', {'Location': cUrl});
-        res.end('');
+        return finish(303, cUrl);
       };
 
       // At this point, we have an auth object, the listing object, and
@@ -208,7 +195,7 @@ var serve = cors.wrap(function(req, res) {
         return fail('Unknown social type');
     });
   });
-});
+};
 
 exports.serve = serve;
 
