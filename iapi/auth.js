@@ -30,7 +30,7 @@ var serve = function(req, finish) {
 
 };
 
-var signup = function(req, res) {
+var signup = function(req, finish) {
 
   // Expect a POST
   if (req.method != 'POST') return finish(405, 'Method not allowed');
