@@ -51,7 +51,7 @@ var signup = function(req, finish) {
 
       // If we were passed back an auth object, we need to tell the
       // user that the email has already been registered.
-      if (obj) finish(409, 'Email already registered');
+      if (obj) return finish(409, 'Email already registered');
 
       // Otherwise, we're ok to sign up the user
       auth.signup(email, function(obj, user) {
