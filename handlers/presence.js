@@ -11,8 +11,8 @@ var sub = function(client, data, callback, errback) {
     client.on('disconnect', function() {
       for (var i in client.state.presenceSubs) if (client.state.presenceSubs.hasOwnProperty(i)) {
         unsub(client, {user: i}, function() {}, function() {});
-        delete client.state.presenceSubs;
       }
+      delete client.state.presenceSubs;
     });
   }
 
