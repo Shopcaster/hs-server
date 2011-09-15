@@ -9,9 +9,8 @@ var sub = function(client, data, callback, errback) {
 
     //clear all presence subscriptions when the user disconnects
     client.on('disconnect', function() {
-      for (var i in client.state.presenceSubs) if (client.state.presenceSubs.hasOwnProperty(i)) {
+      for (var i in client.state.presenceSubs) if (client.state.presenceSubs.hasOwnProperty(i))
         unsub(client, {user: i}, function() {}, function() {});
-      }
       delete client.state.presenceSubs;
     });
   }
@@ -35,12 +34,8 @@ var sub = function(client, data, callback, errback) {
 
 var unsub = function(client, data, callback, errback) {
 
-  if (client.state.presenceSubs[data.user]) {
-    presence.events.removeListener(data.user, client.state.presenceSubs[data.user]);
-    delete client.state.presenceSubs[data.user];
-  } else {
-    console.log('Warning: trying to unsub-presence with no actual sub');
-  }
+  presence.events.removeListener(data.user, client.state.presenceSubs[data.user]);
+  delete client.state.presenceSubs[data.user];
 
   callback(true);
 };
