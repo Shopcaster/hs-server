@@ -79,8 +79,6 @@ var twitter = function(auth, listing, reauth, success, fail) {
   //geo
   data.lat = listing.location[0];
   data.long = listing.location[1];
-  //ensure correct format
-  data = querystring.stringify(data);
 
   // Post the tweet
   _twitter.api(auth, '/1/statuses/update', 'POST', data, function(err, result) {
@@ -98,6 +96,8 @@ var twitter = function(auth, listing, reauth, success, fail) {
 
       // Some other error we can't recover from
       default:
+        console.log('Error sharing on Twitter:');
+        console.log(result);
         return fail();
     }
   });

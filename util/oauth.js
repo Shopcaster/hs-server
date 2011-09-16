@@ -47,6 +47,17 @@ var uuid = require('./uuid'),
     http = require('http'),
     https = require('https');
 
+// OAuth requires escaping of a broader set of characters than
+// querystring, so we have to roll our own.
+var oauthParamEscape = function(s) {
+  return encodeURIComponent(s)
+         .replace('*', '%2A')
+         .replace('!', '%21')
+         .replace('\'', '%27')
+         .replace('(', '%28')
+         .replace(')', '%29');
+};
+
 var baseString = function(method, url, params) {
   var urlSplit = url.split('?');
 
@@ -70,9 +81,9 @@ var baseString = function(method, url, params) {
   var parts = [];
   for (var i=0; i<ps.length; i++) {
     var p = '';
-    p += querystring.escape(ps[i]);
+    p += oauthParamEscape(ps[i]);
     p += '%3D';
-    p += querystring.escape(params[ps[i]] || urlParams[ps[i]]);
+    p += oauthParamEscape(params[ps[i]] || urlParams[ps[i]]);
     parts.push(p);
   }
   res += parts.join('%26');
@@ -127,13 +138,7 @@ var OAuth = function(key, secret, api, crypto) {
 OAuth.prototype = {};
 
 // Clone of the regular http request functionality
-OAuth.prototype.request = function(options, data, callback) {
-
-  // Magic args
-  if (typeof data == 'function') {
-    callback = data;
-    data = undefined;
-  }
+OAuth.prototype.request = function(options, callback) {
 
   // Get extra stuff out of options
   var token = options.token;
@@ -178,7 +183,11 @@ OAuth.prototype.request = function(options, data, callback) {
   if (options.postData) {
     var b = querystring.parse(options.postData);
     for (var i in b) if (b.hasOwnProperty(i))
-      sigParams[i] = b[i];
+      // We have to re-escape them because we actually WANT the escaped
+      // forms.  OAuth is dumb.
+      sigParams[oauthParamEscape(i)] = oauthParamEscape(b[i]);
+
+    delete options.postData;
   }
 
   // Generate the signature

@@ -18,7 +18,7 @@ var api = function(auth, path, method, data, callback) {
   if (data) {
     data = querystring.stringify(data);
     headers = {'Content-Length': Buffer.byteLength(data),
-               'Content-Type': 'x-www-form-urlencoded'};
+               'Content-Type': 'application/x-www-form-urlencoded'};
   }
 
   // Build our oauth token
@@ -63,7 +63,7 @@ var api = function(auth, path, method, data, callback) {
       }
 
       callback((res.statusCode != 200
-             && res.statusCode != 201) ? res.statusCode : undefined,body);
+             && res.statusCode != 201) ? res.statusCode : undefined, body);
     });
   });
   if (data)
