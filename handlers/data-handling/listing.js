@@ -2,7 +2,8 @@ var db = require('../../db'),
     models = require('../../models'),
     external = require('../../util/external'),
     email = require('../../email'),
-    templating = require('../../templating');
+    templating = require('../../templating'),
+    settings = require('../../settings');
 
 var createImg = function(b, callback) {
   var img = new models.File();
@@ -73,9 +74,12 @@ var create = function(client, data, callback, errback) {
         // Notify the user that their listing was posted
         email.send('New Listing', client.state.auth.email, 'We\'ve Listed Your Item', msg);
 
-        //Notify hipsell that the listing was posted
-        email.send(null, 'crosspost@hipsell.com', 'New Listing',
-          templating['email/listing_created_cc'].render({id: fs._id}));
+        // Notify hipsell that the listing was posted, but only in
+        // production.
+        if (settings.getMode() == 'production')
+          email.send(null, 'crosspost@hipsell.com', 'New Listing',
+            templating['email/listing_created_cc'].render({id: fs._id}));
+
       });
     });
   });

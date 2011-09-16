@@ -6,7 +6,8 @@ var querystring = require('querystring'),
     db = require('../db'),
     templating = require('../templating'),
     email = require('../email'),
-    auth = require('../handlers/auth');
+    auth = require('../handlers/auth'),
+    settings = require('../settings');
 
 var serve = cors.wrap(function(req, _finish) {
 
@@ -165,9 +166,12 @@ var serve2 = function(req, finish) {
               email.send('Listing Created', fields.email, 'We\'ve Listed Your Item',
                 templating['email/listing_created'].render({id: listing._id}));
 
-              // Notify Hipsell that the listing was posted
-              email.send(null, 'crosspost@hipsell.com', 'New Listing',
-                templating['email/listing_created_cc'].render({id: listing._id}));
+              // Notify Hipsell that the listing was posted, but only
+              // in production mode.
+              if (settings.getMode() == 'production')
+                email.send(null, 'crosspost@hipsell.com', 'New Listing',
+                  templating['email/listing_created_cc'].render({id: listing._id}));
+
             });
           });
         });
