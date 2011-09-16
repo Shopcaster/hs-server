@@ -155,7 +155,7 @@ var makeRoute = function(email, dest) {
 
   // If email sending is disabled, we just print routes to the console.
   if (disabled) {
-    console.log('New email route from ' + email + mgSettings.server +' --> ' + dest);
+    console.log('New email route from ' + email + '@' + mgSettings.server +' --> ' + dest);
     console.log('');
     return email + mgSettings.server;
   }
