@@ -74,9 +74,9 @@ var connect = function(req, finish) {
   auth.authUser(args.email, args.password, function(err, bad, obj) {
 
     // Handle errors by failing -- with class
-    if (err) return common.error('Unexpected server error', args['return'], res);
+    if (err) return common.error('Unexpected server error', args['return'], finish);
     // If the auth was incorrect of missing, bail
-    if (bad || !obj) return common.error('Incorrect login', args['return'], res);
+    if (bad || !obj) return common.error('Incorrect login', args['return'], finish);
 
     // Set up the "session"
     var s = new common.Session();
@@ -96,8 +96,12 @@ var connect = function(req, finish) {
         return finish(500, 'Error fetching LinkedIn request token');
       }
 
+      // Save the token
+      s.token = token;
+
       // Send the user to the authorization page
       var url = 'https://www.linkedin.com/uas/oauth/authorize?oauth_token=' + token.token;
+
       return finish(302, url);
     });
   });
@@ -128,7 +132,7 @@ var callback = function(req, finish) {
   // TODO - handle errors from the oauth redirect (in the get args?)
 
   // Build the token
-  var token = new oauth.Token(args.oauth_token);
+  var token = session.token;
   token.verifier = args.oauth_verifier;
 
   client.accessToken('/uas/oauth/accessToken', token, function(err, token) {
@@ -158,10 +162,8 @@ var callback = function(req, finish) {
       // Store the link in the user's profile
       var user = new models.User();
       user._id = session.auth.creator;
-      user.linkedin = data['site-public-profile-request'].url;
+      user.linkedin = data.sitePublicProfileRequest.url;
       db.apply(user);
-
-      console.log(user);
 
       // Redirect back to the client
       return common.success('true', session.ret, finish);

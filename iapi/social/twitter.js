@@ -13,8 +13,13 @@ var client = new oauth.OAuth('b9V0NzaBlCxbWdLz1OQT5A',
 
 var api = function(auth, path, method, data, callback) {
   var headers = undefined;
-  if (data)
-    headers = {'Content-Length': Buffer.byteLength(data)};
+
+  // Use standard POST body for the data
+  if (data) {
+    data = querystring.stringify(data);
+    headers = {'Content-Length': Buffer.byteLength(data),
+               'Content-Type': 'x-www-form-urlencoded'};
+  }
 
   // Build our oauth token
   var token = undefined;
@@ -31,6 +36,10 @@ var api = function(auth, path, method, data, callback) {
     headers: headers,
     token: token
   };
+
+  // Add the post data so the sig can be built off it
+  if (data)
+    options.postData = data;
 
   var req = client.request(options, function(res) {
     var body = '';

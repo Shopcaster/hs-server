@@ -77,8 +77,6 @@ var baseString = function(method, url, params) {
   }
   res += parts.join('%26');
 
-  console.log(res);
-
   return res;
 };
 
@@ -129,7 +127,13 @@ var OAuth = function(key, secret, api, crypto) {
 OAuth.prototype = {};
 
 // Clone of the regular http request functionality
-OAuth.prototype.request = function(options, callback) {
+OAuth.prototype.request = function(options, data, callback) {
+
+  // Magic args
+  if (typeof data == 'function') {
+    callback = data;
+    data = undefined;
+  }
 
   // Get extra stuff out of options
   var token = options.token;
@@ -167,9 +171,19 @@ OAuth.prototype.request = function(options, callback) {
   if (token && token.token)
     params.oauth_token = token.token;
 
+  // Build the sig params
+  var sigParams = {};
+  for (var i in params) if (params.hasOwnProperty(i))
+    sigParams[i] = params[i];
+  if (options.postData) {
+    var b = querystring.parse(options.postData);
+    for (var i in b) if (b.hasOwnProperty(i))
+      sigParams[i] = b[i];
+  }
+
   // Generate the signature
   var uri = (this.secure ? 'https' : 'http') + '://' + this.api.toLowerCase() + options.path;
-  params.oauth_signature = querystring.escape(genSig(options.method, uri, params, this, token && token.secret));
+  params.oauth_signature = querystring.escape(genSig(options.method, uri, sigParams, this, token && token.secret));
 
   // Build the OAuth auth header from the signature
   var authHeader = 'OAuth ';
