@@ -184,9 +184,6 @@ XHRTransport.prototype._doDisconnect = function(req, res, cid) {
   if (this.connections[cid])
     this.disconnect(this.connections[cid]);
 
-  // Remove the DC timeout
-  this._stopDCTimeout(cid);
-
   // Give the all clear
   res.end('ok');
 };
@@ -207,6 +204,16 @@ XHRTransport.prototype._doSend = function(req, res, cid) {
     if (!cid) return res.end('cid');
     if (!self.connections[cid]) return res.end('dc');
     var con = self.connections[cid];
+
+    // Let the client know everything worked.  We do this *before*
+    // trying to handle messages, as it solves a potential race
+    // condition where the client thinks the send call has timed
+    // out while the server is processing the messages.
+    //
+    // Assuming it's not a parsing error, all the messages will get
+    // handled anyway, so it works the same from the client's
+    // perspective.
+    res.end('ok');
 
     // Parse out the messages
     var messages = [];
@@ -234,9 +241,6 @@ XHRTransport.prototype._doSend = function(req, res, cid) {
       // everything be raising an uncaught exception.
       } catch (err) {}
     }
-
-    // Let the client know everything worked.
-    res.end('ok');
 
     // Reset the DC timeout if one's running
     if (self._stopDCTimeout(cid))
@@ -378,12 +382,15 @@ XHRTransport.prototype.disconnect = function(con) {
   delete this.connections[con.cid];
 
   // Unpause the connection if it happens to be paused
-  delete this.paused[cid];
+  delete this.paused[con.cid];
 
   // Disconnect a waiting poller
   if (this.pollers[con.cid])
     this.pollers[con.cid]();
   delete this.pollers[con.cid];
+
+  // Remove the DC timeout
+  this._stopDCTimeout(con.cid);
 
   // Fire the relevant events
   con.emit('disconnect');

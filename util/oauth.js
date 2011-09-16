@@ -33,6 +33,8 @@
 // This library does header-based OAuth using HMAC-SHA1
 //
 
+// TODO - support parameters in the body
+
 var Mode = {
   header: 0x01,
   body: 0x02
@@ -74,6 +76,8 @@ var baseString = function(method, url, params) {
     parts.push(p);
   }
   res += parts.join('%26');
+
+  console.log(res);
 
   return res;
 };

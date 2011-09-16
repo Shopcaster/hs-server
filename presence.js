@@ -6,75 +6,63 @@ var UserState = {
   away: 2
 };
 
-// user id -> client
-var online = {};
-// user id -> bool
-var away = {};
+// UserID -> [client, state]
+var presence = {};
 
 // Marks a client as online
 var online = function(client) {
-  //if the client isn't auth'd we can't do presence
+  // If the client isn't auth'd we can't do presence
   if (!client.state.auth) return;
 
-  //dry
+  // DRY
   var uid = client.state.auth.creator;
 
-  //track this client as online
-  if (!online[uid] || away[uid]) {
-    online[uid] = client;
-    delete away[uid];
+  // Set this client to online
+  presence[uid] = [client, UserState.online];
 
-    //fire the event for the userid
-    events.emit(uid, UserState.online);
-  }
+  // Fire the event for the userid
+  events.emit(uid, UserState.online);
 };
 
 // Marks a client as offline
 var offline = function(client) {
-  //if the client isn't auth'd we can't do presence
+  //iIf the client isn't auth'd we can't do presence
   if (!client.state.auth) return;
 
-  //dry
+  // DRY
   var uid = client.state.auth.creator;
 
-  //mark them as offline by removing them from the online list
-  delete online[uid];
+  // Mark them as offline by removing them from the presence list
+  delete presence[uid];
 
-  //fire the event for the userid
+  // Fire the event for the userid
   events.emit(uid, UserState.offline);
 };
 
 // Marks a client as away
 var away = function(client) {
-  //if the client isn't auth'd we can't do presence
+  // If the client isn't auth'd we can't do presence
   if (!client.state.auth) return;
 
-  //dry
+  // DRY
   var uid = client.state.auth.creator;
 
-  //if the user isn't online then they can't be away
-  if (!online[uid]) return;
+  // Mark them as away
+  presence[uid] = [client, UserState.away];
 
-  //mark 'em as away
-  away[uid] = true;
-
-  //fire the event for the userid
+  // Fire the event for the userid
   events.emit(uid, UserState.away);
 };
 
 var getState = function(uid) {
-  if (online[uid]) {
-    if (away[uid])
-      return UserState.away;
-    else
-      return UserState.online;
-  } else {
+  if (presence[uid])
+    return presence[uid][1];
+  else
     return UserState.offline;
-  }
 };
 
 var getClient = function(uid) {
-  return online[uid];
+  return presence[uid] ? presence[uid][0] : null;
 };
 
 // General Exports

@@ -4,10 +4,14 @@ var db = require('../../db'),
     email = require('../../email'),
     templating = require('../../templating');
 
-var createImg = function(img_b64, callback) {
+var createImg = function(b, callback) {
   var img = new models.File();
 
-  var b = new Buffer(img_b64, 'base64');
+  // If b is a string then handle it like base 64, which means we
+  // need to convert it to a buffer.
+  if (typeof b == 'string')
+    b = new Buffer(img_b64, 'base64');
+
   external.run('resize-img', b, function(err, res) {
     // Error handling
     if (err) {

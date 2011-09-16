@@ -7,28 +7,23 @@ var mailgun = require('mailgun'),
     nots = require('../notifications'),
     models = require('../models');
 
-var doResp = function(res, num, d) {
-  res.writeHead(num, {'Content-Type': 'text/html; charset=utf-8'});
-  res.end(d);
-};
-
-var serve = function(req, res) {
+var serve = function(req, _finish) {
   var match = req.url.match(/\w+\/\d+$/);
   var id = match && match[0];
 
   // If we couldn't grab what looks like a listing id from the URL, we
   // should bail.
-  if (!id) return doResp(res, 404, 'Not Found');
+  if (!id) return _finish(404, 'Not Found');
 
   var form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
 
     // Handle errors with basic fail
-    if (err) return doResp(res, 500, 'Server Error');
+    if (err) return _finish(500, 'Server Error');
 
     // Verify the request
     if (!email.verify(fields.timestamp, fields.token, fields.signature))
-      return doResp(res, 400, 'Bad Request');
+      return _finish(400, 'Bad Request');
 
     // Record the email in the database
     var m = new models.IncomingEmail();
@@ -53,14 +48,14 @@ var serve = function(req, res) {
                  '</h4><p>' + (fields['body-html'] || fields['body-plain']) + '</p>');
 
       // Bail out.
-      return doResp(res, 200, 'OK');
+      return _finish(200, 'OK');
     // Handle ad removed messages by forwarding them to the crossposter.
     } else if (fromKijiji && fields.subject.match(/^Your Kijiji Ad was removed/)) {
       email.send(null,
                  'crosspost@hipsell.com',
                  'Kijiji Ad Removed!',
                  '<p>' + (fields['body-html'] || fields['body-plain']) + '</p>');
-      return doResp(res, 200, 'OK');
+      return _finish(200, 'OK');
     }
 
     // Fetch the relevant listing
@@ -69,10 +64,10 @@ var serve = function(req, res) {
     db.get(listing, function(err, found) {
 
       // If there's no such listing, bail out
-      if (err || !found) return doResp(res, 404, 'Not Found');
+      if (err || !found) return _finish(404, 'Not Found');
 
       // Report success to mailgun, and handle the rest from here.
-      doResp(res, 200, 'OK');
+      _finish(200, 'OK');
 
       // If the listing is already sold, we skip a lot of the work
       // and just send a "No longer available" email.
