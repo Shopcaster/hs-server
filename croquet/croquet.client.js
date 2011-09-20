@@ -146,7 +146,8 @@ var croquet = {};
     // Add an event listeners to onbeforeunload so that we have a chance
     // to disconnect before the browser closes.
     var self = this;
-    window.addEventListener('beforeunload', function() {
+
+    var beforeunload = function(){
 
       // Set the status to disconnected
       self.status = 'disconnected';
@@ -174,8 +175,14 @@ var croquet = {};
           xhr.send();
         }
       }
-    }, false);
+    };
+
+    if (typeof window.attachEvent != 'undefined')
+      window.attachEvent('onbeforeunload', beforeunload);
+    else
+      window.addEventListener('beforeunload', beforeunload, false);
   };
+
   Connection.prototype = new EventEmitter();
   Connection.prototype.constructor = Connection;
 
