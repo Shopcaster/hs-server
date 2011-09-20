@@ -172,7 +172,7 @@ var connect = function(req, finish) {
               '&scope=' + 'publish_stream';
     // Add the mobile arg is neccessary
     if (isMobile)
-      url += '&display=wap';
+      url += '&display=touch';
 
     finish(303, url);
   });
