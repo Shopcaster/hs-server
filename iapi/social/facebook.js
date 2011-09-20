@@ -157,12 +157,22 @@ var connect = function(req, finish) {
     s.auth = obj;
     s.ret = args['return'];
 
+    // Figure out of this is coming from a mobile browser by checking
+    // the user agent string.
+    var ua = req.headers['user-agent'];
+    var isMobile = false;
+    if (ua.match(/Mobile/))
+      isMobile = true;
+
     // Redirect the user to begin the flow
     var url = 'https://www.facebook.com/dialog/oauth' +
               '?client_id=' + APP_ID +
               '&redirect_uri=' + querystring.escape(settings.serverUri + '/iapi/social/connect/callback?type=fb') +
               '&state=' + s.id +
               '&scope=' + 'publish_stream';
+    // Add the mobile arg is neccessary
+    if (isMobile)
+      url += '&display=wap';
 
     finish(303, url);
   });
